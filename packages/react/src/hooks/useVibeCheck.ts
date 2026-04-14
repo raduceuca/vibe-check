@@ -27,6 +27,36 @@ interface UseVibeCheckResult {
   readonly snapshot: VibeSnapshot
 }
 
+// Cheap shallow equality over the small, flat VibeCheckConfig shape. Replaces
+// per-render JSON.stringify which serialized the entire config plus any
+// nested `detectors` object on every render.
+const shallowConfigEqual = (
+  a: Partial<VibeCheckConfig> | undefined,
+  b: Partial<VibeCheckConfig> | undefined,
+): boolean => {
+  if (a === b) return true
+  if (!a || !b) return false
+  const aKeys = Object.keys(a) as (keyof VibeCheckConfig)[]
+  const bKeys = Object.keys(b) as (keyof VibeCheckConfig)[]
+  if (aKeys.length !== bKeys.length) return false
+  for (const k of aKeys) {
+    const av = a[k]
+    const bv = b[k]
+    if (av === bv) continue
+    if (k === 'detectors' && av && bv && typeof av === 'object' && typeof bv === 'object') {
+      const avKeys = Object.keys(av)
+      const bvKeys = Object.keys(bv)
+      if (avKeys.length !== bvKeys.length) return false
+      for (const dk of avKeys) {
+        if ((av as Record<string, unknown>)[dk] !== (bv as Record<string, unknown>)[dk]) return false
+      }
+      continue
+    }
+    return false
+  }
+  return true
+}
+
 export const useVibeCheck = (
   config?: Partial<VibeCheckConfig>,
   enabled = true
@@ -34,8 +64,14 @@ export const useVibeCheck = (
   const engineRef = useRef<VibeCheckEngine | null>(null)
   const [snapshot, setSnapshot] = useState<VibeSnapshot>(EMPTY_SNAPSHOT)
 
-  // Stable config reference — serialize to detect changes
-  const configKey = useMemo(() => JSON.stringify(config ?? {}), [config])
+  // Keep a stable reference to the config until it meaningfully changes.
+  const stableConfigRef = useRef<Partial<VibeCheckConfig> | undefined>(config)
+  const stableConfig = useMemo(() => {
+    if (!shallowConfigEqual(stableConfigRef.current, config)) {
+      stableConfigRef.current = config
+    }
+    return stableConfigRef.current
+  }, [config])
 
   useEffect(() => {
     if (!enabled) {
@@ -48,8 +84,7 @@ export const useVibeCheck = (
       return
     }
 
-    const parsedConfig: Partial<VibeCheckConfig> = JSON.parse(configKey)
-    const engine = new VibeCheckEngine(parsedConfig)
+    const engine = new VibeCheckEngine(stableConfig ?? {})
     engineRef.current = engine
 
     const unsubscribe = engine.onSnapshot((s) => {
@@ -63,7 +98,7 @@ export const useVibeCheck = (
       engine.stop()
       engineRef.current = null
     }
-  }, [enabled, configKey])
+  }, [enabled, stableConfig])
 
   return { engine: engineRef.current, snapshot }
 }

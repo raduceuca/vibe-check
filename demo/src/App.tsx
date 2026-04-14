@@ -1,447 +1,396 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { VibeCheck } from '@wcgw/vibe-check'
 
-// ── 1. Console Spam ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// A "vibe coded" landing page with VISIBLE performance anti-patterns.
+// Every problem is something you'd actually see on an AI-built site.
+// ══════════════════════════════════════════════════════════════════════════════
 
-const ConsoleSpammer = () => {
-  const [count, setCount] = useState(0)
-  const [spamming, setSpamming] = useState(false)
+const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif'
 
+// ── Nav ─────────────────────────────────────────────────────────────────────
+
+const Nav = () => {
+  // Anti-pattern: fetching user data on every mount without caching
   useEffect(() => {
-    if (!spamming) return
-    const id = setInterval(() => {
-      for (let i = 0; i < 5; i++) {
-        console.log('polling API...', { tick: count, i })
-      }
-      setCount((c) => c + 1)
-    }, 400)
-    return () => clearInterval(id)
-  }, [spamming, count])
-
-  return (
-    <Card title="Console Spam" detector="console-spam" desc="AI-generated code that logs excessively in a loop.">
-      <button style={spamming ? buttonDangerStyle : buttonStyle} onClick={() => setSpamming((s) => !s)}>
-        {spamming ? 'Stop' : 'Start Spamming'}
-      </button>
-      <p style={metricStyle}>console.log calls: {count * 5}</p>
-    </Card>
-  )
-}
-
-// ── 2. Console Errors & Warnings ─────────────────────────────────────────────
-
-const ConsoleErrors = () => {
-  const [errorCount, setErrorCount] = useState(0)
-  const [warnCount, setWarnCount] = useState(0)
-
-  const fireErrors = () => {
-    console.error('Uncaught TypeError: Cannot read properties of undefined (reading "map")')
-    console.error('Error: Failed to fetch user data', { status: 500, url: '/api/users' })
-    console.error('React: Each child in a list should have a unique "key" prop')
-    setErrorCount((c) => c + 3)
-  }
-
-  const fireWarnings = () => {
-    console.warn('Warning: componentWillMount has been renamed')
-    console.warn('React Router: No routes matched location "/undefined"')
-    console.warn('Warning: Can\'t perform a React state update on an unmounted component')
-    console.warn('[Deprecation] SharedArrayBuffer usage without cross-origin isolation')
-    setWarnCount((c) => c + 4)
-  }
-
-  return (
-    <Card title="Console Errors & Warnings" detector="console-spam" desc="Common errors from AI-generated code — missing keys, undefined access, deprecated APIs.">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={{ ...buttonStyle, background: '#f87171', color: '#fff' }} onClick={fireErrors}>
-          Fire 3 Errors
-        </button>
-        <button style={{ ...buttonStyle, background: '#facc15', color: '#000' }} onClick={fireWarnings}>
-          Fire 4 Warnings
-        </button>
-      </div>
-      <p style={metricStyle}>Errors: {errorCount} / Warnings: {warnCount}</p>
-    </Card>
-  )
-}
-
-// ── 3. DOM Bloat ─────────────────────────────────────────────────────────────
-
-const DomBloater = () => {
-  const [nodeCount, setNodeCount] = useState(0)
-
-  return (
-    <Card title="DOM Bloat" detector="dom-bloat" desc="Adds DOM nodes without virtualization. Warn at 800, error at 1500.">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={buttonStyle} onClick={() => setNodeCount((c) => c + 200)}>+200 Nodes</button>
-        <button style={buttonStyle} onClick={() => setNodeCount((c) => c + 500)}>+500 Nodes</button>
-        <button style={buttonMutedStyle} onClick={() => setNodeCount(0)}>Reset</button>
-      </div>
-      <p style={metricStyle}>Nodes: {nodeCount}</p>
-      <div style={{ maxHeight: 60, overflow: 'hidden', marginTop: 4 }}>
-        {Array.from({ length: nodeCount }, (_, i) => (
-          <span key={i} style={{ display: 'inline-block', width: 3, height: 3, background: '#4ade80', margin: '0.5px', borderRadius: 1, opacity: 0.6 }} />
-        ))}
-      </div>
-    </Card>
-  )
-}
-
-// ── 4. Duplicate Requests ────────────────────────────────────────────────────
-
-const DuplicateFetcher = () => {
-  const [fetchCount, setFetchCount] = useState(0)
-
-  const fireDuplicates = () => {
-    const url = 'https://jsonplaceholder.typicode.com/posts/1'
-    fetch(url).catch(() => {})
-    fetch(url).catch(() => {})
-    fetch(url).catch(() => {})
-    setFetchCount((c) => c + 3)
-  }
-
-  const fireMixed = () => {
-    // Different endpoints hit multiple times — simulates components each fetching their own data
     fetch('https://jsonplaceholder.typicode.com/users/1').catch(() => {})
     fetch('https://jsonplaceholder.typicode.com/users/1').catch(() => {})
-    fetch('https://jsonplaceholder.typicode.com/todos/1').catch(() => {})
-    fetch('https://jsonplaceholder.typicode.com/todos/1').catch(() => {})
-    setFetchCount((c) => c + 4)
-  }
+  }, [])
 
   return (
-    <Card title="Duplicate Requests" detector="duplicate-requests" desc="Same URL fetched multiple times with no caching (React Query, SWR).">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={buttonStyle} onClick={fireDuplicates}>3x Same URL</button>
-        <button style={buttonStyle} onClick={fireMixed}>2x Two URLs</button>
+    <nav style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '16px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+    }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>
+        VibeShip
       </div>
-      <p style={metricStyle}>Total fetches: {fetchCount}</p>
-    </Card>
-  )
-}
-
-// ── 5. Unoptimized Images ────────────────────────────────────────────────────
-
-const UnoptimizedImages = () => {
-  const [show, setShow] = useState(false)
-
-  return (
-    <Card title="Unoptimized Images" detector="unoptimized-images" desc="Missing loading='lazy', width, height attributes — causes CLS.">
-      <button style={buttonStyle} onClick={() => setShow((s) => !s)}>
-        {show ? 'Hide' : 'Show Bad Images'}
-      </button>
-      {show && (
-        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {/* No width, height, or loading="lazy" */}
-          <img src="https://picsum.photos/800/600" alt="no dimensions" style={{ maxWidth: 100, borderRadius: 4 }} />
-          <img src="https://picsum.photos/801/601" alt="no lazy" style={{ maxWidth: 100, borderRadius: 4 }} />
-          {/* Oversized: 2000px natural rendered at 100px */}
-          <img src="https://picsum.photos/2000/1500" alt="oversized render" style={{ maxWidth: 100, borderRadius: 4 }} />
-        </div>
-      )}
-    </Card>
-  )
-}
-
-// ── 6. Large Images ──────────────────────────────────────────────────────────
-
-const LargeImages = () => {
-  const [show, setShow] = useState(false)
-
-  return (
-    <Card title="Large Images (>500KB)" detector="large-images" desc="Uncompressed images — should use WebP/AVIF and match render dimensions.">
-      <button style={buttonStyle} onClick={() => setShow((s) => !s)}>
-        {show ? 'Hide' : 'Load Heavy Images'}
-      </button>
-      {show && (
-        <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-          {/* These are large uncompressed images */}
-          <img src="https://picsum.photos/3000/2000" alt="3000x2000 image" width={150} height={100} style={{ borderRadius: 4, objectFit: 'cover' }} />
-          <img src="https://picsum.photos/4000/3000" alt="4000x3000 image" width={150} height={100} style={{ borderRadius: 4, objectFit: 'cover' }} />
-        </div>
-      )}
-    </Card>
-  )
-}
-
-// ── 7. Layout Thrashing ──────────────────────────────────────────────────────
-
-const LayoutThrasher = () => {
-  const thrash = () => {
-    const el = document.createElement('div')
-    el.style.cssText = 'position:absolute;top:-9999px;width:100px'
-    document.body.appendChild(el)
-    for (let i = 0; i < 50; i++) {
-      el.style.width = `${100 + i}px`
-      void el.offsetWidth // Force synchronous layout
-    }
-    document.body.removeChild(el)
-  }
-
-  return (
-    <Card title="Layout Thrashing" detector="layout-thrashing" desc="Read/write geometry in a loop — forced synchronous reflows.">
-      <button style={buttonStyle} onClick={thrash}>Thrash 50 Reflows</button>
-    </Card>
-  )
-}
-
-// ── 8. Memory Leak ───────────────────────────────────────────────────────────
-
-const MemoryLeaker = () => {
-  const leakedArrays = useRef<number[][]>([])
-  const [leaking, setLeaking] = useState(false)
-  const [sizeMB, setSizeMB] = useState(0)
-
-  useEffect(() => {
-    if (!leaking) return
-    const id = setInterval(() => {
-      // Allocate ~1MB per tick without releasing
-      const arr = new Array(250_000).fill(Math.random())
-      leakedArrays.current.push(arr)
-      setSizeMB(leakedArrays.current.length)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [leaking])
-
-  const cleanup = () => {
-    leakedArrays.current = []
-    setLeaking(false)
-    setSizeMB(0)
-  }
-
-  return (
-    <Card title="Memory Leak" detector="memory-leak" desc="Accumulates arrays without releasing — heap grows without GC recovery.">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={leaking ? buttonDangerStyle : buttonStyle} onClick={() => setLeaking((s) => !s)}>
-          {leaking ? 'Stop Leaking' : 'Start Leaking'}
-        </button>
-        <button style={buttonMutedStyle} onClick={cleanup}>Release Memory</button>
+      <div style={{ display: 'flex', gap: 24, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
+        <span>Product</span><span>Pricing</span><span>Docs</span>
+        <button style={{
+          padding: '6px 16px', borderRadius: 6, border: 'none',
+          background: '#fff', color: '#000', fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', fontFamily: FONT,
+        }}>Sign Up</button>
       </div>
-      <p style={metricStyle}>~{sizeMB}MB leaked (retained arrays)</p>
-    </Card>
+    </nav>
   )
 }
 
-// ── 9. Long Task / Main Thread Blocking ──────────────────────────────────────
+// ── Hero with oversized background image ────────────────────────────────────
 
-const LongTaskBlocker = () => {
-  const blockMainThread = (ms: number) => {
-    const start = performance.now()
-    // Busy-wait to simulate heavy computation
-    while (performance.now() - start < ms) {
-      Math.random()
-    }
-  }
-
-  return (
-    <Card title="Long Tasks" detector="long-task-attribution" desc="Block the main thread with computation — triggers LoAF detection.">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={buttonStyle} onClick={() => blockMainThread(100)}>Block 100ms</button>
-        <button style={{ ...buttonStyle, background: '#facc15', color: '#000' }} onClick={() => blockMainThread(300)}>Block 300ms</button>
-        <button style={{ ...buttonStyle, background: '#f87171', color: '#fff' }} onClick={() => blockMainThread(1000)}>Block 1s</button>
-      </div>
-    </Card>
-  )
-}
-
-// ── 10. Web Essentials ───────────────────────────────────────────────────────
-
-const WebEssentials = () => (
-  <Card title="Web Essentials" detector="web-essentials" desc="Auto-checks for missing favicon, viewport, lang, charset, title, meta description.">
-    <p style={{ ...metricStyle, color: '#888' }}>
-      This detector runs automatically on page load. Check the Issues panel for any missing essentials in this demo page.
-    </p>
-    <div style={{ marginTop: 8, fontSize: 11, fontFamily: 'SF Mono, Menlo, monospace', lineHeight: 1.8 }}>
-      <div>
-        <span style={checkStyle(!!document.querySelector('link[rel="icon"]'))}>favicon</span>
-        <span style={checkStyle(!!document.querySelector('meta[name="viewport"]'))}>viewport</span>
-        <span style={checkStyle(!!document.documentElement.lang)}>lang</span>
-        <span style={checkStyle(!!document.querySelector('meta[charset]'))}>charset</span>
-        <span style={checkStyle(!!document.title)}>title</span>
-        <span style={checkStyle(!!document.querySelector('meta[name="description"]'))}>description</span>
+const Hero = () => (
+  <section style={{
+    position: 'relative', padding: '100px 40px 80px', textAlign: 'center',
+    overflow: 'hidden',
+  }}>
+    {/* Anti-pattern: massive image as background, no lazy, no dimensions */}
+    <img
+      src="https://picsum.photos/2400/1200"
+      alt=""
+      style={{
+        position: 'absolute', inset: 0, width: '100%', height: '100%',
+        objectFit: 'cover', opacity: 0.15, zIndex: 0,
+      }}
+    />
+    <div style={{ position: 'relative', zIndex: 1 }}>
+      <h1 style={{
+        fontSize: 56, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05,
+        color: '#fff', margin: '0 0 20px',
+      }}>
+        Build apps at the<br />speed of thought
+      </h1>
+      <p style={{
+        fontSize: 20, color: 'rgba(255,255,255,0.5)', maxWidth: 520,
+        margin: '0 auto 36px', lineHeight: 1.6,
+      }}>
+        The AI-native platform for teams that ship fast. From idea to production in minutes, not months.
+      </p>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+        <button style={{
+          padding: '14px 32px', borderRadius: 8, border: 'none',
+          background: '#fff', color: '#000', fontSize: 16, fontWeight: 600,
+          cursor: 'pointer', fontFamily: FONT,
+        }}>Start Building Free</button>
+        <button style={{
+          padding: '14px 32px', borderRadius: 8,
+          border: '1px solid rgba(255,255,255,0.15)', background: 'transparent',
+          color: 'rgba(255,255,255,0.7)', fontSize: 16, fontWeight: 500,
+          cursor: 'pointer', fontFamily: FONT,
+        }}>Watch Demo</button>
       </div>
     </div>
-  </Card>
+  </section>
 )
 
-const checkStyle = (pass: boolean): React.CSSProperties => ({
-  display: 'inline-block',
-  padding: '1px 8px',
-  margin: '2px 4px 2px 0',
-  borderRadius: 4,
-  fontSize: 10,
-  fontWeight: 600,
-  background: pass ? 'rgba(74, 222, 128, 0.12)' : 'rgba(248, 113, 113, 0.12)',
-  color: pass ? '#4ade80' : '#f87171',
-  border: `1px solid ${pass ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)'}`,
-})
+// ── Logos / Social Proof ────────────────────────────────────────────────────
 
-// ── 11. Rapid Re-renders (bonus — visual only, not yet detected) ─────────────
-
-const RapidRerenderer = () => {
-  const [tick, setTick] = useState(0)
-  const [running, setRunning] = useState(false)
-
+const LogoBar = () => {
+  // Anti-pattern: console spam from a "tracking" script left in prod
   useEffect(() => {
-    if (!running) return
     const id = setInterval(() => {
-      setTick((t) => t + 1)
-    }, 16) // 60fps state updates — every render creates new objects
+      console.log('[Analytics] Tracking impression:', { section: 'logos', timestamp: Date.now() })
+      console.log('[Analytics] Session heartbeat:', { alive: true })
+    }, 3000)
     return () => clearInterval(id)
-  }, [running])
+  }, [])
 
   return (
-    <Card title="Rapid Re-renders" detector="fps impact" desc="setState at 60fps with inline objects — watch FPS drop in the monitor.">
-      <button style={running ? buttonDangerStyle : buttonStyle} onClick={() => setRunning((s) => !s)}>
-        {running ? 'Stop' : 'Re-render at 60fps'}
-      </button>
-      <p style={metricStyle}>Renders: {tick}</p>
-      {/* Inline objects on every render — classic AI anti-pattern */}
-      {running && Array.from({ length: 20 }, (_, i) => (
-        <div key={i} style={{ display: 'inline-block', width: 8, height: 8, margin: 1, borderRadius: '50%', background: `hsl(${(tick * 3 + i * 18) % 360}, 70%, 60%)` }} />
-      ))}
-    </Card>
+    <section style={{
+      padding: '32px 40px', textAlign: 'center',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+    }}>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        Trusted by teams at
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 48, alignItems: 'center' }}>
+        {['Vercel', 'Stripe', 'Linear', 'Notion', 'Figma'].map((name) => (
+          <span key={name} style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.15)', letterSpacing: '-0.01em' }}>
+            {name}
+          </span>
+        ))}
+      </div>
+    </section>
   )
 }
 
-// ── Card wrapper ─────────────────────────────────────────────────────────────
+// ── Image Showcase (all unoptimized) ────────────────────────────────────────
 
-const Card = ({ title, detector, desc, children }: {
-  title: string
-  detector: string
-  desc: string
-  children: React.ReactNode
-}) => (
-  <div style={cardStyle}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-      <h3 style={cardTitleStyle}>{title}</h3>
-      <span style={detectorBadgeStyle}>{detector}</span>
+const Showcase = () => (
+  <section style={{ padding: '60px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <h2 style={sectionTitle}>Featured Projects</h2>
+    <p style={sectionSub}>Real apps built on our platform by real teams.</p>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 28 }}>
+      {/* Anti-pattern: no width, no height, no lazy loading, large source images */}
+      <ShowcaseCard src="https://picsum.photos/800/600" title="Dashboard Pro" tag="SaaS" />
+      <ShowcaseCard src="https://picsum.photos/801/601" title="Commerce Kit" tag="E-commerce" />
+      <ShowcaseCard src="https://picsum.photos/802/602" title="Studio Flow" tag="Creative" />
     </div>
-    <p style={descStyle}>{desc}</p>
-    {children}
+
+    {/* Anti-pattern: enormous images rendered small */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16 }}>
+      <SmallCard src="https://picsum.photos/1600/1200" label="Mobile App" />
+      <SmallCard src="https://picsum.photos/1601/1201" label="API Platform" />
+      <SmallCard src="https://picsum.photos/1602/1202" label="Analytics" />
+      <SmallCard src="https://picsum.photos/1603/1203" label="Auth System" />
+    </div>
+  </section>
+)
+
+const ShowcaseCard = ({ src, title, tag }: { src: string; title: string; tag: string }) => (
+  <div style={{
+    borderRadius: 12, overflow: 'hidden',
+    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+  }}>
+    {/* No width, height, or loading="lazy" — will trigger unoptimized-images */}
+    <img src={src} alt={title} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+    <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>{title}</span>
+      <span style={{
+        fontSize: 12, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.05)',
+        padding: '2px 8px', borderRadius: 4,
+      }}>{tag}</span>
+    </div>
   </div>
 )
 
-// ── App ──────────────────────────────────────────────────────────────────────
+const SmallCard = ({ src, label }: { src: string; label: string }) => (
+  <div style={{
+    borderRadius: 8, overflow: 'hidden',
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+  }}>
+    {/* 1600px images rendered at ~200px — vibe-check should flag these */}
+    <img src={src} alt={label} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
+    <div style={{ padding: '8px 10px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{label}</div>
+  </div>
+)
 
-function App() {
-  return (
-    <div style={appStyle}>
-      <header style={headerStyle}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
-          <span style={{ color: '#4ade80' }}>vibe-check</span>
-          <span style={{ color: '#666', fontWeight: 400 }}> / demo</span>
-        </h1>
-        <p style={{ margin: '6px 0 0', color: '#888', fontSize: 13, lineHeight: 1.5 }}>
-          Trigger anti-patterns below. The overlay detects issues in real time.
-          <br />
-          <span style={{ color: '#555', fontSize: 12 }}>
-            Each card maps to a detector — click buttons and watch the Issues panel update.
-          </span>
-        </p>
-      </header>
+// ── Stats ───────────────────────────────────────────────────────────────────
 
-      <div style={gridStyle}>
-        <ConsoleSpammer />
-        <ConsoleErrors />
-        <DomBloater />
-        <DuplicateFetcher />
-        <UnoptimizedImages />
-        <LargeImages />
-        <LayoutThrasher />
-        <MemoryLeaker />
-        <LongTaskBlocker />
-        <WebEssentials />
-        <RapidRerenderer />
-      </div>
-
-      <VibeCheck enabled position="bottom-right" beaconUrl="http://localhost:4200" />
+const Stats = () => (
+  <section style={{ padding: '48px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <StatCard value="10K+" label="Active Users" />
+      <StatCard value="99.9%" label="Uptime" />
+      <StatCard value="<50ms" label="Avg Response" />
+      <StatCard value="150+" label="Integrations" />
     </div>
+  </section>
+)
+
+const StatCard = ({ value, label }: { value: string; label: string }) => (
+  <div style={{
+    textAlign: 'center', padding: '28px 16px', borderRadius: 12,
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+  }}>
+    <div style={{ fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>{value}</div>
+    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>{label}</div>
+  </div>
+)
+
+// ── Feature Grid ────────────────────────────────────────────────────────────
+
+const Features = () => (
+  <section style={{ padding: '60px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <h2 style={sectionTitle}>Everything you need</h2>
+    <p style={sectionSub}>Built for speed, designed for developers, loved by teams.</p>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 28 }}>
+      <FeatureCard title="Lightning Fast" desc="Sub-50ms response times with edge caching and smart prefetching built in." />
+      <FeatureCard title="AI-Powered" desc="Intelligent suggestions, auto-fixes, and code generation right in your workflow." />
+      <FeatureCard title="Scale Infinitely" desc="From prototype to millions of users. Infrastructure that grows with you." />
+      <FeatureCard title="Developer First" desc="CLI tools, VS Code extension, GitHub integration, and comprehensive APIs." />
+      <FeatureCard title="Secure by Default" desc="SOC 2 certified, end-to-end encryption, automatic vulnerability scanning." />
+      <FeatureCard title="Real-time Analytics" desc="Live dashboards, custom events, and funnel analysis out of the box." />
+    </div>
+  </section>
+)
+
+const FeatureCard = ({ title, desc }: { title: string; desc: string }) => (
+  <div style={{
+    padding: '24px', borderRadius: 12,
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+  }}>
+    <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 8 }}>{title}</div>
+    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{desc}</div>
+  </div>
+)
+
+// ── Bloated testimonial list (intentional DOM bloat) ────────────────────────
+
+const Testimonials = () => {
+  // Anti-pattern: rendering hundreds of items without virtualization
+  const testimonials = Array.from({ length: 200 }, (_, i) => ({
+    id: i,
+    text: [
+      'This completely changed how we ship features.',
+      'The AI suggestions alone saved us hundreds of hours.',
+      'Best developer tool we have adopted this year.',
+      'Our deploy times went from hours to minutes.',
+      'The team productivity increase was immediate and measurable.',
+    ][i % 5],
+    author: ['Sarah Chen', 'Marcus Rivera', 'Aisha Patel', 'James O\'Brien', 'Yuki Tanaka'][i % 5],
+    role: ['CTO at Acme', 'Lead at Pulse', 'VP Eng at Flow', 'Founder at Dock', 'Staff at Wave'][i % 5],
+  }))
+
+  return (
+    <section style={{ padding: '60px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <h2 style={sectionTitle}>What 10,000+ teams say</h2>
+      <p style={sectionSub}>Don&apos;t take our word for it. Here&apos;s what our customers think.</p>
+
+      {/* Anti-pattern: rendering ALL 200 items, no virtualization, excessive DOM nodes */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
+        marginTop: 24, maxHeight: 400, overflow: 'auto',
+        borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', padding: 12,
+      }}>
+        {testimonials.map((t) => (
+          <div key={t.id} style={{
+            padding: '14px', borderRadius: 8,
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+          }}>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 8 }}>
+              &ldquo;{t.text}&rdquo;
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{t.author}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{t.role}</div>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
+// ── Animated counter (causes constant re-renders + FPS drop) ────────────────
+
+const LiveCounter = () => {
+  const [count, setCount] = useState(0)
+
+  // Anti-pattern: state update every 50ms, forces constant re-renders
+  useEffect(() => {
+    const id = setInterval(() => setCount((c) => c + 1), 50)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <section style={{ padding: '48px 40px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+        Requests served today
+      </div>
+      <div style={{ fontSize: 48, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+        {(1_847_293 + count).toLocaleString()}
+      </div>
+      {/* Anti-pattern: inline style objects recreated on every render + color cycling */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginTop: 16 }}>
+        {Array.from({ length: 30 }, (_, i) => (
+          <div key={i} style={{
+            width: 6, height: 20 + Math.sin((count + i) * 0.2) * 12,
+            borderRadius: 3,
+            background: `rgba(255,255,255,${0.05 + Math.sin((count + i) * 0.15) * 0.05})`,
+            transition: 'height 0.1s ease',
+          }} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── CTA ─────────────────────────────────────────────────────────────────────
+
+const CTA = () => (
+  <section style={{ padding: '80px 40px', textAlign: 'center' }}>
+    <h2 style={{ fontSize: 36, fontWeight: 700, color: '#fff', margin: '0 0 12px', letterSpacing: '-0.03em' }}>
+      Ready to ship?
+    </h2>
+    <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.4)', margin: '0 0 28px' }}>
+      Start for free. No credit card required.
+    </p>
+    <button style={{
+      padding: '14px 36px', borderRadius: 8, border: 'none',
+      background: '#fff', color: '#000', fontSize: 16, fontWeight: 600,
+      cursor: 'pointer', fontFamily: FONT,
+    }}>Get Started Free</button>
+  </section>
+)
+
+// ── Sidebar: extra triggers ─────────────────────────────────────────────────
+
+const Sidebar = () => (
+  <aside style={{
+    position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 200,
+    width: 180, padding: '20px 12px',
+    background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.06)',
+    fontFamily: FONT, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4,
+    overflowY: 'auto',
+  }}>
+    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+      Triggers
+    </div>
+    <TriggerBtn label="3 Console Errors" onClick={() => {
+      console.error('TypeError: Cannot read properties of undefined')
+      console.error('Error: Failed to fetch', { status: 500 })
+      console.error('Each child should have a unique "key" prop')
+    }} />
+    <TriggerBtn label="Block Thread 500ms" onClick={() => {
+      const start = performance.now()
+      while (performance.now() - start < 500) Math.random()
+    }} />
+    <TriggerBtn label="3x Duplicate Fetch" onClick={() => {
+      const url = 'https://jsonplaceholder.typicode.com/posts/1'
+      fetch(url).catch(() => {})
+      fetch(url).catch(() => {})
+      fetch(url).catch(() => {})
+    }} />
+    <TriggerBtn label="Fire 5 Warnings" onClick={() => {
+      console.warn('componentWillMount has been renamed')
+      console.warn('No routes matched location "/undefined"')
+      console.warn('Can\'t perform state update on unmounted component')
+      console.warn('[Deprecation] SharedArrayBuffer')
+      console.warn('React does not recognize the `isActive` prop')
+    }} />
+    <TriggerBtn label="Block Thread 1s" onClick={() => {
+      const start = performance.now()
+      while (performance.now() - start < 1000) Math.random()
+    }} />
+    <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.15)', lineHeight: 1.5, paddingTop: 16 }}>
+      Page already has baked-in issues. Use these for extras.
+    </div>
+  </aside>
+)
+
+const TriggerBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <button onClick={onClick} style={{
+    width: '100%', padding: '8px 10px', borderRadius: 6, border: 'none',
+    background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)',
+    fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+    cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s ease',
+  }}>{label}</button>
+)
+
+// ── Shared styles ───────────────────────────────────────────────────────────
+
+const sectionTitle: React.CSSProperties = {
+  fontSize: 28, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em',
+}
+const sectionSub: React.CSSProperties = {
+  fontSize: 16, color: 'rgba(255,255,255,0.4)', margin: '8px 0 0', lineHeight: 1.5,
+}
+
+// ── App ─────────────────────────────────────────────────────────────────────
+
+const App = () => (
+  <div style={{ fontFamily: FONT, color: '#e5e5e5', minHeight: '100vh', background: '#050505', marginLeft: 180 }}>
+    <Sidebar />
+    <Nav />
+    <Hero />
+    <LogoBar />
+    <Showcase />
+    <Stats />
+    <LiveCounter />
+    <Features />
+    <Testimonials />
+    <CTA />
+    <VibeCheck enabled position="bottom-right" />
+  </div>
+)
+
 export default App
-
-// ── Styles ───────────────────────────────────────────────────────────────────
-
-const appStyle: React.CSSProperties = {
-  maxWidth: 900,
-  margin: '0 auto',
-  padding: '40px 20px 120px',
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  color: '#e5e5e5',
-  minHeight: '100vh',
-}
-
-const headerStyle: React.CSSProperties = {
-  marginBottom: 28,
-  paddingBottom: 16,
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
-}
-
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: 12,
-}
-
-const cardStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  background: 'rgba(255,255,255,0.04)',
-  borderRadius: 8,
-  border: '1px solid rgba(255,255,255,0.08)',
-}
-
-const cardTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#fff',
-}
-
-const detectorBadgeStyle: React.CSSProperties = {
-  fontSize: 9,
-  fontFamily: 'SF Mono, Menlo, monospace',
-  color: '#666',
-  background: 'rgba(255,255,255,0.06)',
-  padding: '2px 6px',
-  borderRadius: 3,
-  letterSpacing: '0.5px',
-}
-
-const descStyle: React.CSSProperties = {
-  margin: '0 0 10px',
-  fontSize: 12,
-  color: '#888',
-  lineHeight: 1.5,
-}
-
-const buttonStyle: React.CSSProperties = {
-  padding: '5px 12px',
-  borderRadius: 5,
-  border: 'none',
-  background: '#4ade80',
-  color: '#000',
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const buttonDangerStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: '#f87171',
-  color: '#fff',
-}
-
-const buttonMutedStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'rgba(255,255,255,0.1)',
-  color: '#999',
-}
-
-const metricStyle: React.CSSProperties = {
-  marginTop: 8,
-  marginBottom: 0,
-  fontSize: 11,
-  color: '#555',
-  fontFamily: 'SF Mono, Menlo, monospace',
-}

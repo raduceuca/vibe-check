@@ -13,6 +13,7 @@ export type DetectorName =
   | 'long-task-attribution'
   | 'resource-bloat'
   | 'web-essentials'
+  | 'heavy-library'
 
 // A detected performance issue
 export interface VibeIssue {
@@ -182,6 +183,7 @@ export interface VibeCheckConfig {
     readonly resourceBloat: boolean
     readonly largeImages: boolean
     readonly webEssentials: boolean
+    readonly heavyLibrary: boolean
   }
 }
 
@@ -199,5 +201,6 @@ export const DEFAULT_CONFIG: VibeCheckConfig = {
     resourceBloat: true,
     largeImages: true,
     webEssentials: true,
+    heavyLibrary: true,
   },
 }

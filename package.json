@@ -8,7 +8,9 @@
     "test:watch": "pnpm -r test:watch",
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit",
-    "clean": "pnpm -r exec rm -rf dist"
+    "clean": "pnpm -r exec rm -rf dist",
+    "publish:all": "pnpm -r publish --no-git-checks",
+    "publish:dry": "pnpm -r publish --no-git-checks --dry-run"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

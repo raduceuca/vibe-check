@@ -34,6 +34,7 @@ import { createLongTaskAttributionDetector } from './detectors/longTaskAttributi
 import { createResourceBloatDetector } from './detectors/resourceBloat.js'
 import { createLargeImagesDetector } from './detectors/largeImages.js'
 import { createWebEssentialsDetector } from './detectors/webEssentials.js'
+import { createHeavyLibraryDetector } from './detectors/heavyLibrary.js'
 import { BeaconClient } from './beacon/beaconClient.js'
 
 type SnapshotCallback = (snapshot: VibeSnapshot) => void
@@ -114,6 +115,7 @@ export class VibeCheckEngine {
       [detectorConfig.resourceBloat, createResourceBloatDetector],
       [detectorConfig.largeImages, createLargeImagesDetector],
       [detectorConfig.webEssentials, createWebEssentialsDetector],
+      [detectorConfig.heavyLibrary, createHeavyLibraryDetector],
     ]
 
     for (const [enabled, factory] of detectorFactories) {
@@ -206,9 +208,7 @@ export class VibeCheckEngine {
     const consoleStats: ConsoleStats =
       this.consoleCollector?.getStats() ?? EMPTY_CONSOLE_STATS
 
-    const issues: readonly VibeIssue[] = this.detectors.flatMap((d) =>
-      [...d.getIssues()]
-    )
+    const issues = this.collectIssues()
 
     const domNodeCount = this.cachedDomNodeCount
 
@@ -226,7 +226,18 @@ export class VibeCheckEngine {
   }
 
   getIssues(): readonly VibeIssue[] {
-    return this.detectors.flatMap((d) => [...d.getIssues()])
+    return this.collectIssues()
+  }
+
+  private collectIssues(): readonly VibeIssue[] {
+    const out: VibeIssue[] = []
+    for (const detector of this.detectors) {
+      const detectorIssues = detector.getIssues()
+      for (let i = 0; i < detectorIssues.length; i++) {
+        out.push(detectorIssues[i]!)
+      }
+    }
+    return out
   }
 
   clearIssues(): void {

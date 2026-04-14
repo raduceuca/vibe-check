@@ -1,6 +1,6 @@
 {
   "name": "@wcgw/vibe-check-core",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "description": "Framework-agnostic performance monitoring engine with AI/vibe-coding issue detection",
   "main": "./dist/index.cjs",
@@ -28,11 +28,16 @@
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "keywords": ["performance", "monitoring", "web-vitals", "vibe-coding", "ai-coding"],
+  "author": "Radu Ceuca",
   "license": "MIT",
   "sideEffects": false,
+  "homepage": "https://github.com/raduceuca/vibe-check#readme",
+  "bugs": {
+    "url": "https://github.com/raduceuca/vibe-check/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/raduceuca/vibe-check.git",
+    "url": "git+https://github.com/raduceuca/vibe-check.git",
     "directory": "packages/core"
   },
   "publishConfig": {

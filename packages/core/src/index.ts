@@ -50,10 +50,16 @@ export { createLongTaskAttributionDetector } from './detectors/longTaskAttributi
 export { createResourceBloatDetector } from './detectors/resourceBloat.js'
 export { createLargeImagesDetector } from './detectors/largeImages.js'
 export { createWebEssentialsDetector } from './detectors/webEssentials.js'
+export { createHeavyLibraryDetector, LIBRARY_SIGNATURES } from './detectors/heavyLibrary.js'
+export type { LibrarySignature } from './detectors/heavyLibrary.js'
 
 // Beacon
 export { BeaconClient } from './beacon/beaconClient.js'
 export type { BeaconClientConfig } from './beacon/beaconClient.js'
+
+// Suggestions
+export { getSuggestion, getAgentPrompt, PROACTIVE_PROMPTS } from './suggestions/index.js'
+export type { SuggestionMode, Suggestion, ProactivePrompt } from './suggestions/index.js'
 
 // Utils
 export { RingBuffer } from './utils/ringBuffer.js'

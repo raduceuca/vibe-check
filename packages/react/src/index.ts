@@ -14,6 +14,13 @@ export { useLongFrames } from './hooks/useLongFrames.js'
 export { useWebVitals } from './hooks/useWebVitals.js'
 export { useMemory } from './hooks/useMemory.js'
 export { useDetectedIssues } from './hooks/useDetectedIssues.js'
+export { useIssueStore } from './hooks/useIssueStore.js'
+export { usePreferences } from './hooks/usePreferences.js'
+export { useClipboard } from './hooks/useClipboard.js'
+
+// Store
+export type { TrackedIssue, IssueStatus, IssueStore } from './store/issueStore.js'
+export type { VibeCheckPreferences } from './store/preferences.js'
 
 // Re-export commonly needed types from core
 export type {
@@ -23,4 +30,7 @@ export type {
   WebVitalsStats,
   HeapMemory,
   Severity,
+  SuggestionMode,
+  Suggestion,
+  ProactivePrompt,
 } from '@wcgw/vibe-check-core'

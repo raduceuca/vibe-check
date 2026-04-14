@@ -386,6 +386,40 @@ ${formatEvidence(issue.evidence)}
 \`\`\``
   },
 
+  'heavy-library': (issue) => {
+    const library = issue.evidence['library'] ?? 'unknown'
+    const pkg = issue.evidence['packageName'] ?? 'unknown'
+    const sizeKB = issue.evidence['bundleSizeKB'] ?? '?'
+    const knownIssues = (issue.evidence['knownIssues'] as string[] | undefined) ?? []
+    return `## Heavy Library Detected
+
+**What:** ${library} (${pkg}, ${sizeKB}KB gzip) was detected on the page.
+
+**Evidence:**
+${formatEvidence(issue.evidence)}
+
+### Known Performance Risks
+${knownIssues.map((i) => `- ${i}`).join('\n')}
+
+### Fix Steps
+1. **Check if it's tree-shaken** — use named imports, avoid barrel imports
+2. **Verify cleanup** — ensure dispose/kill/destroy is called on component unmount
+3. **Consider alternatives** — is there a lighter library for your use case?
+4. **Lazy load** — import heavy libraries only when needed
+5. **Audit usage** — are you using enough of the library to justify the bundle size?
+
+### Example Fix
+\`\`\`typescript
+// Before: importing everything
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion'
+
+// After: tree-shaken with lazy loading
+import { LazyMotion, domAnimation, m } from 'framer-motion'
+// Or: dynamic import for heavy components
+const Heavy3D = lazy(() => import('./Heavy3DScene'))
+\`\`\``
+  },
+
   'resource-bloat': (issue) => {
     const totalKB = issue.evidence['totalTransferKB'] ?? 'unknown'
     const resourceCount = issue.evidence['resourceCount'] ?? 'unknown'

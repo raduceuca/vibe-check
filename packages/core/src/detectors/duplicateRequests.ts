@@ -11,6 +11,19 @@ interface RequestRecord {
   readonly timestamps: number[]
 }
 
+// In-place compaction: drop timestamps older than the window, then append.
+const compactTimestamps = (timestamps: number[], cutoff: number, now: number): void => {
+  let write = 0
+  for (let read = 0; read < timestamps.length; read++) {
+    if (timestamps[read]! >= cutoff) {
+      if (write !== read) timestamps[write] = timestamps[read]!
+      write += 1
+    }
+  }
+  timestamps.length = write
+  timestamps.push(now)
+}
+
 // ── Detector ─────────────────────────────────────────────────────────────────
 
 export const createDuplicateRequestsDetector = (): Detector => {
@@ -26,15 +39,16 @@ export const createDuplicateRequestsDetector = (): Detector => {
   const trackRequest = (method: string, url: string): void => {
     const key = `${method.toUpperCase()}:${url}`
     const now = Date.now()
+    const cutoff = now - DUPLICATE_WINDOW_MS
 
-    const existing = requestMap.get(key)
-    // Build new timestamps array (immutable pattern, but we reuse the internal list
-    // since it's private to the detector)
-    const timestamps = existing
-      ? [...existing.timestamps.filter((t) => now - t < DUPLICATE_WINDOW_MS), now]
-      : [now]
-
-    requestMap.set(key, { timestamps })
+    let record = requestMap.get(key)
+    if (record) {
+      compactTimestamps(record.timestamps, cutoff, now)
+    } else {
+      record = { timestamps: [now] }
+      requestMap.set(key, record)
+    }
+    const timestamps = record.timestamps
 
     if (timestamps.length >= 2 && !reportedKeys.has(key)) {
       reportedKeys.add(key)

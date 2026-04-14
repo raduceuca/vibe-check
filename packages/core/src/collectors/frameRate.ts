@@ -45,6 +45,34 @@ export const computeStats = (samples: readonly FrameSample[]): FrameRateStats =>
   }
 }
 
+// Allocation-free variant: iterates the ring buffer directly. Called on the
+// rAF hot path, so no per-tick array allocation.
+const computeStatsFromRing = (samples: RingBuffer<FrameSample>): FrameRateStats => {
+  const count = samples.size
+  if (count === 0) return EMPTY_FRAME_RATE_STATS
+
+  let total = 0
+  let max = 0
+  let dropped = 0
+
+  samples.forEach((s) => {
+    total += s.duration
+    if (s.duration > max) max = s.duration
+    if (s.duration > FRAME_BUDGET_MS) dropped += 1
+  })
+
+  const avg = total / count
+  const smoothness = ((count - dropped) / count) * 100
+
+  return {
+    fps: count,
+    avgFrameTime: Math.round(avg * 100) / 100,
+    maxFrameTime: Math.round(max * 100) / 100,
+    droppedFrames: dropped,
+    smoothness: Math.round(smoothness * 10) / 10,
+  }
+}
+
 // ── Collector ────────────────────────────────────────────────────────────────
 
 export class FrameRateCollector implements Collector<FrameRateStats> {
@@ -108,27 +136,14 @@ export class FrameRateCollector implements Collector<FrameRateStats> {
     }
     this.lastTimestamp = now
 
-    // Trim samples outside the rolling window by rebuilding from the ring
-    // buffer. Since RingBuffer is ordered oldest-first, we filter in-place
-    // by reading, filtering, clearing, and re-pushing.
+    // Trim samples outside the rolling window in place — no allocation.
     const cutoff = now - SAMPLE_WINDOW_MS
-    const all = this.samples.toArray()
-    const firstValidIndex = all.findIndex((s) => s.timestamp >= cutoff)
+    this.samples.trimHeadWhile((s) => s.timestamp < cutoff)
 
-    if (firstValidIndex > 0) {
-      this.samples.clear()
-      for (let i = firstValidIndex; i < all.length; i++) {
-        this.samples.push(all[i])
-      }
-    } else if (firstValidIndex === -1 && all.length > 0) {
-      // All samples are stale
-      this.samples.clear()
-    }
-
-    // Report at reduced frequency
+    // Report at reduced frequency — iterate the ring directly.
     if (now - this.lastReportTime >= REPORT_INTERVAL_MS) {
       this.lastReportTime = now
-      const stats = computeStats(this.samples.toArray())
+      const stats = computeStatsFromRing(this.samples)
       this.currentStats = stats
       this.notify(stats)
     }

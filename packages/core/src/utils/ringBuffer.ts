@@ -25,6 +25,32 @@ export class RingBuffer<T> {
     }
   }
 
+  /**
+   * Iterate items oldest-first without allocating. Preferred over `toArray()`
+   * on hot paths (e.g. per-frame).
+   */
+  forEach(callback: (item: T) => void): void {
+    for (let i = 0; i < this.count; i++) {
+      const index = (this.head + i) % this.capacity
+      callback(this.buffer[index] as T)
+    }
+  }
+
+  /**
+   * Drop items from the head (oldest) while the predicate returns true,
+   * stopping at the first item that fails the predicate. Zero allocation.
+   * Used to trim rolling windows in place.
+   */
+  trimHeadWhile(predicate: (item: T) => boolean): void {
+    while (this.count > 0) {
+      const item = this.buffer[this.head] as T
+      if (!predicate(item)) return
+      this.buffer[this.head] = undefined
+      this.head = (this.head + 1) % this.capacity
+      this.count -= 1
+    }
+  }
+
   toArray(): readonly T[] {
     if (this.count === 0) {
       return []

@@ -11,6 +11,7 @@ export type DetectorName =
   | 'long-task-attribution'
   | 'resource-bloat'
   | 'web-essentials'
+  | 'heavy-library'
 
 export interface VibeIssue {
   readonly id: string

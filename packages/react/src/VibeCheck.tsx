@@ -1,10 +1,19 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
 import type { VibeIssue, VibeSnapshot } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
+import { useIssueStore } from './hooks/useIssueStore.js'
+import { usePreferences } from './hooks/usePreferences.js'
+import { useClipboard } from './hooks/useClipboard.js'
 import { VibeCheckProvider } from './context.js'
+import { ModeToggle } from './panels/ui/ModeToggle.js'
+import { AgentPanel } from './panels/AgentPanel.js'
+import { PromptsPanel } from './panels/PromptsPanel.js'
+import { SettingsPanel } from './panels/SettingsPanel.js'
+import { AnnotationOverlay } from './panels/AnnotationOverlay.js'
 
 type PanelType = 'fps' | 'vitals' | 'memory' | 'console' | 'issues'
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+type ViewTab = 'monitor' | 'agent' | 'prompts' | 'settings'
 
 export interface VibeCheckProps {
   readonly enabled?: boolean
@@ -14,20 +23,26 @@ export interface VibeCheckProps {
   readonly onIssue?: (issue: VibeIssue) => void
 }
 
+import { T } from './tokens.js'
+
 // ── CSS Animations (injected once) ──────────────────────────────────────────
 
 const STYLE_ID = 'vibe-check-styles'
 const ANIMATIONS_CSS = `
-@keyframes vc-breathe { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
-@keyframes vc-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vc-breathe { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes vc-fade-in { from { opacity: 0; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
 @keyframes vc-ring-in { from { stroke-dashoffset: var(--vc-circ); } }
-@keyframes vc-pulse-glow { 0%,100% { box-shadow: 0 0 8px var(--vc-glow); } 50% { box-shadow: 0 0 16px var(--vc-glow), 0 0 24px var(--vc-glow-soft); } }
-@keyframes vc-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
-[data-vc-issue]:hover { background: rgba(255,255,255,0.03) !important; }
+@keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes vc-slide-in { from { opacity: 0; transform: translate3d(6px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+[data-vc-issue]:hover { background: rgba(255,255,255,0.04) !important; }
 [data-vc-pill]:hover { background: rgba(255,255,255,0.06) !important; }
+[data-vc-tab]:hover { background: rgba(255,255,255,0.04) !important; }
+[data-vc] button:hover { filter: brightness(1.12); }
+[data-vc] [role="button"]:focus-visible, [data-vc] [role="switch"]:focus-visible, [data-vc] button:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; border-radius: 4px;
+}
 @media (prefers-reduced-motion: reduce) {
-  [data-vc-breathe], [data-vc] * { animation: none !important; transition: none !important; }
+  [data-vc-breathe], [data-vc] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 `
 
@@ -59,23 +74,22 @@ const useAnimations = () => {
 
 const getHealth = (s: VibeSnapshot) => {
   const n = s.issues.length; const fps = s.frameRate.fps
-  if (n > 3 || fps < 25) return { color: '#f87171', glow: 'rgba(248,113,113,0.25)', glowSoft: 'rgba(248,113,113,0.08)', label: 'critical', emoji: '' }
-  if (n > 0 || fps < 40) return { color: '#fbbf24', glow: 'rgba(251,191,36,0.2)', glowSoft: 'rgba(251,191,36,0.06)', label: 'issues', emoji: '' }
-  return { color: '#34d399', glow: 'rgba(52,211,153,0.2)', glowSoft: 'rgba(52,211,153,0.06)', label: 'healthy', emoji: '' }
+  if (n > 3 || fps < 25) return { color: T.red, glow: 'rgba(239,68,68,0.15)', label: 'critical', vibeLabel: 'needs help' }
+  if (n > 0 || fps < 40) return { color: T.yellow, glow: 'rgba(250,204,21,0.1)', label: 'issues', vibeLabel: 'some issues' }
+  return { color: T.green, glow: 'rgba(74,222,128,0.1)', label: 'healthy', vibeLabel: 'looking good' }
 }
 
 // ── Colors ──────────────────────────────────────────────────────────────────
 
-const fpsColor = (fps: number) => fps >= 55 ? '#34d399' : fps >= 40 ? '#fbbf24' : fps >= 25 ? '#fb923c' : '#f87171'
-const vitalColor = (r?: string) => r === 'good' ? '#34d399' : r === 'needs-improvement' ? '#fbbf24' : '#f87171'
+const fpsColor = (fps: number) => fps >= 55 ? T.green : fps >= 40 ? T.yellow : fps >= 25 ? T.orange : T.red
+const vitalColor = (r?: string) => r === 'good' ? T.green : r === 'needs-improvement' ? T.yellow : T.red
 const fmtMs = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`
-const SEV: Record<string, string> = { info: '#60a5fa', warning: '#fbbf24', error: '#fb923c', critical: '#f87171' }
 
 // ── Position ────────────────────────────────────────────────────────────────
 
 const POS: Record<Position, CSSProperties> = {
-  'top-left': { top: 16, left: 16 }, 'top-right': { top: 16, right: 16 },
-  'bottom-left': { bottom: 16, left: 16 }, 'bottom-right': { bottom: 16, right: 16 },
+  'top-left': { top: 12, left: 12 }, 'top-right': { top: 12, right: 12 },
+  'bottom-left': { bottom: 12, left: 12 }, 'bottom-right': { bottom: 12, right: 12 },
 }
 
 // ── Gradient Ring Gauge ─────────────────────────────────────────────────────
@@ -89,17 +103,17 @@ const Ring = ({ value, max, color, size = 56 }: { value: number; max: number; co
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
       <defs>
         <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#34d399" />
-          <stop offset="50%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#f87171" />
+          <stop offset="0%" stopColor={T.green} />
+          <stop offset="50%" stopColor={T.yellow} />
+          <stop offset="100%" stopColor={T.red} />
         </linearGradient>
       </defs>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={sw} />
+      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none"
         stroke={value / max > 0.65 ? color : `url(#${gid})`}
         strokeWidth={sw} strokeDasharray={c} strokeDashoffset={offset}
         strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 5px ${color}50)`, transition: 'stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1), stroke 0.3s ease' }}
+        style={{ filter: `drop-shadow(0 0 4px ${color}40)`, transition: 'stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1), stroke 0.3s ease' }}
       />
     </svg>
   )
@@ -108,14 +122,14 @@ const Ring = ({ value, max, color, size = 56 }: { value: number; max: number; co
 // ── Mini ring for collapsed pill ────────────────────────────────────────────
 
 const MiniRing = ({ value, max, color }: { value: number; max: number; color: string }) => {
-  const sw = 2; const size = 18; const r = (size - sw * 2) / 2; const c = 2 * Math.PI * r
+  const sw = 2; const size = 20; const r = (size - sw * 2) / 2; const c = 2 * Math.PI * r
   const offset = c * (1 - Math.min(value / max, 1)); const mid = size / 2
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={sw} />
+      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 3px ${color}60)`, transition: 'stroke-dashoffset 0.3s ease' }}
+        style={{ filter: `drop-shadow(0 0 3px ${color}50)`, transition: 'stroke-dashoffset 0.3s ease' }}
       />
     </svg>
   )
@@ -124,6 +138,50 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
 // ── FONT ────────────────────────────────────────────────────────────────────
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif'
+
+// ── View tab nav ────────────────────────────────────────────────────────────
+
+const TAB_CONFIG: readonly { readonly key: ViewTab; readonly label: string; readonly vibeLabel: string }[] = [
+  { key: 'monitor', label: 'Monitor', vibeLabel: 'Stats' },
+  { key: 'agent', label: 'Agent', vibeLabel: 'Fix' },
+  { key: 'prompts', label: 'Prompts', vibeLabel: 'Ask AI' },
+  { key: 'settings', label: 'Settings', vibeLabel: 'Settings' },
+]
+
+// Module-level constants — stable identity avoids re-renders of any memoized
+// descendants and keeps hot-path style diffing cheap.
+const NAV_TAB_BASE: CSSProperties = {
+  flex: 1,
+  padding: '12px 0 11px',
+  fontSize: 14,
+  letterSpacing: '0.02em',
+  textAlign: 'center',
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'color 0.2s ease, background 0.2s ease, border-color 0.2s ease',
+  fontFamily: 'inherit',
+  outline: 'none',
+  minHeight: 44,
+}
+
+const NAV_TAB_ACTIVE: CSSProperties = {
+  ...NAV_TAB_BASE,
+  fontWeight: 600,
+  color: T.text,
+  background: 'rgba(255,255,255,0.04)',
+  borderTop: '2px solid rgba(255,255,255,0.2)',
+}
+
+const NAV_TAB_INACTIVE: CSSProperties = {
+  ...NAV_TAB_BASE,
+  fontWeight: 400,
+  color: T.textTertiary,
+  borderTop: '2px solid transparent',
+}
+
+const navTabStyle = (active: boolean): CSSProperties =>
+  active ? NAV_TAB_ACTIVE : NAV_TAB_INACTIVE
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
@@ -136,8 +194,13 @@ export const VibeCheck = ({
 }: VibeCheckProps) => {
   useAnimations()
   const [collapsed, setCollapsed] = useState(false)
+  const [activeView, setActiveView] = useState<ViewTab>('monitor')
   const config = useMemo(() => beaconUrl ? { beaconUrl } : undefined, [beaconUrl])
   const { engine, snapshot } = useVibeCheck(config, enabled)
+  const { prefs, updatePrefs, toggleMode } = usePreferences()
+  const { copiedId, copy } = useClipboard()
+  const { tracked, markSent, markSentBatch, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
+  const mode = prefs.mode
 
   const reportedRef = useRef(new Set<string>())
   useEffect(() => {
@@ -154,220 +217,341 @@ export const VibeCheck = ({
   const h = useMemo(() => getHealth(snapshot), [snapshot])
   const ps = useMemo(() => new Set(panels), [panels])
 
+  const activeCount = tracked.filter((t) => t.status === 'new').length
+
   if (!enabled) return null
   const pos = POS[position]
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // COLLAPSED — Floating pill with mini ring, breathing dot, ambient glow
+  // ANNOTATION OVERLAY
+  // ═══════════════════════════════════════════════════════════════════════════
+  const annotationOverlay = (
+    <AnnotationOverlay
+      tracked={tracked}
+      visible={prefs.annotationsVisible && !collapsed}
+      mode={mode}
+      copiedId={copiedId}
+      onCopy={copy}
+      onMarkSent={markSent}
+      onMarkResolved={markResolved}
+    />
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLLAPSED — Floating pill
   // ═══════════════════════════════════════════════════════════════════════════
   if (collapsed) {
     return (
-      <div style={{ position: 'fixed', zIndex: 2147483647, ...pos }} data-testid="vibe-check-overlay" data-vc>
-        <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-vc-pill
-          aria-label="Expand vibe check panel" aria-expanded={false}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px 5px 6px',
-            fontFamily: FONT, fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-            color: 'rgba(255,255,255,0.85)',
-            background: 'linear-gradient(135deg, rgba(22,22,28,0.96), rgba(14,14,18,0.98))',
-            borderRadius: 24, cursor: 'pointer', userSelect: 'none',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: `0 0 0 0.5px rgba(255,255,255,0.03), 0 6px 32px rgba(0,0,0,0.5), 0 0 20px ${h.glowSoft}`,
-            backdropFilter: 'blur(24px) saturate(1.3)',
-            animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
-            '--vc-glow': h.glow, '--vc-glow-soft': h.glowSoft,
-          } as CSSProperties}>
-          <MiniRing value={snapshot.frameRate.fps} max={60} color={fpsColor(snapshot.frameRate.fps)} />
-          <span style={{ fontWeight: 600 }}>{Math.round(snapshot.frameRate.fps)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: 400 }}>fps</span>
-          {snapshot.issues.length > 0 && (
-            <span style={{
-              fontSize: 14, fontWeight: 600, color: h.color,
-              background: `${h.color}18`, padding: '1px 5px', borderRadius: 6,
-              marginLeft: 2,
-            }}>{snapshot.issues.length}</span>
-          )}
+      <>
+        {annotationOverlay}
+        <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-vc>
+          <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-vc-pill
+            aria-label="Expand vibe check panel" aria-expanded={false}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px 10px 10px', minHeight: 44,
+              fontFamily: FONT, fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+              color: T.text,
+              background: T.bg,
+              borderRadius: 24, cursor: 'pointer', userSelect: 'none',
+              border: `1px solid ${T.border}`,
+              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04)`,
+              backdropFilter: 'blur(24px)',
+              animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
+            }}>
+            <MiniRing value={snapshot.frameRate.fps} max={60} color={fpsColor(snapshot.frameRate.fps)} />
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{Math.round(snapshot.frameRate.fps)}</span>
+            <span style={{ color: T.textTertiary, fontSize: 14, fontWeight: 400 }}>fps</span>
+            {activeCount > 0 && (
+              <span style={{
+                fontSize: 14, fontWeight: 600, color: T.text,
+                background: 'rgba(255,255,255,0.08)', padding: '2px 7px', borderRadius: 6,
+                marginLeft: 2,
+              }}>{activeCount}</span>
+            )}
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EXPANDED — Full panel
+  // EXPANDED — Full panel with tabbed navigation
   // ═══════════════════════════════════════════════════════════════════════════
   const fc = fpsColor(snapshot.frameRate.fps)
 
   return (
     <VibeCheckProvider value={engine}>
+      {annotationOverlay}
       <div data-testid="vibe-check-overlay" data-vc style={{
-        position: 'fixed', zIndex: 2147483647, width: 300, fontFamily: FONT, fontSize: 14,
-        color: 'rgba(255,255,255,0.85)', overflow: 'hidden',
-        background: 'linear-gradient(165deg, rgba(22,22,30,0.96) 0%, rgba(10,10,14,0.98) 100%)',
-        borderRadius: 18, border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: `0 0 0 0.5px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 48px rgba(0,0,0,0.55), 0 2px 12px rgba(0,0,0,0.3), 0 0 40px ${h.glowSoft}`,
-        backdropFilter: 'blur(32px) saturate(1.4)',
+        position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: FONT, fontSize: 14,
+        color: T.text, overflow: 'hidden',
+        background: T.bg,
+        borderRadius: 18, border: `1px solid ${T.border}`,
+        boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04)`,
+        backdropFilter: 'blur(32px)',
         animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
+        display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
         ...pos,
-      } as CSSProperties}>
+      }}>
 
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"
-          aria-label="Collapse vibe check panel" aria-expanded={true}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
-          style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '11px 14px 10px', cursor: 'pointer', userSelect: 'none',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-          }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '10px 14px 9px', cursor: 'default', userSelect: 'none',
+          borderBottom: `1px solid ${T.borderSubtle}`,
+          flexShrink: 0,
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span data-vc-breathe style={{
-              width: 8, height: 8, borderRadius: '50%', background: h.color, flexShrink: 0,
-              boxShadow: `0 0 8px ${h.color}80`, animation: 'vc-breathe 3s ease-in-out infinite',
-            }} />
-            <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.01em', color: 'rgba(255,255,255,0.8)' }}>
-              vibe check
-            </span>
+            <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"
+              aria-label="Collapse vibe check panel" aria-expanded={true}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            >
+              <span data-vc-breathe style={{
+                width: 8, height: 8, borderRadius: '50%', background: h.color, flexShrink: 0,
+                boxShadow: `0 0 8px ${h.color}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+              }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
+                vibe check
+              </span>
+            </div>
             <span style={{
-              fontSize: 14, fontWeight: 500, color: h.color, opacity: 0.6,
-              background: `${h.color}10`, padding: '1px 5px', borderRadius: 4,
-              letterSpacing: '0.5px', textTransform: 'uppercase',
-            }}>{h.label}</span>
+              fontSize: 14, fontWeight: 500, color: h.color,
+              background: `${h.color}15`, padding: '2px 8px', borderRadius: 6,
+            }}>{mode === 'vibe' ? h.vibeLabel : h.label}</span>
           </div>
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', transition: 'transform 0.2s ease' }}>{'\u25B2'}</span>
+
+          <ModeToggle mode={mode} onToggle={toggleMode} />
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
-        <div data-testid="vibe-check-body" style={{ padding: '10px 14px 14px' }}>
+        <div data-testid="vibe-check-body" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 10px' }}>
 
-          {/* FPS HERO ─────────────────────────────────────────────── */}
-          {ps.has('fps') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 10 }}>
-              <div style={{ position: 'relative' }}>
-                <Ring value={snapshot.frameRate.fps} max={60} color={fc} size={58} />
-                {/* Center number inside ring */}
-                <div style={{
-                  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: fc,
-                  textShadow: `0 0 10px ${fc}35`,
-                }}>{Math.round(snapshot.frameRate.fps)}</div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4 }}>
-                  Frame Rate
+          {/* ── MONITOR VIEW ───────────────────────────────────────── */}
+          {activeView === 'monitor' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              {/* FPS HERO */}
+              {ps.has('fps') && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 12 }}>
+                  <div style={{ position: 'relative' }}>
+                    <Ring value={snapshot.frameRate.fps} max={60} color={fc} size={58} />
+                    <div style={{
+                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: fc,
+                    }}>{Math.round(snapshot.frameRate.fps)}</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: T.textTertiary, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                      {mode === 'vibe' ? 'Smoothness' : 'Frame Rate'}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ color: T.textTertiary }}>Avg</span>
+                      <span style={{ color: T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span>
+                      <span style={{ color: T.textTertiary }}>Worst</span>
+                      <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? T.orange : T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.maxFrameTime.toFixed(1)}ms</span>
+                      <span style={{ color: T.textTertiary }}>Smooth</span>
+                      <span style={{ color: T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.smoothness.toFixed(0)}%</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Avg</span>
-                  <span style={{ color: 'rgba(255,255,255,0.65)', textAlign: 'right' }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Worst</span>
-                  <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? '#fb923c' : 'rgba(255,255,255,0.65)', textAlign: 'right' }}>{snapshot.frameRate.maxFrameTime.toFixed(1)}ms</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Smooth</span>
-                  <span style={{ color: 'rgba(255,255,255,0.65)', textAlign: 'right' }}>{snapshot.frameRate.smoothness.toFixed(0)}%</span>
-                </div>
-              </div>
+              )}
+
+              {/* WEB VITALS */}
+              {ps.has('vitals') && (
+                <Section title={mode === 'vibe' ? 'Page Speed' : 'Web Vitals'}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['lcp', 'inp', 'cls'] as const).map((key) => {
+                      const v = snapshot.webVitals[key]
+                      const c = vitalColor(v?.rating)
+                      const val = key === 'cls' ? (v ? v.value.toFixed(3) : '--') : (v ? fmtMs(v.value) : '--')
+                      const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
+                      return (
+                        <div key={key} data-vc-pill style={{
+                          flex: 1, padding: '8px 6px 7px', textAlign: 'center', borderRadius: T.radiusSm,
+                          background: T.bgSubtle,
+                          border: `1px solid ${T.borderSubtle}`,
+                          transition: 'all 0.3s ease', cursor: 'default',
+                        }}>
+                          <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 4 }}>
+                            {mode === 'vibe' ? vibeLabels[key] : key}
+                          </div>
+                          <div style={{
+                            fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                            color: v ? c : T.textMuted,
+                          }}>{val}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Section>
+              )}
+
+              {/* MEMORY + CONSOLE */}
+              {(ps.has('memory') || ps.has('console')) && (
+                <Section>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {ps.has('memory') && (
+                      <MetricCard
+                        label={mode === 'vibe' ? 'Memory' : 'Heap'}
+                        value={snapshot.memory ? `${snapshot.memory.jsHeapSizeMB.toFixed(0)}` : '--'}
+                        unit="MB"
+                        color={!snapshot.memory ? T.textMuted : snapshot.memory.usedPct > 80 ? T.red : snapshot.memory.usedPct > 60 ? T.yellow : T.text}
+                        sub={snapshot.memory ? `${snapshot.memory.usedPct.toFixed(0)}% used` : 'Chrome only'}
+                      />
+                    )}
+                    {ps.has('console') && (
+                      <div style={{
+                        flex: 1, padding: '8px 10px', borderRadius: T.radiusSm,
+                        background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
+                      }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 6 }}>
+                          {mode === 'vibe' ? 'Errors' : 'Console'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                          <Dot count={snapshot.console.errorCount} color={T.red} label="err" />
+                          <Dot count={snapshot.console.warnCount} color={T.yellow} label="wrn" />
+                          <Dot count={snapshot.console.logCount} color={T.textTertiary} label="log" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Section>
+              )}
+
+              {/* QUICK ISSUES SUMMARY */}
+              {ps.has('issues') && (
+                <Section>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary }}>
+                        {mode === 'vibe' ? 'Problems' : 'Issues'}
+                      </span>
+                      {activeCount > 0 && (
+                        <span style={{
+                          fontSize: 14, fontWeight: 700, color: T.text,
+                          background: 'rgba(255,255,255,0.08)', padding: '2px 7px', borderRadius: 6,
+                          animation: 'vc-count-pop 0.3s ease',
+                        }}>{activeCount}</span>
+                      )}
+                    </div>
+                    {activeCount > 0 && (
+                      <button
+                        onClick={() => setActiveView('agent')}
+                        style={{
+                          fontSize: 14, fontWeight: 500,
+                          color: T.textSecondary, background: T.bgSubtle,
+                          border: `1px solid ${T.border}`, borderRadius: 6,
+                          padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {mode === 'vibe' ? 'fix with AI →' : 'view prompts →'}
+                      </button>
+                    )}
+                  </div>
+                  {activeCount === 0 ? (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                      borderRadius: T.radiusSm, background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
+                    }}>
+                      <span data-vc-breathe style={{
+                        width: 8, height: 8, borderRadius: '50%', background: T.green,
+                        boxShadow: `0 0 6px ${T.green}50`, animation: 'vc-breathe 3s ease-in-out infinite',
+                      }} />
+                      <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
+                        {mode === 'vibe' ? 'All vibes are good' : 'No active issues'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ borderRadius: T.radiusSm, background: T.bgSubtle, border: `1px solid ${T.borderSubtle}` }}>
+                      {tracked.filter((t) => t.status === 'new').slice(0, 4).map((t, i, arr) => (
+                        <QuickIssue key={t.issue.id} issue={t.issue} mode={mode} last={i === arr.length - 1} />
+                      ))}
+                      {activeCount > 4 && (
+                        <button
+                          onClick={() => setActiveView('agent')}
+                          style={{
+                            width: '100%', fontSize: 14, color: T.textSecondary, textAlign: 'center',
+                            padding: '8px 0', minHeight: 36,
+                            borderTop: `1px solid ${T.borderSubtle}`, cursor: 'pointer',
+                            background: 'transparent', border: 'none', borderTopStyle: 'solid',
+                            borderTopWidth: 1, borderTopColor: T.borderSubtle,
+                            fontFamily: 'inherit', outline: 'none',
+                          }}
+                        >
+                          +{activeCount - 4} more →
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Section>
+              )}
             </div>
           )}
 
-          {/* WEB VITALS ───────────────────────────────────────────── */}
-          {ps.has('vitals') && (
-            <Section title="Web Vitals">
-              <div style={{ display: 'flex', gap: 5 }}>
-                {(['lcp', 'inp', 'cls'] as const).map((key) => {
-                  const v = snapshot.webVitals[key]
-                  const c = vitalColor(v?.rating)
-                  const val = key === 'cls' ? (v ? v.value.toFixed(3) : '--') : (v ? fmtMs(v.value) : '--')
-                  return (
-                    <div key={key} data-vc-pill style={{
-                      flex: 1, padding: '7px 4px 6px', textAlign: 'center', borderRadius: 10,
-                      background: v ? `linear-gradient(160deg, ${c}0a, ${c}04)` : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${v ? `${c}12` : 'rgba(255,255,255,0.04)'}`,
-                      transition: 'all 0.3s ease', cursor: 'default',
-                    }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: v ? `${c}90` : 'rgba(255,255,255,0.2)', marginBottom: 2 }}>
-                        {key}
-                      </div>
-                      <div style={{
-                        fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                        color: v ? c : 'rgba(255,255,255,0.12)',
-                        textShadow: v ? `0 0 10px ${c}20` : 'none',
-                        letterSpacing: '-0.01em',
-                      }}>{val}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </Section>
+          {/* ── AGENT VIEW ─────────────────────────────────────────── */}
+          {activeView === 'agent' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              <AgentPanel
+                tracked={tracked}
+                mode={mode}
+                copiedId={copiedId}
+                onCopy={copy}
+                onMarkSent={markSent}
+                onMarkSentBatch={markSentBatch}
+                onMarkResolved={markResolved}
+                onClearResolved={clearResolved}
+              />
+            </div>
           )}
 
-          {/* MEMORY + CONSOLE ─────────────────────────────────────── */}
-          {(ps.has('memory') || ps.has('console')) && (
-            <Section>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {ps.has('memory') && (
-                  <MetricCard
-                    label="Heap"
-                    value={snapshot.memory ? `${snapshot.memory.jsHeapSizeMB.toFixed(0)}` : '--'}
-                    unit="MB"
-                    color={!snapshot.memory ? 'rgba(255,255,255,0.12)' : snapshot.memory.usedPct > 80 ? '#f87171' : snapshot.memory.usedPct > 60 ? '#fbbf24' : 'rgba(255,255,255,0.7)'}
-                    sub={snapshot.memory ? `${snapshot.memory.usedPct.toFixed(0)}% used` : 'Chrome only'}
-                  />
-                )}
-                {ps.has('console') && (
-                  <div style={{
-                    flex: 1, padding: '7px 10px', borderRadius: 10,
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
-                  }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', marginBottom: 5 }}>Console</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Dot count={snapshot.console.errorCount} color="#f87171" label="err" />
-                      <Dot count={snapshot.console.warnCount} color="#fbbf24" label="wrn" />
-                      <Dot count={snapshot.console.logCount} color="rgba(255,255,255,0.35)" label="log" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Section>
+          {/* ── PROMPTS VIEW ──────────────────────────────────────── */}
+          {activeView === 'prompts' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              <PromptsPanel mode={mode} copiedId={copiedId} onCopy={copy} />
+            </div>
           )}
 
-          {/* ISSUES ────────────────────────────────────────────────── */}
-          {ps.has('issues') && (
-            <Section>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)' }}>Issues</span>
-                {snapshot.issues.length > 0 && (
+          {/* ── SETTINGS VIEW ────────────────────────────────────── */}
+          {activeView === 'settings' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} beaconUrl={beaconUrl} onClearAll={clearAll} />
+            </div>
+          )}
+        </div>
+
+        {/* ── Bottom navigation ───────────────────────────────────── */}
+        <div style={{
+          display: 'flex',
+          borderTop: `1px solid ${T.borderSubtle}`,
+          flexShrink: 0,
+        }}>
+          {TAB_CONFIG.map((tab) => (
+            <button
+              key={tab.key}
+              data-vc-tab
+              style={navTabStyle(activeView === tab.key)}
+              onClick={() => setActiveView(tab.key)}
+            >
+              {mode === 'vibe' ? tab.vibeLabel : tab.label}
+              {tab.key === 'agent' && activeCount > 0 && (
+                <>
                   <span style={{
-                    fontSize: 14, fontWeight: 700, color: h.color,
-                    background: `${h.color}15`, padding: '1px 6px', borderRadius: 8,
-                    animation: 'vc-count-pop 0.3s ease',
-                  }}>{snapshot.issues.length}</span>
-                )}
-              </div>
-              {snapshot.issues.length === 0 ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                  borderRadius: 10, background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.08)',
-                }}>
-                  <span data-vc-breathe style={{
-                    width: 7, height: 7, borderRadius: '50%', background: '#34d399',
-                    boxShadow: '0 0 8px rgba(52,211,153,0.5)', animation: 'vc-breathe 3s ease-in-out infinite',
-                  }} />
-                  <span style={{ fontSize: 14, color: '#34d399', fontWeight: 500 }}>All vibes are good</span>
-                </div>
-              ) : (
-                <div style={{ maxHeight: 180, overflowY: 'auto', borderRadius: 10, background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                  {snapshot.issues.slice(0, 8).map((issue, i) => (
-                    <Issue key={issue.id} issue={issue} last={i === Math.min(snapshot.issues.length, 8) - 1} />
-                  ))}
-                  {snapshot.issues.length > 8 && (
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '5px 0', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                      +{snapshot.issues.length - 8} more
-                    </div>
-                  )}
-                </div>
+                    display: 'inline-block',
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: T.yellow, marginLeft: 4,
+                    boxShadow: `0 0 4px ${T.yellow}50`,
+                    verticalAlign: 'middle',
+                  }} aria-hidden="true" />
+                  <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
+                    ({activeCount} issues)
+                  </span>
+                </>
               )}
-            </Section>
-          )}
+            </button>
+          ))}
         </div>
       </div>
     </VibeCheckProvider>
@@ -377,76 +561,65 @@ export const VibeCheck = ({
 // ── Sub-components ──────────────────────────────────────────────────────────
 
 const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
-  <div style={{ paddingTop: 10, marginTop: 2, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-    {title && <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', marginBottom: 6 }}>{title}</div>}
+  <div style={{ paddingTop: 12, marginTop: 4, borderTop: `1px solid ${T.borderSubtle}` }}>
+    {title && <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 8 }}>{title}</div>}
     {children}
   </div>
 )
 
 const MetricCard = ({ label, value, unit, color, sub }: { label: string; value: string; unit: string; color: string; sub: string }) => (
   <div style={{
-    flex: 1, padding: '7px 10px', borderRadius: 10,
-    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+    flex: 1, padding: '8px 10px', borderRadius: T.radiusSm,
+    background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
   }}>
-    <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)' }}>{label}</div>
-    <div style={{ fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color, marginTop: 2, letterSpacing: '-0.02em', lineHeight: 1 }}>
-      {value}<span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.25)', marginLeft: 2 }}>{unit}</span>
+    <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary }}>{label}</div>
+    <div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color, marginTop: 4, letterSpacing: '-0.02em', lineHeight: 1 }}>
+      {value}<span style={{ fontSize: 14, fontWeight: 400, color: T.textMuted, marginLeft: 2 }}>{unit}</span>
     </div>
-    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.2)', marginTop: 3 }}>{sub}</div>
+    <div style={{ fontSize: 14, color: T.textTertiary, marginTop: 4 }}>{sub}</div>
   </div>
 )
 
 const Dot = ({ count, color, label }: { count: number; color: string; label: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
     <span style={{
       width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-      background: count > 0 ? color : 'rgba(255,255,255,0.06)',
-      boxShadow: count > 0 ? `0 0 6px ${color}50` : 'none',
+      background: count > 0 ? color : 'rgba(255,255,255,0.08)',
+      boxShadow: count > 0 ? `0 0 4px ${color}40` : 'none',
       transition: 'all 0.2s ease',
     }} />
     <span style={{
       fontSize: 14, fontVariantNumeric: 'tabular-nums', fontWeight: count > 0 ? 600 : 400,
-      color: count > 0 ? color : 'rgba(255,255,255,0.12)',
+      color: count > 0 ? T.text : T.textMuted,
       transition: 'color 0.2s ease',
     }}>{count}</span>
-    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)' }}>{label}</span>
+    <span style={{ fontSize: 14, color: T.textTertiary }}>{label}</span>
   </div>
 )
 
-const Issue = ({ issue, last }: { readonly issue: VibeIssue; last: boolean }) => {
-  const [expanded, setExpanded] = useState(false)
-  const c = SEV[issue.severity] ?? '#fb923c'
-  const isCrit = issue.severity === 'critical'
+const QuickIssue = ({ issue, mode, last }: { readonly issue: VibeIssue; mode: string; last: boolean }) => {
+  const SEV: Record<string, string> = { info: T.blue, warning: T.yellow, error: T.orange, critical: T.red }
+  const c = SEV[issue.severity] ?? T.orange
+
+  const vibeTitle = mode === 'vibe'
+    ? issue.title.replace(/DOM/g, 'page elements').replace(/\bheap\b/gi, 'memory').replace(/\bCLS\b/g, 'layout shift')
+    : issue.title
 
   return (
-    <div data-vc-issue onClick={() => setExpanded((p) => !p)} role="button" tabIndex={0}
-      aria-label={`Toggle details for ${issue.title}`} aria-expanded={expanded}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((p) => !p) } }}
-      style={{
-        display: 'flex', gap: 8, padding: '7px 10px',
-        borderBottom: last ? 'none' : '1px solid rgba(255,255,255,0.03)',
-        cursor: 'pointer', transition: 'background 0.15s ease',
-      }}>
+    <div style={{
+      display: 'flex', gap: 8, padding: '8px 10px',
+      borderBottom: last ? 'none' : `1px solid ${T.borderSubtle}`,
+    }}>
       <div style={{
         width: 3, borderRadius: 2, flexShrink: 0, alignSelf: 'stretch', minHeight: 16,
-        background: c, boxShadow: `0 0 ${isCrit ? 6 : 4}px ${c}${isCrit ? '60' : '35'}`,
+        background: c,
       }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: 500,
+          fontSize: 14, color: T.textSecondary, fontWeight: 500,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{issue.title}</div>
-        {expanded && (
-          <div style={{
-            fontSize: 14, color: 'rgba(255,255,255,0.35)', marginTop: 4, lineHeight: 1.55,
-            animation: 'vc-fade-in 0.15s ease',
-          }}>{issue.description}</div>
-        )}
+        }}>{vibeTitle}</div>
       </div>
-      <span style={{
-        fontSize: 14, color: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', marginTop: 3,
-        transition: 'transform 0.15s ease', transform: expanded ? 'rotate(180deg)' : 'none',
-      }}>{'\u25BC'}</span>
     </div>
   )
 }

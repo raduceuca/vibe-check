@@ -9,11 +9,18 @@ const VERSION = '0.1.0'
 type SnapshotWaiter = (snapshot: VibeSnapshot) => void
 
 const findIssueById = (store: VibeStore, id: string): VibeIssue | undefined => {
-  const allIssues = [
-    ...(store.latestSnapshot?.issues ?? []),
-    ...store.issueHistory,
-  ]
-  return allIssues.find((i) => i.id === id)
+  // Scan in-place — no intermediate concatenated array.
+  const current = store.latestSnapshot?.issues
+  if (current) {
+    for (let i = 0; i < current.length; i++) {
+      if (current[i]!.id === id) return current[i]
+    }
+  }
+  const history = store.issueHistory
+  for (let i = 0; i < history.length; i++) {
+    if (history[i]!.id === id) return history[i]
+  }
+  return undefined
 }
 
 export interface McpServerContext {

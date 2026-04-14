@@ -105,25 +105,25 @@ describe('VibeCheck', () => {
     )
 
     let overlay = screen.getByTestId('vibe-check-overlay')
-    expect(overlay.style.top).toBe('16px')
-    expect(overlay.style.left).toBe('16px')
+    expect(overlay.style.top).toBe('12px')
+    expect(overlay.style.left).toBe('12px')
 
     rerender(<VibeCheck enabled position="bottom-right" />)
 
     overlay = screen.getByTestId('vibe-check-overlay')
-    expect(overlay.style.bottom).toBe('16px')
-    expect(overlay.style.right).toBe('16px')
+    expect(overlay.style.bottom).toBe('12px')
+    expect(overlay.style.right).toBe('12px')
   })
 
   it('respects panels prop to control which panels render', () => {
     render(<VibeCheck enabled panels={['fps']} />)
 
-    // FPS section header should be present
-    expect(screen.getByText('Frame Rate')).toBeTruthy()
+    // FPS section header should be present (defaults to 'vibe' mode → "Smoothness")
+    expect(screen.getByText('Smoothness')).toBeTruthy()
 
     // Section titles for other panels should not be present
-    expect(screen.queryByText('WEB VITALS')).toBeNull()
-    expect(screen.queryByText('MEMORY')).toBeNull()
+    expect(screen.queryByText('Page Speed')).toBeNull()
+    expect(screen.queryByText('Memory')).toBeNull()
   })
 
   it('shows issues panel with all-clear state', () => {

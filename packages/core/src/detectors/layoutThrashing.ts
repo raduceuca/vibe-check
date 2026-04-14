@@ -32,21 +32,26 @@ export const createLayoutThrashingDetector = (): Detector => {
     if (shiftEntry.hadRecentInput) return
 
     const now = performance.now()
-    const record: ShiftRecord = {
-      timestamp: now,
-      value: shiftEntry.value,
-    }
+    const cutoff = now - CLUSTER_WINDOW_MS
 
-    // Add to recent shifts and trim old ones
-    recentShifts = [
-      ...recentShifts.filter((s) => now - s.timestamp < CLUSTER_WINDOW_MS),
-      record,
-    ]
+    // In-place compaction: drop stale shifts, then append the new one.
+    // No spread, no intermediate filter array.
+    let write = 0
+    for (let read = 0; read < recentShifts.length; read++) {
+      const s = recentShifts[read]!
+      if (s.timestamp >= cutoff) {
+        if (write !== read) recentShifts[write] = s
+        write += 1
+      }
+    }
+    recentShifts.length = write
+    recentShifts.push({ timestamp: now, value: shiftEntry.value })
 
     // Check for cluster
     if (recentShifts.length >= CLUSTER_MIN_SHIFTS) {
-      const totalValue = recentShifts.reduce((sum, s) => sum + s.value, 0)
-      const clusterDuration = now - recentShifts[0].timestamp
+      let totalValue = 0
+      for (let i = 0; i < recentShifts.length; i++) totalValue += recentShifts[i]!.value
+      const clusterDuration = now - recentShifts[0]!.timestamp
 
       issues = [
         ...issues,

@@ -107,7 +107,7 @@ describe('PerfToggle', () => {
     })
 
     const overlay = screen.getByTestId('vibe-check-overlay')
-    expect(overlay.style.top).toBe('16px')
-    expect(overlay.style.left).toBe('16px')
+    expect(overlay.style.top).toBe('12px')
+    expect(overlay.style.left).toBe('12px')
   })
 })
