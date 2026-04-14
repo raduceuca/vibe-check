@@ -3,6 +3,35 @@
 All notable changes across the `@wcgw/vibe-check`, `@wcgw/vibe-check-core`, and
 `@wcgw/vibe-check-mcp` packages. Versions are kept in lockstep.
 
+## 0.1.3
+
+Documentation-only release. No runtime changes — this exists so the new READMEs
+ship in the npm tarballs (npm caches the README at publish time).
+
+### Verified and corrected against actual code
+
+- `@wcgw/vibe-check-core`: detector table now includes `heavy-library`; API
+  surface lists `getIssues()`, `clearIssues()`, `isRunning()`.
+- `@wcgw/vibe-check`: every hook example now passes the `enabled` flag (the
+  metric hooks default to `false` and silently return empty stats otherwise);
+  `<VibeCheckProvider>` example now passes the required `value={engine}` prop;
+  `useDetectedIssues` example shows the explicit-engine pattern.
+- `@wcgw/vibe-check-mcp`: rewrote the broken Programmatic Usage block — the
+  previous version referenced `updateSnapshot` without importing it and used
+  `mcp` before declaration. New version mirrors the real wiring in
+  `src/index.ts`. Example `get_performance_snapshot` response now matches the
+  full `VibeSnapshot` shape (every field present).
+
+### New content
+
+- **react README**: end-to-end "Complete setup (3 steps)" block with the
+  `claude mcp add vibe-check -- npx @wcgw/vibe-check-mcp` one-liner and the
+  shared `mcpServers` JSON for everything else; hooks reference table.
+- **mcp README**: AI-agent setup table covering Claude Code, Claude Desktop,
+  Cursor, Windsurf, Cline, Continue, and Zed; example
+  `get_performance_snapshot` response; troubleshooting section (no-snapshot,
+  port conflicts, MCP wiring failures, CORS).
+
 ## 0.1.2
 
 Performance sweep — vibe-check is a perf monitor, so its own runtime cost is
