@@ -39,10 +39,15 @@ export const createConsoleSpamDetector = (
   let calls: CallRecord[] = []
   let checkTimerId: ReturnType<typeof setInterval> | null = null
 
-  // Saved originals for restoration
+  // Saved originals for restoration, plus the wrappers we installed so stop()
+  // can verify we are still the top-most patch before restoring (ownership
+  // check — otherwise we would clobber a wrapper layered on top of ours).
   let originalLog: typeof console.log | null = null
   let originalWarn: typeof console.warn | null = null
   let originalError: typeof console.error | null = null
+  let wrappedLog: typeof console.log | null = null
+  let wrappedWarn: typeof console.warn | null = null
+  let wrappedError: typeof console.error | null = null
   let patched = false
 
   const recordCall = (method: ConsoleMethod, args: unknown[]): void => {
@@ -62,6 +67,10 @@ export const createConsoleSpamDetector = (
       recordCall(method, args)
       original.apply(console, args)
     }
+
+    if (method === 'log') wrappedLog = wrapped
+    if (method === 'warn') wrappedWarn = wrapped
+    if (method === 'error') wrappedError = wrapped
 
     console[method] = wrapped
   }
@@ -126,23 +135,27 @@ export const createConsoleSpamDetector = (
 
     stop(): void {
       try {
-        if (originalLog !== null) {
+        // Restore only if our wrapper is still installed (ownership check).
+        if (originalLog !== null && console.log === wrappedLog) {
           console.log = originalLog
-          originalLog = null
         }
-        if (originalWarn !== null) {
+        if (originalWarn !== null && console.warn === wrappedWarn) {
           console.warn = originalWarn
-          originalWarn = null
         }
-        if (originalError !== null) {
+        if (originalError !== null && console.error === wrappedError) {
           console.error = originalError
-          originalError = null
         }
         if (checkTimerId !== null) {
           clearInterval(checkTimerId)
           checkTimerId = null
         }
       } finally {
+        originalLog = null
+        originalWarn = null
+        originalError = null
+        wrappedLog = null
+        wrappedWarn = null
+        wrappedError = null
         patched = false
         calls = []
       }

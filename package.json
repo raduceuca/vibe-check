@@ -7,7 +7,7 @@
     "test": "pnpm -r test",
     "test:watch": "pnpm -r test:watch",
     "test:coverage": "vitest run --coverage",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm -r --filter \"./packages/*\" lint",
     "clean": "pnpm -r exec rm -rf dist",
     "publish:all": "pnpm -r publish --no-git-checks",
     "publish:dry": "pnpm -r publish --no-git-checks --dry-run"

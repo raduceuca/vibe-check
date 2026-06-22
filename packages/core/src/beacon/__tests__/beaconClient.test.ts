@@ -175,4 +175,76 @@ describe('BeaconClient', () => {
 
     client.stop()
   })
+
+  // ── Delivery status (#11) ───────────────────────────────────────────────
+  it('reports an unattempted status before the first send', () => {
+    const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 2000 })
+    const status = client.getStatus()
+    expect(status.configured).toBe(true)
+    expect(status.lastAttemptAt).toBeNull()
+    expect(status.lastOk).toBeNull()
+  })
+
+  it('reports lastOk=true after a queued sendBeacon', () => {
+    const mockSendBeacon = vi.fn().mockReturnValue(true)
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: mockSendBeacon, writable: true, configurable: true,
+    })
+
+    const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 2000 })
+    client.start(vi.fn(createMockSnapshot))
+
+    const status = client.getStatus()
+    expect(status.lastOk).toBe(true)
+    expect(typeof status.lastAttemptAt).toBe('number')
+
+    client.stop()
+  })
+
+  it('falls through to fetch when sendBeacon refuses (e.g. payload too large)', () => {
+    const mockSendBeacon = vi.fn().mockReturnValue(false)
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: mockSendBeacon, writable: true, configurable: true,
+    })
+    const mockFetch = vi.fn().mockResolvedValue(new Response())
+    globalThis.fetch = mockFetch
+
+    const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 2000 })
+    client.start(vi.fn(createMockSnapshot))
+
+    expect(mockSendBeacon).toHaveBeenCalledTimes(1)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+
+    client.stop()
+  })
+
+  it('records lastOk=false when fetch delivery fails', async () => {
+    vi.useRealTimers()
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: undefined, writable: true, configurable: true,
+    })
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('connection refused'))
+
+    const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 60_000 })
+    client.start(vi.fn(createMockSnapshot))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(client.getStatus().lastOk).toBe(false)
+    client.stop()
+  })
+
+  it('records lastOk=true when fetch delivery resolves ok', async () => {
+    vi.useRealTimers()
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: undefined, writable: true, configurable: true,
+    })
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+
+    const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 60_000 })
+    client.start(vi.fn(createMockSnapshot))
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(client.getStatus().lastOk).toBe(true)
+    client.stop()
+  })
 })

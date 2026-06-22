@@ -35,7 +35,7 @@ import { createResourceBloatDetector } from './detectors/resourceBloat.js'
 import { createLargeImagesDetector } from './detectors/largeImages.js'
 import { createWebEssentialsDetector } from './detectors/webEssentials.js'
 import { createHeavyLibraryDetector } from './detectors/heavyLibrary.js'
-import { BeaconClient } from './beacon/beaconClient.js'
+import { BeaconClient, type BeaconStatus } from './beacon/beaconClient.js'
 
 type SnapshotCallback = (snapshot: VibeSnapshot) => void
 
@@ -168,13 +168,22 @@ export class VibeCheckEngine {
       this.domCountIntervalId = undefined
     }
 
+    // Tear down in reverse (LIFO) of start order: detectors were started after
+    // collectors, and some of both monkey-patch the same globals (console,
+    // fetch). Unwinding detectors first — then collectors — guarantees each
+    // patch is removed from the top down, restoring the host's real globals.
+    for (let i = this.detectors.length - 1; i >= 0; i--) {
+      this.detectors[i]!.stop()
+    }
+    ;(this.detectors as Detector[]).splice(0)
+
     // Stop collectors
-    this.frameRateCollector?.stop()
-    this.longFrameCollector?.stop()
-    this.memoryCollector?.stop()
-    this.webVitalsCollector?.stop()
-    this.resourceCollector?.stop()
     this.consoleCollector?.stop()
+    this.resourceCollector?.stop()
+    this.webVitalsCollector?.stop()
+    this.memoryCollector?.stop()
+    this.longFrameCollector?.stop()
+    this.frameRateCollector?.stop()
 
     this.frameRateCollector = null
     this.longFrameCollector = null
@@ -182,12 +191,6 @@ export class VibeCheckEngine {
     this.webVitalsCollector = null
     this.resourceCollector = null
     this.consoleCollector = null
-
-    // Stop detectors
-    for (const d of this.detectors) {
-      d.stop()
-    }
-    ;(this.detectors as Detector[]).splice(0)
 
     // Stop beacon
     this.beaconClient?.stop()
@@ -255,5 +258,10 @@ export class VibeCheckEngine {
 
   isRunning(): boolean {
     return this.running
+  }
+
+  // Real delivery status of the beacon, or null when no beaconUrl is configured.
+  getBeaconStatus(): BeaconStatus | null {
+    return this.beaconClient?.getStatus() ?? null
   }
 }

@@ -7,10 +7,16 @@ import { createMcpServer } from './mcpServer.js'
 import type { VibeSnapshot } from './types.js'
 
 const DEFAULT_PORT = 4200
+// Bind to loopback by default. This is an unauthenticated dev tool that stores
+// browser telemetry and serves it to an AI agent; binding all interfaces would
+// expose it to the whole LAN and to fake-snapshot injection. Override with
+// VIBE_CHECK_HOST only for trusted setups (e.g. a container bridge).
+const DEFAULT_HOST = '127.0.0.1'
 
 const main = async (): Promise<void> => {
   const rawPort = parseInt(process.env['VIBE_CHECK_PORT'] ?? String(DEFAULT_PORT), 10)
   const port = Number.isNaN(rawPort) || rawPort < 1 || rawPort > 65535 ? DEFAULT_PORT : rawPort
+  const host = process.env['VIBE_CHECK_HOST'] ?? DEFAULT_HOST
 
   let store: VibeStore = createStore()
 
@@ -27,8 +33,8 @@ const main = async (): Promise<void> => {
     mcpContext.notifySnapshot(snapshot)
   })
 
-  httpContext.server.listen(port, () => {
-    process.stderr.write(`[vibe-check] HTTP server listening on port ${port}\n`)
+  httpContext.server.listen(port, host, () => {
+    process.stderr.write(`[vibe-check] HTTP server listening on http://${host}:${port}\n`)
   })
 
   const transport = new StdioServerTransport()

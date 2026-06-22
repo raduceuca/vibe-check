@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
-import type { VibeIssue, VibeSnapshot } from '@wcgw/vibe-check-core'
+import type { VibeIssue, VibeSnapshot, BeaconStatus } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
 import { usePreferences } from './hooks/usePreferences.js'
@@ -202,6 +202,24 @@ export const VibeCheck = ({
   const { tracked, markSent, markSentBatch, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
   const mode = prefs.mode
 
+  // Real beacon delivery status, re-read each snapshot tick (~500ms) so the
+  // settings indicator reflects whether snapshots actually reach the MCP server
+  // rather than merely "a beaconUrl is configured". Null when no beacon.
+  const beaconStatus: BeaconStatus | null = beaconUrl ? (engine?.getBeaconStatus() ?? null) : null
+
+  // "Clear annotations on send": when enabled, hide the on-page markers as
+  // issues are dispatched to the agent. Wrap the mark-sent handlers so the
+  // toggle has a real effect (previously it was persisted but never read).
+  const handleMarkSent = useCallback((issueId: string) => {
+    markSent(issueId)
+    if (prefs.clearOnSend) updatePrefs({ annotationsVisible: false })
+  }, [markSent, prefs.clearOnSend, updatePrefs])
+
+  const handleMarkSentBatch = useCallback((issueIds: readonly string[]) => {
+    markSentBatch(issueIds)
+    if (prefs.clearOnSend) updatePrefs({ annotationsVisible: false })
+  }, [markSentBatch, prefs.clearOnSend, updatePrefs])
+
   const reportedRef = useRef(new Set<string>())
   useEffect(() => {
     if (!onIssue) return
@@ -232,7 +250,7 @@ export const VibeCheck = ({
       mode={mode}
       copiedId={copiedId}
       onCopy={copy}
-      onMarkSent={markSent}
+      onMarkSent={handleMarkSent}
       onMarkResolved={markResolved}
     />
   )
@@ -499,8 +517,8 @@ export const VibeCheck = ({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
-                onMarkSent={markSent}
-                onMarkSentBatch={markSentBatch}
+                onMarkSent={handleMarkSent}
+                onMarkSentBatch={handleMarkSentBatch}
                 onMarkResolved={markResolved}
                 onClearResolved={clearResolved}
               />
@@ -517,7 +535,7 @@ export const VibeCheck = ({
           {/* ── SETTINGS VIEW ────────────────────────────────────── */}
           {activeView === 'settings' && (
             <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
-              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} beaconUrl={beaconUrl} onClearAll={clearAll} />
+              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
             </div>
           )}
         </div>

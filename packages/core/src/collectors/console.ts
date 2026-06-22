@@ -10,6 +10,13 @@ export class ConsoleCollector implements Collector<ConsoleStats> {
   private originalLog: typeof console.log | null = null
   private originalWarn: typeof console.warn | null = null
   private originalError: typeof console.error | null = null
+  // The wrapper we installed for each method, kept so stop() only restores when
+  // we are still the top-most patch (ownership check). Restoring blindly would
+  // clobber any wrapper layered on top of ours and leave console permanently
+  // patched by a dead collector.
+  private wrappedLog: typeof console.log | null = null
+  private wrappedWarn: typeof console.warn | null = null
+  private wrappedError: typeof console.error | null = null
   private readonly listeners = new Set<(stats: ConsoleStats) => void>()
 
   start(): void {
@@ -24,19 +31,25 @@ export class ConsoleCollector implements Collector<ConsoleStats> {
 
   stop(): void {
     try {
-      if (this.originalLog !== null) {
+      // Only restore if our wrapper is still the installed function. If some
+      // other code (or another patcher) wrapped console on top of us, restoring
+      // would clobber it; leave it in place instead.
+      if (this.originalLog !== null && console.log === this.wrappedLog) {
         console.log = this.originalLog
-        this.originalLog = null
       }
-      if (this.originalWarn !== null) {
+      if (this.originalWarn !== null && console.warn === this.wrappedWarn) {
         console.warn = this.originalWarn
-        this.originalWarn = null
       }
-      if (this.originalError !== null) {
+      if (this.originalError !== null && console.error === this.wrappedError) {
         console.error = this.originalError
-        this.originalError = null
       }
     } finally {
+      this.originalLog = null
+      this.originalWarn = null
+      this.originalError = null
+      this.wrappedLog = null
+      this.wrappedWarn = null
+      this.wrappedError = null
       this.patched = false
       this.logCount = 0
       this.warnCount = 0
@@ -75,6 +88,10 @@ export class ConsoleCollector implements Collector<ConsoleStats> {
       self.notify()
       original.apply(console, args)
     }
+
+    if (method === 'log') this.wrappedLog = wrapped
+    if (method === 'warn') this.wrappedWarn = wrapped
+    if (method === 'error') this.wrappedError = wrapped
 
     console[method] = wrapped
   }
