@@ -28,7 +28,8 @@
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {
-    "@wcgw/vibe-check-core": "workspace:^"
+    "@wcgw/vibe-check-core": "workspace:^",
+    "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

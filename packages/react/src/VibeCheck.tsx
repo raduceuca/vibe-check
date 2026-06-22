@@ -11,6 +11,7 @@ import { PromptsPanel } from './panels/PromptsPanel.js'
 import { SettingsPanel } from './panels/SettingsPanel.js'
 import { AuditPanel } from './panels/AuditPanel.js'
 import { AnnotationOverlay } from './panels/AnnotationOverlay.js'
+import { Gauge, Wrench, MagnifyingGlass, Robot, Lightbulb, SlidersHorizontal } from '@phosphor-icons/react'
 
 type PanelType = 'fps' | 'vitals' | 'memory' | 'console' | 'issues'
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
@@ -228,29 +229,18 @@ const NAV_DOT: CSSProperties = {
 }
 const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }
 
-// ── Tab icons ───────────────────────────────────────────────────────────────
+// ── Tab icons (Phosphor, bold weight — thicker, rounder) ────────────────────
 
-const ICON_PROPS = {
-  width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none',
-  stroke: 'currentColor', strokeWidth: 1.8,
-  strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
-  'aria-hidden': true as const,
-}
+const ICON_SIZE = 20
 
 const NavIcon = ({ name }: { name: ViewTab }) => {
   switch (name) {
-    case 'monitor': // activity pulse
-      return <svg {...ICON_PROPS}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-    case 'agent': // wrench (fix queue)
-      return <svg {...ICON_PROPS}><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6l-6.4 6.4 2 2 6.4-6.4a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2 2.8-2.8z" /></svg>
-    case 'seo': // magnifier
-      return <svg {...ICON_PROPS}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-    case 'aeo': // sparkles (AI)
-      return <svg {...ICON_PROPS}><path d="M12 4l1.4 3.6L17 9l-3.6 1.4L12 14l-1.4-3.6L7 9z" /><path d="M18.5 14.5l.55 1.45L20.5 16.5l-1.45.55L18.5 18.5l-.55-1.45L16.5 16.5l1.45-.55z" /></svg>
-    case 'prompts': // chat
-      return <svg {...ICON_PROPS}><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" /><path d="M8 9h8M8 12.5h5" /></svg>
-    case 'settings': // sliders (unambiguous "adjust", not a sun)
-      return <svg {...ICON_PROPS}><path d="M4 8h16M4 16h16" /><circle cx="9" cy="8" r="2.4" fill="currentColor" stroke="none" /><circle cx="15" cy="16" r="2.4" fill="currentColor" stroke="none" /></svg>
+    case 'monitor': return <Gauge size={ICON_SIZE} weight="bold" />
+    case 'agent': return <Wrench size={ICON_SIZE} weight="bold" />
+    case 'seo': return <MagnifyingGlass size={ICON_SIZE} weight="bold" />
+    case 'aeo': return <Robot size={ICON_SIZE} weight="bold" />
+    case 'prompts': return <Lightbulb size={ICON_SIZE} weight="bold" />
+    case 'settings': return <SlidersHorizontal size={ICON_SIZE} weight="bold" />
   }
 }
 
