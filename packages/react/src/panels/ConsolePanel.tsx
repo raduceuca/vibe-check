@@ -38,7 +38,7 @@ const countStyle = (count: number, color: string): CSSProperties => ({
 
 const ConsoleRow = ({ label, count, color }: { label: string; count: number; color: string }) => (
   <div style={rowStyle}>
-    <span style={dotStyle(count > 0 ? color : 'rgba(255,255,255,0.15)')} />
+    <span style={dotStyle(count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.15)')} />
     <span style={labelStyle}>{label}</span>
     <span style={countStyle(count, color)}>{count}</span>
   </div>
@@ -46,7 +46,7 @@ const ConsoleRow = ({ label, count, color }: { label: string; count: number; col
 
 export const ConsolePanel = ({ stats }: ConsolePanelProps) => (
   <Panel title="Console" borderTop>
-    <ConsoleRow label="Logs" count={stats.logCount} color="rgba(255,255,255,0.5)" />
+    <ConsoleRow label="Logs" count={stats.logCount} color="rgba(var(--vc-fg,255,255,255),0.5)" />
     <ConsoleRow label="Warnings" count={stats.warnCount} color="#fbbf24" />
     <ConsoleRow label="Errors" count={stats.errorCount} color="#f87171" />
   </Panel>

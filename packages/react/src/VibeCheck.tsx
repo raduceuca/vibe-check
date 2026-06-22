@@ -36,15 +36,19 @@ const ANIMATIONS_CSS = `
 @keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes vc-slide-in { from { opacity: 0; transform: translate3d(6px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
 [data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-[data-vc-issue]:hover { background: rgba(255,255,255,0.04) !important; }
-[data-vc-pill]:hover { background: rgba(255,255,255,0.06) !important; }
-[data-vc-tab]:hover { background: rgba(255,255,255,0.04) !important; }
+/* Theme tokens. --vc-fg is the foreground tint applied to every
+   rgba(var(--vc-fg),a) surface/border/text, so one variable flips the theme. */
+[data-vc-theme="dark"] { --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97); }
+[data-vc-theme="light"] { --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98); }
+[data-vc-issue]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
+[data-vc-pill]:hover { background: rgba(var(--vc-fg,255,255,255),0.06) !important; }
+[data-vc-tab]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
 [data-vc] button:hover { filter: brightness(1.12); }
 [data-vc-pill] { transition: scale 0.12s ease, background 0.15s ease; }
 /* Tactile press feedback (scale 0.96) on interactive controls. */
 [data-vc] button:active, [data-vc-pill]:active { scale: 0.96; }
 [data-vc] [role="button"]:focus-visible, [data-vc] [role="switch"]:focus-visible, [data-vc] button:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; border-radius: 4px;
+  outline: 2px solid rgba(var(--vc-fg,255,255,255),0.5); outline-offset: 2px; border-radius: 4px;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-vc-breathe], [data-vc] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -114,7 +118,7 @@ const Ring = ({ value, max, color, size = 56 }: { value: number; max: number; co
           <stop offset="100%" stopColor={T.red} />
         </linearGradient>
       </defs>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={sw} />
+      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--vc-fg,255,255,255),0.06)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none"
         stroke={value / max > 0.65 ? color : `url(#${gid})`}
         strokeWidth={sw} strokeDasharray={c} strokeDashoffset={offset}
@@ -132,7 +136,7 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
   const offset = c * (1 - Math.min(value / max, 1)); const mid = size / 2
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} />
+      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--vc-fg,255,255,255),0.08)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
         style={{ filter: `drop-shadow(0 0 3px ${color}50)`, transition: 'stroke-dashoffset 0.3s ease' }}
@@ -144,7 +148,7 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
 // ── Thin separator for the collapsed pill ───────────────────────────────────
 
 const PillDivider = () => (
-  <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(255,255,255,0.12)', flexShrink: 0, margin: '0 1px' }} />
+  <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(var(--vc-fg,255,255,255),0.12)', flexShrink: 0, margin: '0 1px' }} />
 )
 
 // ── FONT ────────────────────────────────────────────────────────────────────
@@ -290,7 +294,7 @@ export const VibeCheck = ({
     return (
       <>
         {annotationOverlay}
-        <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-vc>
+        <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-vc data-vc-theme={prefs.theme}>
           <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-vc-pill
             aria-label={`Expand vibe check — ${Math.round(snapshot.frameRate.fps)} fps, ${activeCount} issues`} aria-expanded={false}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
@@ -303,7 +307,7 @@ export const VibeCheck = ({
               background: T.bg,
               borderRadius: 22, cursor: 'pointer', userSelect: 'none',
               border: `1px solid ${T.border}`,
-              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04)`,
+              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
               backdropFilter: 'blur(24px)',
               animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
             }}>
@@ -348,12 +352,12 @@ export const VibeCheck = ({
   return (
     <VibeCheckProvider value={engine}>
       {annotationOverlay}
-      <div data-testid="vibe-check-overlay" data-vc style={{
+      <div data-testid="vibe-check-overlay" data-vc data-vc-theme={prefs.theme} style={{
         position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: FONT, fontSize: 14,
         color: T.text, overflow: 'hidden',
         background: T.bg,
         borderRadius: 18, border: `1px solid ${T.border}`,
-        boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04)`,
+        boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
         backdropFilter: 'blur(32px)',
         animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
@@ -498,7 +502,7 @@ export const VibeCheck = ({
                       {activeCount > 0 && (
                         <span style={{
                           fontSize: 14, fontWeight: 700, color: T.text,
-                          background: 'rgba(255,255,255,0.08)', padding: '2px 7px', borderRadius: 6,
+                          background: 'rgba(var(--vc-fg,255,255,255),0.08)', padding: '2px 7px', borderRadius: 6,
                           animation: 'vc-count-pop 0.3s ease',
                         }}>{activeCount}</span>
                       )}
@@ -692,7 +696,7 @@ const Dot = ({ count, color, label }: { count: number; color: string; label: str
   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
     <span style={{
       width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-      background: count > 0 ? color : 'rgba(255,255,255,0.08)',
+      background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.08)',
       boxShadow: count > 0 ? `0 0 4px ${color}40` : 'none',
       transition: 'all 0.2s ease',
     }} />

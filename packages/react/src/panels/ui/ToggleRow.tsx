@@ -45,8 +45,8 @@ const thumbStyle = (on: boolean): CSSProperties => ({
   width: 10,
   height: 10,
   borderRadius: '50%',
-  backgroundColor: on ? 'rgba(255,255,255,0.9)' : 'rgba(255, 255, 255, 0.35)',
-  boxShadow: on ? '0 0 4px rgba(255,255,255,0.2)' : 'none',
+  backgroundColor: on ? 'rgba(var(--vc-fg,255,255,255),0.9)' : 'rgba(255, 255, 255, 0.35)',
+  boxShadow: on ? '0 0 4px rgba(var(--vc-fg,255,255,255),0.2)' : 'none',
   transition: 'all 0.2s ease',
 })
 

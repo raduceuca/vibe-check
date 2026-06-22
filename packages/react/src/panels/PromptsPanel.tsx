@@ -13,8 +13,8 @@ interface PromptsPanelProps {
 const cardStyle: CSSProperties = {
   padding: '10px 12px',
   borderRadius: 8,
-  background: 'rgba(255,255,255,0.02)',
-  border: '1px solid rgba(255,255,255,0.05)',
+  background: 'rgba(var(--vc-fg,255,255,255),0.02)',
+  border: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
   marginBottom: 6,
   transition: 'all 0.2s ease',
 }
@@ -37,7 +37,7 @@ export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
             <span style={{
               fontSize: 14,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.8)',
+              color: 'rgba(var(--vc-fg,255,255,255),0.8)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

@@ -52,10 +52,10 @@ const AuditRow = ({
         style={{ cursor: 'pointer' }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,0.85)' }}>
+          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'rgba(var(--vc-fg,255,255,255),0.85)' }}>
             {issue.title}
           </span>
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', flexShrink: 0, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'▼'}</span>
+          <span style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'▼'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Badge severity={issue.severity} />
@@ -67,7 +67,7 @@ const AuditRow = ({
 
       {expanded && (
         <div style={{ marginTop: 10, animation: 'vc-fade-in 0.15s ease' }}>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, marginBottom: 10 }}>
+          <div style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.55)', lineHeight: 1.55, marginBottom: 10 }}>
             {suggestion.explanation}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -94,12 +94,12 @@ export const AuditPanel = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <span style={{
           fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-          letterSpacing: '0.05em', color: 'rgba(255,255,255,0.4)',
+          letterSpacing: '0.05em', color: 'rgba(var(--vc-fg,255,255,255),0.4)',
         }}>{mode === 'vibe' ? vibeHeading : heading}</span>
         {findings.length > 0 && (
           <span style={{
             fontSize: 14, fontWeight: 700, color: T.text,
-            background: 'rgba(255,255,255,0.08)', padding: '2px 7px', borderRadius: 6,
+            background: 'rgba(var(--vc-fg,255,255,255),0.08)', padding: '2px 7px', borderRadius: 6,
           }}>{findings.length}</span>
         )}
       </div>
@@ -122,7 +122,7 @@ export const AuditPanel = ({
           <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 10px' }}>
             {mode === 'vibe' ? vibeSubtitle : subtitle}
           </p>
-          <div style={{ borderRadius: 8, background: 'rgba(255,255,255,0.015)', border: `1px solid ${T.borderSubtle}`, overflow: 'hidden' }}>
+          <div style={{ borderRadius: 8, background: 'rgba(var(--vc-fg,255,255,255),0.015)', border: `1px solid ${T.borderSubtle}`, overflow: 'hidden' }}>
             {findings.map((t) => (
               <AuditRow
                 key={t.issue.id} tracked={t} mode={mode}

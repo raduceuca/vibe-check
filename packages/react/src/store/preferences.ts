@@ -2,10 +2,13 @@ import type { SuggestionMode } from '@wcgw/vibe-check-core'
 
 // ── Types ───────────────────────────────────────────────���───────────────────
 
+export type VibeCheckTheme = 'dark' | 'light'
+
 export interface VibeCheckPreferences {
   readonly mode: SuggestionMode
   readonly annotationsVisible: boolean
   readonly clearOnSend: boolean
+  readonly theme: VibeCheckTheme
 }
 
 // ── Storage ────────────────────────────────���────────────────────────────────
@@ -16,6 +19,7 @@ const DEFAULTS: VibeCheckPreferences = {
   mode: 'vibe',
   annotationsVisible: true,
   clearOnSend: false,
+  theme: 'dark',
 }
 
 export const readPreferences = (): VibeCheckPreferences => {

@@ -12,9 +12,9 @@ const trackStyle = (isVibe: boolean): CSSProperties => ({
   height: 18,
   borderRadius: 9,
   background: isVibe
-    ? 'rgba(255,255,255,0.12)'
-    : 'rgba(255,255,255,0.06)',
-  border: `1px solid rgba(255,255,255,${isVibe ? '0.15' : '0.08'})`,
+    ? 'rgba(var(--vc-fg,255,255,255),0.12)'
+    : 'rgba(var(--vc-fg,255,255,255),0.06)',
+  border: `1px solid rgba(var(--vc-fg,255,255,255),${isVibe ? '0.15' : '0.08'})`,
   cursor: 'pointer',
   transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
   flexShrink: 0,
@@ -27,8 +27,8 @@ const thumbStyle = (isVibe: boolean): CSSProperties => ({
   width: 12,
   height: 12,
   borderRadius: '50%',
-  background: isVibe ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)',
-  boxShadow: isVibe ? '0 0 6px rgba(255,255,255,0.2)' : 'none',
+  background: isVibe ? 'rgba(var(--vc-fg,255,255,255),0.9)' : 'rgba(var(--vc-fg,255,255,255),0.4)',
+  boxShadow: isVibe ? '0 0 6px rgba(var(--vc-fg,255,255,255),0.2)' : 'none',
   transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
 })
 
@@ -45,7 +45,7 @@ const containerStyle: CSSProperties = {
 const labelStyle = (active: boolean): CSSProperties => ({
   fontSize: 14,
   fontWeight: active ? 600 : 400,
-  color: active ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)',
+  color: active ? 'rgba(var(--vc-fg,255,255,255),0.8)' : 'rgba(var(--vc-fg,255,255,255),0.25)',
   transition: 'all 0.3s ease',
 })
 

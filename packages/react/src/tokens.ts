@@ -2,18 +2,20 @@
 // Pure neutrals, no color tint. 14px minimum text. High contrast.
 
 export const T = {
-  // Backgrounds — pure neutral, no blue/green tint
-  bg: 'rgba(12,12,12,0.97)',
-  bgSubtle: 'rgba(255,255,255,0.03)',
-  bgHover: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.08)',
-  borderSubtle: 'rgba(255,255,255,0.05)',
+  // Backgrounds — pure neutral. `--vc-fg` (set per theme on the panel root) is
+  // the foreground tint — white in dark mode, near-black in light mode — so
+  // every `rgba(var(--vc-fg),a)` surface/border/text flips with the theme.
+  bg: 'var(--vc-panel-bg, rgba(12,12,12,0.97))',
+  bgSubtle: 'rgba(var(--vc-fg,255,255,255),0.03)',
+  bgHover: 'rgba(var(--vc-fg,255,255,255),0.06)',
+  border: 'rgba(var(--vc-fg,255,255,255),0.08)',
+  borderSubtle: 'rgba(var(--vc-fg,255,255,255),0.05)',
 
   // Text — high contrast, always readable
-  text: 'rgba(255,255,255,0.92)',
-  textSecondary: 'rgba(255,255,255,0.6)',
-  textTertiary: 'rgba(255,255,255,0.4)',
-  textMuted: 'rgba(255,255,255,0.35)',
+  text: 'rgba(var(--vc-fg,255,255,255),0.92)',
+  textSecondary: 'rgba(var(--vc-fg,255,255,255),0.6)',
+  textTertiary: 'rgba(var(--vc-fg,255,255,255),0.4)',
+  textMuted: 'rgba(var(--vc-fg,255,255,255),0.35)',
 
   // Status — only for semantic indicators
   green: '#4ade80',
@@ -32,8 +34,8 @@ export const T = {
 
   // Shadows
   shadowSm: '0 2px 8px rgba(0,0,0,0.3)',
-  shadowMd: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04)',
-  shadowLg: '0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04)',
+  shadowMd: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
+  shadowLg: '0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
 
   // Z-index scale (high values to sit above host page)
   zOverlay: 2147483630,

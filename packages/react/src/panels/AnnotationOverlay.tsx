@@ -235,8 +235,8 @@ const Marker = ({
             zIndex: T.zPopover,
             background: 'rgba(12,12,12,0.97)',
             borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04)',
+            border: '1px solid rgba(var(--vc-fg,255,255,255),0.1)',
+            boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
             backdropFilter: 'blur(32px)',
             padding: '12px 14px',
             fontFamily: FONT,
@@ -248,13 +248,13 @@ const Marker = ({
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(var(--vc-fg,255,255,255),0.9)' }}>
               {issueCount} issue{issueCount > 1 ? 's' : ''} here
             </span>
             <button
               onClick={onToggle}
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer',
+                background: 'none', border: 'none', color: 'rgba(var(--vc-fg,255,255,255),0.35)', cursor: 'pointer',
                 fontSize: 18, padding: 8, minWidth: 32, minHeight: 32,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               }}
@@ -273,12 +273,12 @@ const Marker = ({
             return (
               <div key={t.issue.id} style={{
                 padding: '10px 0',
-                borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                borderTop: i > 0 ? '1px solid rgba(var(--vc-fg,255,255,255),0.06)' : 'none',
               }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(var(--vc-fg,255,255,255),0.8)', marginBottom: 4 }}>
                   {mode === 'vibe' ? suggestion.title : t.issue.title}
                 </div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, marginBottom: 8 }}>
+                <div style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.4)', lineHeight: 1.5, marginBottom: 8 }}>
                   {suggestion.explanation.slice(0, 120)}{suggestion.explanation.length > 120 ? '...' : ''}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>

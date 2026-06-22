@@ -39,7 +39,7 @@ const firstSection: CSSProperties = {
 }
 
 const DOT_COLOR: Record<ConnectionState, string> = {
-  inactive: 'rgba(255,255,255,0.15)',
+  inactive: 'rgba(var(--vc-fg,255,255,255),0.15)',
   pending: T.yellow,
   active: T.green,
 }
@@ -89,6 +89,11 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, beaconStatus, 
         label={mode === 'vibe' ? 'Auto-clear when sent to AI' : 'Clear annotations on send'}
         checked={prefs.clearOnSend}
         onChange={(checked) => onUpdate({ clearOnSend: checked })}
+      />
+      <ToggleRow
+        label={mode === 'vibe' ? 'Light theme' : 'Light theme'}
+        checked={prefs.theme === 'light'}
+        onChange={(checked) => onUpdate({ theme: checked ? 'light' : 'dark' })}
       />
 
       <div style={sectionTitle}>
