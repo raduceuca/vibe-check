@@ -12,6 +12,8 @@ import {
   createLargeImagesDetector,
   createWebEssentialsDetector,
   createHeavyLibraryDetector,
+  createSeoDetector,
+  createAeoDetector,
 } from '../index.js'
 
 // Guards the contract between the detector implementations and the shared
@@ -31,6 +33,8 @@ describe('detector ↔ protocol contract', () => {
     createLargeImagesDetector(),
     createWebEssentialsDetector(),
     createHeavyLibraryDetector(),
+    createSeoDetector(),
+    createAeoDetector(),
   ]
 
   it('every detector name is a protocol DetectorName, and the sets match exactly', () => {

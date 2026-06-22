@@ -133,7 +133,7 @@ describe('unoptimizedImages detector', () => {
 
     const issues = detector.getIssues()
     expect(issues.length).toBe(1)
-    expect(issues[0].evidence).toHaveProperty('issue', 'missing-lazy')
+    expect(issues[0].evidence['problems']).toContain('missing-lazy')
     expect(issues[0].severity).toBe('warning')
 
     detector.stop()
@@ -155,7 +155,7 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const lazyIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'missing-lazy',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-lazy'),
     )
     expect(lazyIssues).toEqual([])
 
@@ -177,7 +177,7 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const dimIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'missing-dimensions',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-dimensions'),
     )
     expect(dimIssues.length).toBe(1)
     expect(dimIssues[0].severity).toBe('error')
@@ -202,11 +202,11 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const oversizedIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'oversized',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('oversized'),
     )
     expect(oversizedIssues.length).toBe(1)
     expect(oversizedIssues[0].severity).toBe('warning')
-    expect(oversizedIssues[0].evidence).toHaveProperty('naturalWidth', 2000)
+    expect(oversizedIssues[0].evidence['problems']).toContain('oversized')
 
     detector.stop()
   })

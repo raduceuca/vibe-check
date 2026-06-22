@@ -53,6 +53,8 @@ export { createLongTaskAttributionDetector } from './detectors/longTaskAttributi
 export { createResourceBloatDetector } from './detectors/resourceBloat.js'
 export { createLargeImagesDetector } from './detectors/largeImages.js'
 export { createWebEssentialsDetector } from './detectors/webEssentials.js'
+export { createSeoDetector } from './detectors/seo.js'
+export { createAeoDetector } from './detectors/aeo.js'
 export { createHeavyLibraryDetector, LIBRARY_SIGNATURES } from './detectors/heavyLibrary.js'
 export type { LibrarySignature } from './detectors/heavyLibrary.js'
 

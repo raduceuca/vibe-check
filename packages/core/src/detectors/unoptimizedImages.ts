@@ -22,74 +22,56 @@ const truncateSrc = (src: string, maxLen = 120): string =>
 
 // ── Detector ─────────────────────────────────────────────────────────────────
 
+const PROBLEM_DESCRIPTIONS: Record<ImageIssueType, string> = {
+  'missing-lazy': 'missing loading="lazy" (below the fold, so it blocks the critical render path)',
+  'missing-dimensions': 'missing width/height attributes (causes layout shift / CLS)',
+  'oversized': 'natural size much larger than its rendered size (wastes bandwidth)',
+}
+
 export const createUnoptimizedImagesDetector = (): Detector => {
   let issues: VibeIssue[] = []
   let observer: MutationObserver | null = null
+  // Keyed by src: one consolidated issue per image, not one per problem, so an
+  // image with several faults produces a single annotation instead of N
+  // near-identical ones.
   const checkedSrcs = new Set<string>()
 
-  const reportIssue = (
-    img: HTMLImageElement,
-    issueType: ImageIssueType,
-    details: Record<string, unknown>,
-  ): void => {
+  const checkImage = (img: HTMLImageElement): void => {
     const src = truncateSrc(img.src || img.getAttribute('src') || 'unknown')
-    const key = `${issueType}:${src}`
+    if (checkedSrcs.has(src)) return
 
-    if (checkedSrcs.has(key)) return
-    checkedSrcs.add(key)
+    const problems: ImageIssueType[] = []
 
-    const severity = issueType === 'missing-dimensions' ? 'error' : 'warning'
-    const titles: Record<ImageIssueType, string> = {
-      'missing-lazy': 'Image missing lazy loading',
-      'missing-dimensions': 'Image missing width/height',
-      'oversized': 'Oversized image detected',
+    // Missing loading="lazy" for below-fold images
+    if (img.getAttribute('loading') !== 'lazy' && isBelowFold(img)) {
+      problems.push('missing-lazy')
     }
-    const descriptions: Record<ImageIssueType, string> = {
-      'missing-lazy': `Below-fold image "${src}" is missing loading="lazy". This forces the browser to download it immediately, blocking the critical rendering path.`,
-      'missing-dimensions': `Image "${src}" is missing explicit width or height attributes. This causes layout shifts (CLS) when the image loads.`,
-      'oversized': `Image "${src}" has a natural size much larger than its rendered size. Consider serving a resized version to save bandwidth.`,
+    // Missing width or height attributes (causes CLS)
+    if (!img.hasAttribute('width') || !img.hasAttribute('height')) {
+      problems.push('missing-dimensions')
     }
+    // Oversized: natural dimensions > 2x rendered dimensions (only once loaded)
+    if (img.naturalWidth > 0 && img.width > 0 && img.naturalWidth > 2 * img.width) {
+      problems.push('oversized')
+    }
+
+    if (problems.length === 0) return
+    checkedSrcs.add(src)
+
+    // missing-dimensions causes layout shift, so it drives error severity.
+    const severity = problems.includes('missing-dimensions') ? 'error' : 'warning'
+    const detail = problems.map((p) => PROBLEM_DESCRIPTIONS[p]).join('; ')
 
     issues = [
       ...issues,
       createIssue(
         'unoptimized-images',
         severity,
-        titles[issueType],
-        descriptions[issueType],
-        { src, issue: issueType, ...details },
+        `Unoptimized image (${problems.length} issue${problems.length > 1 ? 's' : ''})`,
+        `Image "${src}" has: ${detail}.`,
+        { src, problems },
       ),
     ]
-  }
-
-  const checkImage = (img: HTMLImageElement): void => {
-    // Missing loading="lazy" for below-fold images
-    if (img.getAttribute('loading') !== 'lazy' && isBelowFold(img)) {
-      reportIssue(img, 'missing-lazy', {
-        topOffset: Math.round(img.getBoundingClientRect().top),
-        viewportHeight: window.innerHeight,
-      })
-    }
-
-    // Missing width or height attributes (causes CLS)
-    if (!img.hasAttribute('width') || !img.hasAttribute('height')) {
-      reportIssue(img, 'missing-dimensions', {
-        hasWidth: img.hasAttribute('width'),
-        hasHeight: img.hasAttribute('height'),
-      })
-    }
-
-    // Oversized: natural dimensions > 2x rendered dimensions
-    // Only check if the image has loaded (naturalWidth > 0)
-    if (img.naturalWidth > 0 && img.width > 0) {
-      if (img.naturalWidth > 2 * img.width) {
-        reportIssue(img, 'oversized', {
-          naturalWidth: img.naturalWidth,
-          renderedWidth: img.width,
-          ratio: Math.round((img.naturalWidth / img.width) * 10) / 10,
-        })
-      }
-    }
   }
 
   const scanExistingImages = (): void => {

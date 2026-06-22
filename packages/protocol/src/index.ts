@@ -35,6 +35,8 @@ export const DETECTOR_NAMES = [
   'resource-bloat',
   'web-essentials',
   'heavy-library',
+  'seo',
+  'aeo',
 ] as const
 export type DetectorName = (typeof DETECTOR_NAMES)[number]
 
@@ -87,7 +89,11 @@ export interface LayoutThrashingEvidence {
 }
 export interface UnoptimizedImagesEvidence {
   readonly src: string
-  readonly issue: string
+  // All problems found on this one image (e.g. ['missing-lazy',
+  // 'missing-dimensions']). One issue is emitted per image, not per problem, so
+  // an image with several faults shows a single annotation rather than N
+  // near-identical ones.
+  readonly problems: readonly string[]
 }
 export interface LargeImagesEvidence {
   readonly src: string
@@ -110,6 +116,23 @@ export interface ResourceBloatEvidence {
 }
 export interface WebEssentialsEvidence {
   readonly check: string
+}
+export interface SeoEvidence {
+  // Which discoverability check failed: 'title-missing', 'title-too-long',
+  // 'title-default', 'meta-description-missing', 'meta-description-too-long',
+  // 'og-image-missing', 'og-title-missing', 'og-description-missing',
+  // 'canonical-missing', 'h1-missing', 'h1-multiple', 'image-alt-missing',
+  // 'slug-unfriendly', 'sitemap-missing', 'robots-missing'.
+  readonly check: string
+  // Human-readable specifics, e.g. '72 chars' or '5 images'.
+  readonly detail?: string
+}
+export interface AeoEvidence {
+  // Answer-engine / AI-agent readiness check that failed: 'llms-txt-missing',
+  // 'content-requires-js', 'markdown-negotiation-missing', 'ai-crawlers-blocked',
+  // 'structured-data-missing', 'mcp-discovery-missing'.
+  readonly check: string
+  readonly detail?: string
 }
 export interface HeavyLibraryEvidence {
   readonly library: string
@@ -134,6 +157,8 @@ export interface IssueEvidenceMap {
   readonly 'resource-bloat': ResourceBloatEvidence
   readonly 'web-essentials': WebEssentialsEvidence
   readonly 'heavy-library': HeavyLibraryEvidence
+  readonly 'seo': SeoEvidence
+  readonly 'aeo': AeoEvidence
 }
 
 export type EvidenceFor<D extends DetectorName> = IssueEvidenceMap[D]

@@ -35,6 +35,8 @@ import { createResourceBloatDetector } from './detectors/resourceBloat.js'
 import { createLargeImagesDetector } from './detectors/largeImages.js'
 import { createWebEssentialsDetector } from './detectors/webEssentials.js'
 import { createHeavyLibraryDetector } from './detectors/heavyLibrary.js'
+import { createSeoDetector } from './detectors/seo.js'
+import { createAeoDetector } from './detectors/aeo.js'
 import { BeaconClient, type BeaconStatus } from './beacon/beaconClient.js'
 
 type SnapshotCallback = (snapshot: VibeSnapshot) => void
@@ -116,6 +118,8 @@ export class VibeCheckEngine {
       [detectorConfig.largeImages, createLargeImagesDetector],
       [detectorConfig.webEssentials, createWebEssentialsDetector],
       [detectorConfig.heavyLibrary, createHeavyLibraryDetector],
+      [detectorConfig.seo, createSeoDetector],
+      [detectorConfig.aeo, createAeoDetector],
     ]
 
     for (const [enabled, factory] of detectorFactories) {

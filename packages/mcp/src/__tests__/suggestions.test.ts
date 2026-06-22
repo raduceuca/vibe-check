@@ -110,12 +110,14 @@ const REAL_EVIDENCE: ReadonlyArray<{
   { detector: 'console-spam', evidence: { method: 'log', callCount: 50, windowSeconds: 10, sampleArgs: ['hello', 'world'] }, expected: ['50'] },
   { detector: 'memory-leak', evidence: { currentMB: 256, heapGrowthPct: 12, baselineMB: 200 }, expected: ['256', '12'] },
   { detector: 'layout-thrashing', evidence: { shiftCount: 7, totalShiftValue: 0.31, clusterDurationMs: 420 }, expected: ['7', '420'] },
-  { detector: 'unoptimized-images', evidence: { src: '/img/hero.png', issue: 'missing-dimensions' }, expected: ['/img/hero.png', 'missing-dimensions'] },
+  { detector: 'unoptimized-images', evidence: { src: '/img/hero.png', problems: ['missing-lazy', 'missing-dimensions'] }, expected: ['/img/hero.png', 'missing-dimensions'] },
   { detector: 'large-images', evidence: { src: '/img/big.png', transferSizeKB: 900, naturalWidth: 4000 }, expected: ['/img/big.png', '900'] },
   { detector: 'long-task-attribution', evidence: { sourceURL: '/app.js', totalBlockingMs: 320, longFrameCount: 4 }, expected: ['/app.js', '320'] },
   { detector: 'resource-bloat', evidence: { url: '/vendor.js', transferSizeKB: 5000, type: 'script' }, expected: ['/vendor.js', '5000', 'script'] },
   { detector: 'web-essentials', evidence: { check: 'missing-viewport' }, expected: ['missing-viewport'] },
   { detector: 'heavy-library', evidence: { library: 'Moment', packageName: 'moment', bundleSizeKB: 290, knownIssues: ['no tree-shaking'] }, expected: ['Moment', '290'] },
+  { detector: 'seo', evidence: { check: 'og-image-missing', detail: '' }, expected: ['og:image'] },
+  { detector: 'aeo', evidence: { check: 'ai-crawlers-blocked', detail: 'gptbot' }, expected: ['robots.txt'] },
 ]
 
 describe('getSuggestion — no evidence-key drift', () => {

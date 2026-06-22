@@ -12,6 +12,44 @@ export interface Suggestion {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+const IMAGE_PROBLEM_LABELS: Record<string, string> = {
+  'missing-lazy': 'add lazy loading',
+  'missing-dimensions': 'add width & height',
+  'oversized': 'resize it to the displayed size',
+}
+const humanizeImageProblem = (p: string): string => IMAGE_PROBLEM_LABELS[p] ?? p
+
+// Per-check fix guidance for discoverability (SEO) findings.
+const SEO_FIXES: Record<string, string> = {
+  'title-missing': 'Add a unique, descriptive <title> (≤60 chars) in the page <head>.',
+  'title-too-long': 'Shorten the <title> to ≤60 characters so it is not truncated in search results.',
+  'title-default': 'Replace the placeholder <title> with a real, descriptive one.',
+  'meta-description-missing': 'Add a <meta name="description"> (≤160 chars) summarizing the page.',
+  'meta-description-too-long': 'Trim the meta description to ≤160 characters.',
+  'og-image-missing': 'Add <meta property="og:image"> (≈1200×630) so shared links show a preview.',
+  'og-title-missing': 'Add <meta property="og:title"> for share-optimized link previews.',
+  'og-description-missing': 'Add <meta property="og:description"> so shared links have descriptive text.',
+  'canonical-missing': 'Add <link rel="canonical" href="..."> pointing to the page’s preferred URL.',
+  'h1-missing': 'Add exactly one <h1> describing the page’s main topic.',
+  'h1-multiple': 'Keep a single <h1> and demote the rest to <h2>.',
+  'image-alt-missing': 'Add descriptive alt text to every <img> element.',
+  'slug-unfriendly': 'Use a clean kebab-case URL slug without IDs, underscores, or capitals.',
+  'sitemap-missing': 'Generate /sitemap.xml listing your pages and reference it from robots.txt.',
+  'robots-missing': 'Add a /robots.txt that allows crawling and points to your sitemap.',
+}
+const seoFix = (check: string): string => SEO_FIXES[check] ?? 'Review this discoverability issue.'
+
+// Per-check fix guidance for AEO (answer-engine / AI-agent readiness) findings.
+const AEO_FIXES: Record<string, string> = {
+  'structured-data-missing': 'Add schema.org JSON-LD (<script type="application/ld+json">) — Organization, Article, FAQPage, or Product as fits the page.',
+  'llms-txt-missing': 'Add a /llms.txt: a short markdown file summarizing the site and linking the pages you want LLMs to read.',
+  'content-requires-js': 'Render meaningful content server-side (SSR/SSG) or ship a prerendered/noscript fallback so non-JS crawlers can read it.',
+  'markdown-negotiation-missing': 'Optionally serve a markdown representation when the request sends Accept: text/markdown.',
+  'ai-crawlers-blocked': 'Update robots.txt to allow AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) if you want to be read and cited by assistants.',
+  'mcp-discovery-missing': 'If agents should act on your site, expose an MCP server card at /.well-known/mcp.json describing the available tools.',
+}
+const aeoFix = (check: string): string => AEO_FIXES[check] ?? 'Review this AI-readiness issue.'
+
 const getImageName = (evidence: { readonly src: string }): string => {
   const src = evidence.src
   if (!src) return 'unknown image'
@@ -152,9 +190,9 @@ Evidence: ${JSON.stringify(e)}`,
   'unoptimized-images': {
     technical: (e) => ({
       title: `Unoptimized: ${getImageName(e)}`,
-      explanation: `Image \`${getImageName(e)}\` missing optimization. ${e['issue'] ?? 'Missing dimensions, lazy loading, or modern format.'}`,
-      prompt: `Unoptimized image detected: \`${e['src'] ?? 'unknown'}\`
-Issue: ${e['issue'] ?? 'needs optimization'}
+      explanation: `Image \`${getImageName(e)}\` ${(Array.isArray(e.problems) ? e.problems : []).length > 0 ? `has ${e.problems.length} issue${e.problems.length > 1 ? 's' : ''}: ${e.problems.join(', ')}` : 'needs optimization'}.`,
+      prompt: `Unoptimized image detected: \`${e.src}\`
+Problems: ${(Array.isArray(e.problems) ? e.problems : []).join(', ') || 'needs optimization'}
 
 Fix:
 1. Add explicit width and height attributes to prevent layout shifts
@@ -167,11 +205,12 @@ Evidence: ${JSON.stringify(e)}`,
     }),
     vibe: (e) => {
       const name = getImageName(e)
-      const details = e['issue'] as string | undefined
+      const list = Array.isArray(e.problems) ? e.problems : []
+      const fixes = list.length > 0 ? list.map(humanizeImageProblem).join(', ') : 'be optimized'
       return {
         title: `${name} needs optimization`,
-        explanation: `"${name}" isn't set up properly.${details ? ` Problem: ${details}.` : ''} It might be causing the page to jump around as it loads, or it's bigger than it needs to be.`,
-        prompt: `I have an image "${name}" (${e['src'] ?? 'unknown'}) that needs optimization. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
+        explanation: `"${name}" isn't set up properly — it needs you to ${fixes}. That can make the page jump around as it loads or weigh more than it should.`,
+        prompt: `I have an image "${name}" (${e.src}) that needs optimization${list.length > 0 ? ` (${list.join(', ')})` : ''}. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
       }
     },
   },
@@ -300,6 +339,44 @@ Evidence: ${JSON.stringify(e)}`,
 - Are there lighter alternatives?
 - Is everything being cleaned up properly when components are removed?
 - Can we load it only when actually needed?`,
+    }),
+  },
+
+  'seo': {
+    technical: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `${issue.title}${e.detail ? ` (${e.detail})` : ''}
+
+${issue.description}
+
+Fix: ${seoFix(e.check)}
+
+Evidence: ${JSON.stringify(e)}`,
+    }),
+    vibe: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `My page has a discoverability problem — ${issue.title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${seoFix(e.check)}`,
+    }),
+  },
+
+  'aeo': {
+    technical: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `${issue.title}${e.detail ? ` (${e.detail})` : ''}
+
+${issue.description}
+
+Fix: ${aeoFix(e.check)}
+
+Evidence: ${JSON.stringify(e)}`,
+    }),
+    vibe: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `My page isn't ready for AI assistants — ${issue.title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${aeoFix(e.check)}`,
     }),
   },
 }

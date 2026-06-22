@@ -50,25 +50,8 @@ const CHECKS: readonly EssentialCheck[] = [
       return meta !== null
     },
   },
-  {
-    id: 'title',
-    title: 'Missing or empty <title>',
-    severity: 'warning',
-    description: 'The page has no <title> or it is empty. This affects SEO, browser tabs, and accessibility.',
-    check: () => {
-      return document.title.trim().length > 0
-    },
-  },
-  {
-    id: 'description',
-    title: 'Missing meta description',
-    severity: 'info',
-    description: 'No <meta name="description"> found. Search engines use this for page summaries in results.',
-    check: () => {
-      const meta = document.querySelector('meta[name="description"]')
-      return meta !== null && (meta.getAttribute('content')?.trim().length ?? 0) > 0
-    },
-  },
+  // Note: page <title> and meta description are owned by the `seo` detector,
+  // which checks them more thoroughly (length, placeholder defaults).
 ]
 
 export const createWebEssentialsDetector = (): Detector => {

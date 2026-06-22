@@ -88,6 +88,8 @@ export interface VibeCheckConfig {
     readonly largeImages: boolean
     readonly webEssentials: boolean
     readonly heavyLibrary: boolean
+    readonly seo: boolean
+    readonly aeo: boolean
   }
 }
 
@@ -106,5 +108,7 @@ export const DEFAULT_CONFIG: VibeCheckConfig = {
     largeImages: true,
     webEssentials: true,
     heavyLibrary: true,
+    seo: true,
+    aeo: true,
   },
 }

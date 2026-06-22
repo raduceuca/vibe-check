@@ -9,11 +9,12 @@ import { ModeToggle } from './panels/ui/ModeToggle.js'
 import { AgentPanel } from './panels/AgentPanel.js'
 import { PromptsPanel } from './panels/PromptsPanel.js'
 import { SettingsPanel } from './panels/SettingsPanel.js'
+import { AuditPanel } from './panels/AuditPanel.js'
 import { AnnotationOverlay } from './panels/AnnotationOverlay.js'
 
 type PanelType = 'fps' | 'vitals' | 'memory' | 'console' | 'issues'
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-type ViewTab = 'monitor' | 'agent' | 'prompts' | 'settings'
+type ViewTab = 'monitor' | 'agent' | 'seo' | 'aeo' | 'prompts' | 'settings'
 
 export interface VibeCheckProps {
   readonly enabled?: boolean
@@ -34,15 +35,20 @@ const ANIMATIONS_CSS = `
 @keyframes vc-ring-in { from { stroke-dashoffset: var(--vc-circ); } }
 @keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes vc-slide-in { from { opacity: 0; transform: translate3d(6px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+[data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 [data-vc-issue]:hover { background: rgba(255,255,255,0.04) !important; }
 [data-vc-pill]:hover { background: rgba(255,255,255,0.06) !important; }
 [data-vc-tab]:hover { background: rgba(255,255,255,0.04) !important; }
 [data-vc] button:hover { filter: brightness(1.12); }
+[data-vc-pill] { transition: scale 0.12s ease, background 0.15s ease; }
+/* Tactile press feedback (scale 0.96) on interactive controls. */
+[data-vc] button:active, [data-vc-pill]:active { scale: 0.96; }
 [data-vc] [role="button"]:focus-visible, [data-vc] [role="switch"]:focus-visible, [data-vc] button:focus-visible {
   outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; border-radius: 4px;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-vc-breathe], [data-vc] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  [data-vc] button:active, [data-vc-pill]:active { scale: 1; }
 }
 `
 
@@ -135,6 +141,12 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
   )
 }
 
+// ── Thin separator for the collapsed pill ───────────────────────────────────
+
+const PillDivider = () => (
+  <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(255,255,255,0.12)', flexShrink: 0, margin: '0 1px' }} />
+)
+
 // ── FONT ────────────────────────────────────────────────────────────────────
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif'
@@ -144,6 +156,8 @@ const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui,
 const TAB_CONFIG: readonly { readonly key: ViewTab; readonly label: string; readonly vibeLabel: string }[] = [
   { key: 'monitor', label: 'Monitor', vibeLabel: 'Stats' },
   { key: 'agent', label: 'Agent', vibeLabel: 'Fix' },
+  { key: 'seo', label: 'SEO', vibeLabel: 'SEO' },
+  { key: 'aeo', label: 'AEO', vibeLabel: 'AEO' },
   { key: 'prompts', label: 'Prompts', vibeLabel: 'Ask AI' },
   { key: 'settings', label: 'Settings', vibeLabel: 'Settings' },
 ]
@@ -152,36 +166,48 @@ const TAB_CONFIG: readonly { readonly key: ViewTab; readonly label: string; read
 // descendants and keeps hot-path style diffing cheap.
 const NAV_TAB_BASE: CSSProperties = {
   flex: 1,
-  padding: '12px 0 11px',
-  fontSize: 14,
-  letterSpacing: '0.02em',
+  padding: '12px 2px 11px',
+  fontSize: 13,
+  letterSpacing: '0',
   textAlign: 'center',
+  whiteSpace: 'nowrap',
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
-  transition: 'color 0.2s ease, background 0.2s ease, border-color 0.2s ease',
+  transition: 'color 0.2s ease, scale 0.12s ease',
   fontFamily: 'inherit',
   outline: 'none',
   minHeight: 44,
+  position: 'relative',
 }
 
 const NAV_TAB_ACTIVE: CSSProperties = {
   ...NAV_TAB_BASE,
   fontWeight: 600,
   color: T.text,
-  background: 'rgba(255,255,255,0.04)',
-  borderTop: '2px solid rgba(255,255,255,0.2)',
 }
 
 const NAV_TAB_INACTIVE: CSSProperties = {
   ...NAV_TAB_BASE,
-  fontWeight: 400,
+  fontWeight: 500,
   color: T.textTertiary,
-  borderTop: '2px solid transparent',
 }
 
 const navTabStyle = (active: boolean): CSSProperties =>
   active ? NAV_TAB_ACTIVE : NAV_TAB_INACTIVE
+
+// Clean active-tab indicator: a short centered bar at the top edge of the nav
+// (doesn't touch the panel's rounded corners the way a full-width border did).
+const NAV_INDICATOR: CSSProperties = {
+  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+  width: 18, height: 2, borderRadius: '0 0 3px 3px', background: T.text,
+}
+const NAV_DOT: CSSProperties = {
+  display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+  background: T.yellow, marginLeft: 5, boxShadow: `0 0 4px ${T.yellow}50`,
+  verticalAlign: 'middle',
+}
+const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
@@ -236,6 +262,8 @@ export const VibeCheck = ({
   const ps = useMemo(() => new Set(panels), [panels])
 
   const activeCount = tracked.filter((t) => t.status === 'new').length
+  const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
+  const aeoCount = tracked.filter((t) => t.issue.detector === 'aeo' && t.status === 'new').length
 
   if (!enabled) return null
   const pos = POS[position]
@@ -264,29 +292,47 @@ export const VibeCheck = ({
         {annotationOverlay}
         <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-vc>
           <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-vc-pill
-            aria-label="Expand vibe check panel" aria-expanded={false}
+            aria-label={`Expand vibe check — ${Math.round(snapshot.frameRate.fps)} fps, ${activeCount} issues`} aria-expanded={false}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 14px 10px 10px', minHeight: 44,
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 13px 9px 11px', minHeight: 44,
               fontFamily: FONT, fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
+              WebkitFontSmoothing: 'antialiased',
               color: T.text,
               background: T.bg,
-              borderRadius: 24, cursor: 'pointer', userSelect: 'none',
+              borderRadius: 22, cursor: 'pointer', userSelect: 'none',
               border: `1px solid ${T.border}`,
               boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04)`,
               backdropFilter: 'blur(24px)',
               animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
             }}>
+            {/* Overall health */}
+            <span data-vc-breathe aria-hidden="true" style={{
+              width: 8, height: 8, borderRadius: '50%', background: h.color, flexShrink: 0,
+              boxShadow: `0 0 8px ${h.color}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+            }} />
+            {/* FPS */}
             <MiniRing value={snapshot.frameRate.fps} max={60} color={fpsColor(snapshot.frameRate.fps)} />
-            <span style={{ fontWeight: 600, fontSize: 14 }}>{Math.round(snapshot.frameRate.fps)}</span>
-            <span style={{ color: T.textTertiary, fontSize: 14, fontWeight: 400 }}>fps</span>
+            <span style={{ fontWeight: 600 }}>{Math.round(snapshot.frameRate.fps)}</span>
+            <span style={{ color: T.textTertiary, fontWeight: 400 }}>fps</span>
+            {/* Memory (Chrome only) */}
+            {snapshot.memory && (
+              <>
+                <PillDivider />
+                <span style={{ fontWeight: 600 }}>{snapshot.memory.jsHeapSizeMB.toFixed(0)}</span>
+                <span style={{ color: T.textTertiary, fontWeight: 400 }}>MB</span>
+              </>
+            )}
+            {/* Issues */}
             {activeCount > 0 && (
-              <span style={{
-                fontSize: 14, fontWeight: 600, color: T.text,
-                background: 'rgba(255,255,255,0.08)', padding: '2px 7px', borderRadius: 6,
-                marginLeft: 2,
-              }}>{activeCount}</span>
+              <>
+                <PillDivider />
+                <span style={{
+                  fontWeight: 700, color: h.color,
+                  background: `${h.color}1f`, padding: '1px 7px', borderRadius: 6,
+                }}>{activeCount}</span>
+              </>
             )}
           </div>
         </div>
@@ -345,7 +391,10 @@ export const VibeCheck = ({
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
-        <div data-testid="vibe-check-body" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 10px' }}>
+        {/* Fixed body height keeps the panel a stable size as you switch tabs
+            (short tabs no longer make it shrink and jump). Clamps on short
+            viewports; content beyond it scrolls. */}
+        <div data-testid="vibe-check-body" style={{ height: 'min(420px, calc(100vh - 168px))', overflowY: 'auto', overscrollBehavior: 'contain', padding: '12px 14px 10px' }}>
 
           {/* ── MONITOR VIEW ───────────────────────────────────────── */}
           {activeView === 'monitor' && (
@@ -525,6 +574,46 @@ export const VibeCheck = ({
             </div>
           )}
 
+          {/* ── SEO VIEW ──────────────────────────────────────────── */}
+          {activeView === 'seo' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              <AuditPanel
+                tracked={tracked}
+                detector="seo"
+                heading="Discoverability"
+                vibeHeading="Found online"
+                subtitle="SEO, social-preview, and indexability checks."
+                vibeSubtitle="How your page looks to Google and when shared on social."
+                emptyLabel="All discoverability checks passed"
+                vibeEmptyLabel="Your page is search & share ready"
+                mode={mode}
+                copiedId={copiedId}
+                onCopy={copy}
+                onMarkSent={handleMarkSent}
+              />
+            </div>
+          )}
+
+          {/* ── AEO VIEW ──────────────────────────────────────────── */}
+          {activeView === 'aeo' && (
+            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+              <AuditPanel
+                tracked={tracked}
+                detector="aeo"
+                heading="AI readiness"
+                vibeHeading="AI ready"
+                subtitle="Can AI assistants & answer engines read, understand, and cite this page?"
+                vibeSubtitle="How ready your page is for ChatGPT, Perplexity, Claude & friends."
+                emptyLabel="Agent-ready — all checks passed"
+                vibeEmptyLabel="Your page is AI-assistant ready"
+                mode={mode}
+                copiedId={copiedId}
+                onCopy={copy}
+                onMarkSent={handleMarkSent}
+              />
+            </div>
+          )}
+
           {/* ── PROMPTS VIEW ──────────────────────────────────────── */}
           {activeView === 'prompts' && (
             <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
@@ -546,30 +635,31 @@ export const VibeCheck = ({
           borderTop: `1px solid ${T.borderSubtle}`,
           flexShrink: 0,
         }}>
-          {TAB_CONFIG.map((tab) => (
-            <button
-              key={tab.key}
-              data-vc-tab
-              style={navTabStyle(activeView === tab.key)}
-              onClick={() => setActiveView(tab.key)}
-            >
-              {mode === 'vibe' ? tab.vibeLabel : tab.label}
-              {tab.key === 'agent' && activeCount > 0 && (
-                <>
-                  <span style={{
-                    display: 'inline-block',
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: T.yellow, marginLeft: 4,
-                    boxShadow: `0 0 4px ${T.yellow}50`,
-                    verticalAlign: 'middle',
-                  }} aria-hidden="true" />
-                  <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
-                    ({activeCount} issues)
-                  </span>
-                </>
-              )}
-            </button>
-          ))}
+          {TAB_CONFIG.map((tab) => {
+            const active = activeView === tab.key
+            const count = tab.key === 'agent' ? activeCount
+              : tab.key === 'seo' ? seoCount
+              : tab.key === 'aeo' ? aeoCount
+              : 0
+            return (
+              <button
+                key={tab.key}
+                data-vc-tab
+                style={navTabStyle(active)}
+                onClick={() => setActiveView(tab.key)}
+                aria-current={active ? 'page' : undefined}
+              >
+                {active && <span aria-hidden="true" style={NAV_INDICATOR} />}
+                {mode === 'vibe' ? tab.vibeLabel : tab.label}
+                {count > 0 && (
+                  <>
+                    <span aria-hidden="true" style={NAV_DOT} />
+                    <span style={SR_ONLY}>({count} issues)</span>
+                  </>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
     </VibeCheckProvider>

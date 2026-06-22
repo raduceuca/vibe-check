@@ -5,6 +5,36 @@ const formatEvidence = (evidence: object): string =>
     .map(([key, value]) => `- **${key}**: ${JSON.stringify(value)}`)
     .join('\n')
 
+// Per-check copy for discoverability (SEO) findings. The seo detector emits one
+// issue per failed check; the check id maps to what/fix here.
+const SEO_INFO: Record<string, { what: string; fix: string }> = {
+  'title-missing': { what: 'The page has no <title>.', fix: 'Add a unique, descriptive <title> (≤60 chars) in the page <head>.' },
+  'title-too-long': { what: 'The <title> exceeds ~60 characters and is truncated in search results.', fix: 'Shorten the <title> to ≤60 characters.' },
+  'title-default': { what: 'The <title> is a framework/placeholder default.', fix: 'Replace the placeholder <title> with a real, descriptive one.' },
+  'meta-description-missing': { what: 'No <meta name="description">.', fix: 'Add a <meta name="description"> (≤160 chars) summarizing the page.' },
+  'meta-description-too-long': { what: 'The meta description exceeds ~160 characters.', fix: 'Trim the meta description to ≤160 characters.' },
+  'og-image-missing': { what: 'No <meta property="og:image"> — shared links have no preview image.', fix: 'Add an og:image (≈1200×630).' },
+  'og-title-missing': { what: 'No <meta property="og:title">.', fix: 'Add an og:title for share-optimized previews.' },
+  'og-description-missing': { what: 'No <meta property="og:description">.', fix: 'Add an og:description for shared-link text.' },
+  'canonical-missing': { what: 'No <link rel="canonical">.', fix: 'Add a canonical link pointing to the page’s preferred URL.' },
+  'h1-missing': { what: 'The page has no <h1>.', fix: 'Add exactly one <h1> describing the main topic.' },
+  'h1-multiple': { what: 'The page has multiple <h1> elements, scattering the topic signal.', fix: 'Keep one <h1>; demote the rest to <h2>.' },
+  'image-alt-missing': { what: 'Images are missing alt text.', fix: 'Add descriptive alt text to every <img>.' },
+  'slug-unfriendly': { what: 'The URL slug contains an ID, underscore, or capitals.', fix: 'Use a clean kebab-case slug.' },
+  'sitemap-missing': { what: 'No valid /sitemap.xml.', fix: 'Generate a sitemap and reference it from robots.txt.' },
+  'robots-missing': { what: 'No /robots.txt.', fix: 'Add a robots.txt that allows crawling and points to the sitemap.' },
+}
+
+// Per-check copy for AEO (answer-engine / AI-agent readiness) findings.
+const AEO_INFO: Record<string, { what: string; fix: string }> = {
+  'structured-data-missing': { what: 'No schema.org JSON-LD — answer engines must guess entities from prose.', fix: 'Add <script type="application/ld+json"> (Organization, Article, FAQPage, Product).' },
+  'llms-txt-missing': { what: 'No /llms.txt — no curated summary for LLMs.', fix: 'Add a markdown /llms.txt summarizing the site and key pages.' },
+  'content-requires-js': { what: 'The HTML has almost no content; it renders client-side, so non-JS crawlers and agents see an empty page.', fix: 'Render content server-side (SSR/SSG) or ship a prerendered/noscript fallback.' },
+  'markdown-negotiation-missing': { what: 'Accept: text/markdown returns HTML — no markdown view for agents.', fix: 'Serve a markdown representation under content negotiation.' },
+  'ai-crawlers-blocked': { what: 'robots.txt blocks AI crawlers, so assistants cannot read or cite the site.', fix: 'Allow GPTBot, ClaudeBot, PerplexityBot, Google-Extended in robots.txt.' },
+  'mcp-discovery-missing': { what: 'No /.well-known/mcp.json — no agent-actionable interface advertised.', fix: 'Expose an MCP server card if agents should take actions (optional, app/API sites).' },
+}
+
 // Each template receives its detector's typed evidence (EvidenceFor<D>), so a
 // read of a key the detector doesn't emit is a compile error — the structural
 // guard against the suggestion drift that previously rendered "unknown" to the
@@ -225,10 +255,11 @@ el.style.transform = \`scaleY(2)\` // no layout recalc
 
   'unoptimized-images': (e) => {
     const src = e['src'] ?? 'unknown image'
-    const problem = e['issue'] ?? 'missing optimization'
+    const list = Array.isArray(e.problems) ? e.problems : []
+    const problems = list.length > 0 ? list.join(', ') : 'missing optimization'
     return `## Unoptimized Image Detected
 
-**What:** Image \`${src}\` has an optimization problem: ${problem}.
+**What:** Image \`${src}\` has optimization problems: ${problems}.
 
 **Evidence:**
 ${formatEvidence(e)}
@@ -466,6 +497,38 @@ import { Dashboard } from './pages/Dashboard'
 // After: lazy route loading
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 \`\`\``
+  },
+
+  'seo': (e) => {
+    const info = SEO_INFO[e.check] ?? { what: 'A discoverability check failed.', fix: 'Review this SEO finding.' }
+    return `## SEO / Discoverability Issue
+
+**What:** ${info.what}${e.detail ? ` (${e.detail})` : ''}
+
+**Evidence:**
+${formatEvidence(e)}
+
+### Fix
+${info.fix}
+
+### Why it matters
+Discoverability checks determine whether search engines and social platforms can find, index, and correctly preview the page. They are quick, high-leverage wins — most are a single tag in the document <head>.`
+  },
+
+  'aeo': (e) => {
+    const info = AEO_INFO[e.check] ?? { what: 'An AI-readiness check failed.', fix: 'Review this AEO finding.' }
+    return `## AEO / AI-Readiness Issue
+
+**What:** ${info.what}${e.detail ? ` (${e.detail})` : ''}
+
+**Evidence:**
+${formatEvidence(e)}
+
+### Fix
+${info.fix}
+
+### Why it matters
+Answer-engine optimization determines whether AI assistants (ChatGPT, Perplexity, Claude, Google AI Overviews) can discover, read, and cite the page — and whether agents can act on it. As assistant-driven traffic grows, this is the modern complement to SEO.`
   },
 }
 
