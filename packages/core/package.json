@@ -28,6 +28,9 @@
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "keywords": ["performance", "monitoring", "web-vitals", "vibe-coding", "ai-coding"],
+  "devDependencies": {
+    "@wcgw/vibe-check-protocol": "workspace:*"
+  },
   "author": "Radu Ceuca",
   "license": "MIT",
   "sideEffects": false,

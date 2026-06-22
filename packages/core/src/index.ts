@@ -7,6 +7,7 @@ export type {
   LongFrameEntry,
   ScriptAttribution,
   VitalRating,
+  WebVitalEntry,
   WebVitalsStats,
   HeapMemory,
   ResourceStats,
@@ -17,6 +18,8 @@ export type {
   VibeCheckConfig,
   Collector,
   Detector,
+  IssueEvidenceMap,
+  EvidenceFor,
 } from './types.js'
 
 export {
@@ -55,7 +58,7 @@ export type { LibrarySignature } from './detectors/heavyLibrary.js'
 
 // Beacon
 export { BeaconClient } from './beacon/beaconClient.js'
-export type { BeaconClientConfig } from './beacon/beaconClient.js'
+export type { BeaconClientConfig, BeaconStatus } from './beacon/beaconClient.js'
 
 // Suggestions
 export { getSuggestion, getAgentPrompt, PROACTIVE_PROMPTS } from './suggestions/index.js'

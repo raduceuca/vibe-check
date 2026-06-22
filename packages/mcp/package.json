@@ -34,6 +34,9 @@
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.25.0"
   },
+  "devDependencies": {
+    "@wcgw/vibe-check-protocol": "workspace:*"
+  },
   "keywords": ["mcp", "performance", "monitoring", "ai-agent", "vibe-coding"],
   "author": "Radu Ceuca",
   "license": "MIT",

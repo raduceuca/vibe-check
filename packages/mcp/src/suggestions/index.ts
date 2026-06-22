@@ -1,19 +1,24 @@
-import type { DetectorName, VibeIssue } from '../types.js'
+import type { DetectorName, VibeIssue, EvidenceFor } from '../types.js'
 
-const formatEvidence = (evidence: Record<string, unknown>): string =>
+const formatEvidence = (evidence: object): string =>
   Object.entries(evidence)
     .map(([key, value]) => `- **${key}**: ${JSON.stringify(value)}`)
     .join('\n')
 
-const suggestionTemplates: Record<DetectorName, (issue: VibeIssue) => string> = {
-  'dom-bloat': (issue) => {
-    const nodeCount = issue.evidence['nodeCount'] ?? 'unknown'
+// Each template receives its detector's typed evidence (EvidenceFor<D>), so a
+// read of a key the detector doesn't emit is a compile error — the structural
+// guard against the suggestion drift that previously rendered "unknown" to the
+// agent. The shapes come from the shared protocol, the same source createIssue
+// validates emissions against.
+const suggestionTemplates: { [D in DetectorName]: (e: EvidenceFor<D>) => string } = {
+  'dom-bloat': (e) => {
+    const nodeCount = e['nodeCount'] ?? 'unknown'
     return `## DOM Bloat Detected
 
 **What:** The page has ${nodeCount} DOM nodes, which exceeds healthy thresholds.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Rendering entire lists without virtualization
@@ -46,15 +51,15 @@ const virtualizer = useVirtualizer({
 \`\`\``
   },
 
-  'duplicate-requests': (issue) => {
-    const url = issue.evidence['url'] ?? 'unknown URL'
-    const count = issue.evidence['count'] ?? 'multiple'
+  'duplicate-requests': (e) => {
+    const url = e['url'] ?? 'unknown URL'
+    const count = e['count'] ?? 'multiple'
     return `## Duplicate Network Requests Detected
 
 **What:** The same resource at \`${url}\` was fetched ${count} times.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Multiple components independently fetching the same data
@@ -88,15 +93,16 @@ const useUsers = () => useQuery({
 \`\`\``
   },
 
-  'console-spam': (issue) => {
-    const count = issue.evidence['count'] ?? 'excessive'
-    const sample = issue.evidence['sample'] ?? ''
+  'console-spam': (e) => {
+    const count = e['callCount'] ?? 'excessive'
+    const sampleArgs = e['sampleArgs']
+    const sample = Array.isArray(sampleArgs) ? sampleArgs.join(' ') : ''
     return `## Console Spam Detected
 
 **What:** ${count} console messages detected, degrading DevTools performance and obscuring real errors.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 ${sample ? `\n**Sample output:** \`${sample}\`` : ''}
 
 ### Common AI-Coding Causes
@@ -127,15 +133,15 @@ const logger = {
 \`\`\``
   },
 
-  'memory-leak': (issue) => {
-    const heapMB = issue.evidence['jsHeapSizeMB'] ?? 'unknown'
-    const growth = issue.evidence['growthRate'] ?? 'unknown'
+  'memory-leak': (e) => {
+    const heapMB = e['currentMB'] ?? 'unknown'
+    const growth = e['heapGrowthPct'] ?? 'unknown'
     return `## Memory Leak Detected
 
-**What:** JavaScript heap is at ${heapMB}MB and growing. Growth rate: ${growth}.
+**What:** JavaScript heap is at ${heapMB}MB and growing. Growth: ${growth}%.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Event listeners added in useEffect without cleanup
@@ -174,16 +180,16 @@ onMessage((msg) => setLogs(prev => [...prev.slice(-99), msg]))
 \`\`\``
   },
 
-  'layout-thrashing': (issue) => {
-    const count = issue.evidence['count'] ?? 'multiple'
-    const properties = issue.evidence['properties'] ?? 'layout properties'
+  'layout-thrashing': (e) => {
+    const count = e['shiftCount'] ?? 'multiple'
+    const durationMs = e['clusterDurationMs']
     return `## Layout Thrashing Detected
 
-**What:** ${count} forced layout recalculations detected from interleaved read/write DOM operations.
+**What:** ${count} layout shifts clustered together from interleaved read/write DOM operations.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
-${properties ? `\n**Thrashed properties:** ${properties}` : ''}
+${formatEvidence(e)}
+${durationMs !== undefined ? `\n**Cluster duration:** ${durationMs}ms` : ''}
 
 ### Common AI-Coding Causes
 - Reading offsetHeight/getBoundingClientRect then immediately writing styles
@@ -217,17 +223,15 @@ el.style.transform = \`scaleY(2)\` // no layout recalc
 \`\`\``
   },
 
-  'unoptimized-images': (issue) => {
-    const src = issue.evidence['src'] ?? 'unknown image'
-    const sizeKB = issue.evidence['sizeKB'] ?? 'large'
-    const naturalWidth = issue.evidence['naturalWidth'] ?? 'unknown'
-    const displayWidth = issue.evidence['displayWidth'] ?? 'unknown'
+  'unoptimized-images': (e) => {
+    const src = e['src'] ?? 'unknown image'
+    const problem = e['issue'] ?? 'missing optimization'
     return `## Unoptimized Image Detected
 
-**What:** Image \`${src}\` is ${sizeKB}KB. Natural size: ${naturalWidth}px, displayed at: ${displayWidth}px.
+**What:** Image \`${src}\` has an optimization problem: ${problem}.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Using original high-res images without resizing
@@ -263,15 +267,15 @@ ${formatEvidence(issue.evidence)}
 \`\`\``
   },
 
-  'large-images': (issue) => {
-    const src = issue.evidence['src'] ?? 'unknown image'
-    const sizeKB = issue.evidence['sizeKB'] ?? 'large'
+  'large-images': (e) => {
+    const src = e['src'] ?? 'unknown image'
+    const sizeKB = e['transferSizeKB'] ?? 'large'
     return `## Large Image Detected
 
 **What:** Image \`${src}\` is ${sizeKB}KB, significantly larger than recommended for web delivery.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Using raw camera photos or design exports without compression
@@ -303,15 +307,15 @@ ${formatEvidence(issue.evidence)}
 \`\`\``
   },
 
-  'long-task-attribution': (issue) => {
-    const duration = issue.evidence['duration'] ?? 'unknown'
-    const source = issue.evidence['source'] ?? 'unknown source'
+  'long-task-attribution': (e) => {
+    const duration = e['totalBlockingMs'] ?? 'unknown'
+    const source = e['sourceURL'] ?? 'unknown source'
     return `## Long Task Detected
 
-**What:** A task took ${duration}ms to execute, blocking the main thread. Source: ${source}.
+**What:** A script caused ${duration}ms of total blocking time on the main thread. Source: ${source}.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Heavy computation in render cycle (sorting, filtering large arrays)
@@ -351,14 +355,14 @@ worker.onmessage = (e) => setSorted(e.data)
 \`\`\``
   },
 
-  'web-essentials': (issue) => {
-    const check = issue.evidence['check'] ?? 'unknown check'
+  'web-essentials': (e) => {
+    const check = e['check'] ?? 'unknown check'
     return `## Web Essential Missing
 
 **What:** ${check}
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Missing viewport meta tag in generated HTML
@@ -386,17 +390,17 @@ ${formatEvidence(issue.evidence)}
 \`\`\``
   },
 
-  'heavy-library': (issue) => {
-    const library = issue.evidence['library'] ?? 'unknown'
-    const pkg = issue.evidence['packageName'] ?? 'unknown'
-    const sizeKB = issue.evidence['bundleSizeKB'] ?? '?'
-    const knownIssues = (issue.evidence['knownIssues'] as string[] | undefined) ?? []
+  'heavy-library': (e) => {
+    const library = e['library'] ?? 'unknown'
+    const pkg = e['packageName'] ?? 'unknown'
+    const sizeKB = e['bundleSizeKB'] ?? '?'
+    const knownIssues = (e['knownIssues'] as string[] | undefined) ?? []
     return `## Heavy Library Detected
 
 **What:** ${library} (${pkg}, ${sizeKB}KB gzip) was detected on the page.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Known Performance Risks
 ${knownIssues.map((i) => `- ${i}`).join('\n')}
@@ -420,16 +424,16 @@ const Heavy3D = lazy(() => import('./Heavy3DScene'))
 \`\`\``
   },
 
-  'resource-bloat': (issue) => {
-    const totalKB = issue.evidence['totalTransferKB'] ?? 'unknown'
-    const resourceCount = issue.evidence['resourceCount'] ?? 'unknown'
-    const jsKB = issue.evidence['jsTransferKB'] ?? 'unknown'
+  'resource-bloat': (e) => {
+    const sizeKB = e['transferSizeKB'] ?? 'unknown'
+    const type = e['type'] ?? 'resource'
+    const url = e['url'] ?? 'unknown URL'
     return `## Resource Bloat Detected
 
-**What:** Page loaded ${totalKB}KB across ${resourceCount} resources. JavaScript: ${jsKB}KB.
+**What:** A ${type} resource (\`${url}\`) transferred ${sizeKB}KB, large enough to slow page load.
 
 **Evidence:**
-${formatEvidence(issue.evidence)}
+${formatEvidence(e)}
 
 ### Common AI-Coding Causes
 - Importing entire libraries when only a few functions are needed
@@ -466,11 +470,15 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 }
 
 export const getSuggestion = (issue: VibeIssue): string => {
-  const template = suggestionTemplates[issue.detector]
+  // Runtime detector → typed-evidence correlation TS can't track across the
+  // mapped type; the single cast here is the trust boundary, while each template
+  // body above is fully type-checked against its own EvidenceFor shape.
+  const templates = suggestionTemplates as unknown as Record<string, (e: Record<string, unknown>) => string>
+  const template = templates[issue.detector]
 
   if (!template) {
     return 'No suggestion available'
   }
 
-  return template(issue)
+  return template(issue.evidence)
 }

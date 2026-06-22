@@ -4,10 +4,11 @@ export default defineConfig([
   {
     entry: ['src/index.ts'],
     format: ['esm', 'cjs'],
-    dts: true,
+    dts: { resolve: ['@wcgw/vibe-check-protocol'] },
     clean: true,
     sourcemap: true,
     external: ['@modelcontextprotocol/sdk', 'zod'],
+    noExternal: ['@wcgw/vibe-check-protocol'],
     banner: {
       js: '#!/usr/bin/env node',
     },
@@ -15,8 +16,9 @@ export default defineConfig([
   {
     entry: ['src/lib.ts'],
     format: ['esm', 'cjs'],
-    dts: true,
+    dts: { resolve: ['@wcgw/vibe-check-protocol'] },
     sourcemap: true,
     external: ['@modelcontextprotocol/sdk', 'zod'],
+    noExternal: ['@wcgw/vibe-check-protocol'],
   },
 ])

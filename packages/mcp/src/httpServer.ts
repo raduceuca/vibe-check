@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { VibeSnapshot } from './types.js'
+import { parseSnapshot } from './schema.js'
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -45,20 +46,6 @@ const readBody = (req: IncomingMessage): Promise<string> =>
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')))
     req.on('error', reject)
   })
-
-const isValidSnapshot = (data: unknown): data is VibeSnapshot => {
-  if (typeof data !== 'object' || data === null) return false
-  const obj = data as Record<string, unknown>
-  return (
-    typeof obj['timestamp'] === 'number' &&
-    typeof obj['domNodeCount'] === 'number' &&
-    typeof obj['frameRate'] === 'object' &&
-    obj['frameRate'] !== null &&
-    typeof obj['resources'] === 'object' &&
-    obj['resources'] !== null &&
-    Array.isArray(obj['issues'])
-  )
-}
 
 const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
   res.writeHead(status, JSON_HEADERS)
@@ -106,14 +93,15 @@ export const createHttpServer = (
       try {
         const body = await readBody(req)
         const parsed: unknown = JSON.parse(body)
+        const snapshot = parseSnapshot(parsed)
 
-        if (!isValidSnapshot(parsed)) {
+        if (snapshot === null) {
           sendJson(res, 400, { error: 'Invalid snapshot format' })
           return
         }
 
-        onSnapshotReceived(parsed)
-        notifySnapshot(parsed)
+        onSnapshotReceived(snapshot)
+        notifySnapshot(snapshot)
         sendJson(res, 200, { received: true })
       } catch {
         sendJson(res, 400, { error: 'Invalid JSON body' })
