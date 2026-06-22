@@ -38,8 +38,20 @@ const ANIMATIONS_CSS = `
 [data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; text-wrap: pretty; }
 /* Theme tokens. --vc-fg is the foreground tint applied to every
    rgba(var(--vc-fg),a) surface/border/text, so one variable flips the theme. */
-[data-vc-theme="dark"] { --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97); --vc-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3); --vc-shadow-md: 0 8px 32px rgba(0,0,0,0.5); }
-[data-vc-theme="light"] { --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98); --vc-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08); --vc-shadow-md: 0 8px 28px rgba(20,20,22,0.13); }
+[data-vc-theme="dark"] {
+  --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97);
+  --vc-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3);
+  --vc-shadow-md: 0 8px 32px rgba(0,0,0,0.5);
+  --vc-sev-info: #60a5fa; --vc-sev-warning: #facc15; --vc-sev-error: #fb923c; --vc-sev-critical: #f87171; --vc-sev-success: #4ade80; --vc-sev-neutral: rgba(255,255,255,0.55);
+  --vc-badge-alpha: 13%;
+}
+[data-vc-theme="light"] {
+  --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98);
+  --vc-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08);
+  --vc-shadow-md: 0 8px 28px rgba(20,20,22,0.13);
+  --vc-sev-info: #1d4ed8; --vc-sev-warning: #a16207; --vc-sev-error: #c2410c; --vc-sev-critical: #b91c1c; --vc-sev-success: #15803d; --vc-sev-neutral: rgba(28,28,30,0.55);
+  --vc-badge-alpha: 16%;
+}
 [data-vc-issue]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
 [data-vc-pill]:hover { background: rgba(var(--vc-fg,255,255,255),0.06) !important; }
 [data-vc-tab]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
@@ -84,9 +96,12 @@ const useAnimations = () => {
 
 const getHealth = (s: VibeSnapshot) => {
   const n = s.issues.length; const fps = s.frameRate.fps
-  if (n > 3 || fps < 25) return { color: T.red, glow: 'rgba(239,68,68,0.15)', label: 'critical', vibeLabel: 'needs help' }
-  if (n > 0 || fps < 40) return { color: T.yellow, glow: 'rgba(250,204,21,0.1)', label: 'issues', vibeLabel: 'some issues' }
-  return { color: T.green, glow: 'rgba(74,222,128,0.1)', label: 'healthy', vibeLabel: 'looking good' }
+  // `color` drives the bright dots/glow (legible on any background); `labelColor`
+  // is the theme-tuned variant used for badge text so it stays readable on the
+  // light surface too.
+  if (n > 3 || fps < 25) return { color: T.red, labelColor: 'var(--vc-sev-critical, #f87171)', glow: 'rgba(239,68,68,0.15)', label: 'critical', vibeLabel: 'needs help' }
+  if (n > 0 || fps < 40) return { color: T.yellow, labelColor: 'var(--vc-sev-warning, #facc15)', glow: 'rgba(250,204,21,0.1)', label: 'issues', vibeLabel: 'some issues' }
+  return { color: T.green, labelColor: 'var(--vc-sev-success, #4ade80)', glow: 'rgba(74,222,128,0.1)', label: 'healthy', vibeLabel: 'looking good' }
 }
 
 // ── Colors ──────────────────────────────────────────────────────────────────
@@ -171,10 +186,9 @@ const TAB_CONFIG: readonly { readonly key: ViewTab; readonly label: string; read
 const NAV_TAB_BASE: CSSProperties = {
   flex: 1,
   padding: '12px 2px 11px',
-  fontSize: 13,
-  letterSpacing: '0',
-  textAlign: 'center',
-  whiteSpace: 'nowrap',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
@@ -206,12 +220,39 @@ const NAV_INDICATOR: CSSProperties = {
   position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
   width: 18, height: 2, borderRadius: '0 0 3px 3px', background: T.text,
 }
+// Count dot for icon tabs — sits at the upper-right of the centered icon.
 const NAV_DOT: CSSProperties = {
-  display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
-  background: T.yellow, marginLeft: 5, boxShadow: `0 0 4px ${T.yellow}50`,
-  verticalAlign: 'middle',
+  position: 'absolute', top: 9, left: 'calc(50% + 7px)',
+  width: 6, height: 6, borderRadius: '50%',
+  background: T.yellow, boxShadow: `0 0 5px ${T.yellow}70`,
 }
 const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }
+
+// ── Tab icons ───────────────────────────────────────────────────────────────
+
+const ICON_PROPS = {
+  width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none',
+  stroke: 'currentColor', strokeWidth: 1.8,
+  strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+  'aria-hidden': true as const,
+}
+
+const NavIcon = ({ name }: { name: ViewTab }) => {
+  switch (name) {
+    case 'monitor': // activity pulse
+      return <svg {...ICON_PROPS}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+    case 'agent': // wrench (fix queue)
+      return <svg {...ICON_PROPS}><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6l-6.4 6.4 2 2 6.4-6.4a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2 2.8-2.8z" /></svg>
+    case 'seo': // magnifier
+      return <svg {...ICON_PROPS}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+    case 'aeo': // sparkles (AI)
+      return <svg {...ICON_PROPS}><path d="M12 4l1.4 3.6L17 9l-3.6 1.4L12 14l-1.4-3.6L7 9z" /><path d="M18.5 14.5l.55 1.45L20.5 16.5l-1.45.55L18.5 18.5l-.55-1.45L16.5 16.5l1.45-.55z" /></svg>
+    case 'prompts': // chat
+      return <svg {...ICON_PROPS}><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" /><path d="M8 9h8M8 12.5h5" /></svg>
+    case 'settings': // sliders (unambiguous "adjust", not a sun)
+      return <svg {...ICON_PROPS}><path d="M4 8h16M4 16h16" /><circle cx="9" cy="8" r="2.4" fill="currentColor" stroke="none" /><circle cx="15" cy="16" r="2.4" fill="currentColor" stroke="none" /></svg>
+  }
+}
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
@@ -333,8 +374,8 @@ export const VibeCheck = ({
               <>
                 <PillDivider />
                 <span style={{
-                  fontWeight: 700, color: h.color,
-                  background: `${h.color}1f`, padding: '1px 7px', borderRadius: 6,
+                  fontWeight: 700, color: h.labelColor,
+                  background: `color-mix(in srgb, ${h.labelColor} 16%, transparent)`, padding: '1px 7px', borderRadius: 6,
                 }}>{activeCount}</span>
               </>
             )}
@@ -386,8 +427,8 @@ export const VibeCheck = ({
               </span>
             </div>
             <span style={{
-              fontSize: 14, fontWeight: 500, color: h.color,
-              background: `${h.color}15`, padding: '2px 8px', borderRadius: 6,
+              fontSize: 14, fontWeight: 500, color: h.labelColor,
+              background: `color-mix(in srgb, ${h.labelColor} 14%, transparent)`, padding: '2px 8px', borderRadius: 6,
             }}>{mode === 'vibe' ? h.vibeLabel : h.label}</span>
           </div>
 
@@ -652,9 +693,11 @@ export const VibeCheck = ({
                 style={navTabStyle(active)}
                 onClick={() => setActiveView(tab.key)}
                 aria-current={active ? 'page' : undefined}
+                aria-label={tab.label}
+                title={tab.label}
               >
                 {active && <span aria-hidden="true" style={NAV_INDICATOR} />}
-                {mode === 'vibe' ? tab.vibeLabel : tab.label}
+                <NavIcon name={tab.key} />
                 {count > 0 && (
                   <>
                     <span aria-hidden="true" style={NAV_DOT} />

@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react'
 import type { Severity } from '@wcgw/vibe-check-core'
 
-const SEVERITY_CONFIG: Record<Severity, { color: string; bg: string }> = {
-  info: { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)' },
-  warning: { color: '#facc15', bg: 'rgba(250, 204, 21, 0.1)' },
-  error: { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)' },
-  critical: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)' },
+// Severity → theme-tuned CSS variable (bright on dark, dark+saturated on light)
+// so badge text stays legible in both themes, with a color-mix tint background
+// instead of a near-invisible fixed alpha.
+const SEV_VAR: Record<Severity, string> = {
+  info: 'var(--vc-sev-info, #60a5fa)',
+  warning: 'var(--vc-sev-warning, #facc15)',
+  error: 'var(--vc-sev-error, #fb923c)',
+  critical: 'var(--vc-sev-critical, #f87171)',
 }
 
 interface BadgeProps {
@@ -13,27 +16,28 @@ interface BadgeProps {
 }
 
 export const Badge = ({ severity }: BadgeProps) => {
-  const config = SEVERITY_CONFIG[severity]
+  const c = SEV_VAR[severity]
   const style: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 4,
     padding: '2px 7px',
     borderRadius: 4,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
     textTransform: 'uppercase',
-    letterSpacing: '0.02em',
-    color: config.color,
-    backgroundColor: config.bg,
+    letterSpacing: '0.03em',
+    color: c,
+    backgroundColor: `color-mix(in srgb, ${c} var(--vc-badge-alpha, 14%), transparent)`,
     lineHeight: 1.4,
   }
 
   const dotStyle: CSSProperties = {
-    width: 7,
-    height: 7,
+    width: 6,
+    height: 6,
     borderRadius: '50%',
-    backgroundColor: config.color,
+    flexShrink: 0,
+    backgroundColor: c,
   }
 
   return (

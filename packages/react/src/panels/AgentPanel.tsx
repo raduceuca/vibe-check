@@ -18,9 +18,9 @@ interface AgentPanelProps {
 }
 
 const STATUS_STYLES: Record<IssueStatus, { color: string; bg: string; label: string; vibeLabel: string }> = {
-  new: { color: '#facc15', bg: 'rgba(250,204,21,0.08)', label: 'NEW', vibeLabel: 'needs fix' },
-  'sent-to-agent': { color: 'rgba(var(--vc-fg,255,255,255),0.5)', bg: 'rgba(var(--vc-fg,255,255,255),0.05)', label: 'SENT', vibeLabel: 'sent to AI' },
-  resolved: { color: '#4ade80', bg: 'rgba(74,222,128,0.08)', label: 'FIXED', vibeLabel: 'fixed' },
+  new: { color: 'var(--vc-sev-warning, #facc15)', bg: 'color-mix(in srgb, var(--vc-sev-warning, #facc15) var(--vc-badge-alpha, 14%), transparent)', label: 'NEW', vibeLabel: 'needs fix' },
+  'sent-to-agent': { color: 'var(--vc-sev-neutral, rgba(255,255,255,0.5))', bg: 'rgba(var(--vc-fg,255,255,255),0.06)', label: 'SENT', vibeLabel: 'sent to AI' },
+  resolved: { color: 'var(--vc-sev-success, #4ade80)', bg: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) var(--vc-badge-alpha, 14%), transparent)', label: 'FIXED', vibeLabel: 'fixed' },
 }
 
 type TabKey = 'active' | 'sent' | 'resolved'
