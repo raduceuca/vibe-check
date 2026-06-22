@@ -16,7 +16,7 @@ const cardStyle: CSSProperties = {
   background: 'rgba(var(--vc-fg,255,255,255),0.02)',
   border: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
   marginBottom: 6,
-  transition: 'all 0.2s ease',
+  transition: 'background 0.2s ease, border-color 0.2s ease',
 }
 
 export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (

@@ -14,7 +14,7 @@ const panelWithBorderStyle: CSSProperties = {
   ...panelStyle,
   marginTop: 2,
   paddingTop: 8,
-  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+  borderTop: '1px solid rgba(var(--vc-fg,255,255,255), 0.06)',
 }
 
 const titleStyle: CSSProperties = {
@@ -22,7 +22,7 @@ const titleStyle: CSSProperties = {
   fontWeight: 500,
   textTransform: 'uppercase',
   letterSpacing: '1.5px',
-  color: 'rgba(255, 255, 255, 0.28)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.28)',
   marginBottom: 4,
 }
 

@@ -26,7 +26,7 @@ const emptyDotStyle: CSSProperties = {
 
 const issueRowStyle: CSSProperties = {
   padding: '5px 0',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+  borderBottom: '1px solid rgba(var(--vc-fg,255,255,255), 0.04)',
   cursor: 'pointer',
 }
 
@@ -38,7 +38,7 @@ const issueHeaderStyle: CSSProperties = {
 }
 
 const issueTitleStyle: CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.7)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.7)',
   flex: 1,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -47,14 +47,14 @@ const issueTitleStyle: CSSProperties = {
 
 const descriptionStyle: CSSProperties = {
   fontSize: 10,
-  color: 'rgba(255, 255, 255, 0.4)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.4)',
   marginTop: 4,
   paddingLeft: 2,
   lineHeight: 1.5,
 }
 
 const expandIconStyle: CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.2)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.2)',
   fontSize: 8,
   flexShrink: 0,
 }

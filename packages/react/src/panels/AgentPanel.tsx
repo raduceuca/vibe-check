@@ -84,7 +84,7 @@ const IssueRow = ({
           marginBottom: 4,
         }}>
           <span style={{
-            fontSize: 14, fontWeight: 500, lineHeight: 1.4,
+            fontSize: 14, fontWeight: 500, lineHeight: 1.4, textWrap: 'balance',
             color: tracked.status === 'resolved' ? 'rgba(var(--vc-fg,255,255,255),0.35)' : 'rgba(var(--vc-fg,255,255,255),0.85)',
             textDecoration: tracked.status === 'resolved' ? 'line-through' : 'none',
           }}>
@@ -159,8 +159,8 @@ const IssueRow = ({
                   padding: '4px 10px', borderRadius: 6, fontSize: 14, fontWeight: 500,
                   border: '1px solid rgba(74,222,128,0.15)',
                   background: 'rgba(74,222,128,0.06)',
-                  color: '#4ade80', cursor: 'pointer',
-                  fontFamily: 'inherit', outline: 'none', transition: 'all 0.2s ease',
+                  color: '#4ade80', cursor: 'pointer', minHeight: 30,
+                  fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                 }}
               >
                 <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
@@ -292,8 +292,8 @@ export const AgentPanel = ({
             fontSize: 14, fontWeight: 500,
             border: '1px solid rgba(var(--vc-fg,255,255,255),0.06)',
             background: 'rgba(var(--vc-fg,255,255,255),0.02)',
-            color: 'rgba(var(--vc-fg,255,255,255),0.35)', cursor: 'pointer',
-            fontFamily: 'inherit', outline: 'none', transition: 'all 0.2s ease',
+            color: 'rgba(var(--vc-fg,255,255,255),0.35)', cursor: 'pointer', minHeight: 36,
+            fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
           }}
         >
           {mode === 'vibe' ? 'clear all fixed issues' : 'clear resolved'}

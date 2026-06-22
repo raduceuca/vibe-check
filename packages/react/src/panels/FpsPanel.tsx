@@ -47,7 +47,7 @@ const heroValueStyle = (color: string): CSSProperties => ({
 
 const heroUnitStyle: CSSProperties = {
   fontSize: 10,
-  color: 'rgba(255, 255, 255, 0.3)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.3)',
   fontWeight: 500,
 }
 

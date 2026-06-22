@@ -52,7 +52,7 @@ const AuditRow = ({
         style={{ cursor: 'pointer' }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'rgba(var(--vc-fg,255,255,255),0.85)' }}>
+          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'rgba(var(--vc-fg,255,255,255),0.85)', textWrap: 'balance' }}>
             {issue.title}
           </span>
           <span style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'▼'}</span>

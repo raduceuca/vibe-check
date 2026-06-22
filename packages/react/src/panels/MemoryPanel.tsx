@@ -23,7 +23,7 @@ const usedPctColor = (pct: number): string => {
 
 const unavailableStyle: CSSProperties = {
   fontSize: 11,
-  color: 'rgba(255, 255, 255, 0.18)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.18)',
   padding: '2px 0',
 }
 

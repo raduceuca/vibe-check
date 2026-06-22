@@ -17,7 +17,7 @@ const rowStyle: CSSProperties = {
 }
 
 const labelStyle: CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.45)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.45)',
   fontSize: 11,
   letterSpacing: '0.01em',
 }

@@ -22,7 +22,7 @@ const pendingRowStyle: CSSProperties = {
 }
 
 const pendingValueStyle: CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.18)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.18)',
   minWidth: 60,
   textAlign: 'right',
   fontVariantNumeric: 'tabular-nums',
@@ -41,7 +41,7 @@ export const WebVitalsPanel = ({ stats }: WebVitalsPanelProps) => (
       <Row label="LCP" value={formatMs(stats.lcp.value)} color={RATING_COLORS[stats.lcp.rating]} bold />
     ) : (
       <div style={pendingRowStyle}>
-        <span style={{ color: 'rgba(255, 255, 255, 0.45)' }}>LCP</span>
+        <span style={{ color: 'rgba(var(--vc-fg,255,255,255), 0.45)' }}>LCP</span>
         <span style={pendingValueStyle}>--</span>
       </div>
     )}
@@ -49,7 +49,7 @@ export const WebVitalsPanel = ({ stats }: WebVitalsPanelProps) => (
       <Row label="INP" value={formatMs(stats.inp.value)} color={RATING_COLORS[stats.inp.rating]} bold />
     ) : (
       <div style={pendingRowStyle}>
-        <span style={{ color: 'rgba(255, 255, 255, 0.45)' }}>INP</span>
+        <span style={{ color: 'rgba(var(--vc-fg,255,255,255), 0.45)' }}>INP</span>
         <span style={pendingValueStyle}>--</span>
       </div>
     )}
@@ -57,7 +57,7 @@ export const WebVitalsPanel = ({ stats }: WebVitalsPanelProps) => (
       <Row label="CLS" value={formatCLS(stats.cls.value)} color={RATING_COLORS[stats.cls.rating]} bold />
     ) : (
       <div style={pendingRowStyle}>
-        <span style={{ color: 'rgba(255, 255, 255, 0.45)' }}>CLS</span>
+        <span style={{ color: 'rgba(var(--vc-fg,255,255,255), 0.45)' }}>CLS</span>
         <span style={pendingValueStyle}>--</span>
       </div>
     )}

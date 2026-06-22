@@ -16,7 +16,7 @@ const trackStyle = (isVibe: boolean): CSSProperties => ({
     : 'rgba(var(--vc-fg,255,255,255),0.06)',
   border: `1px solid rgba(var(--vc-fg,255,255,255),${isVibe ? '0.15' : '0.08'})`,
   cursor: 'pointer',
-  transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+  transition: 'background 0.3s cubic-bezier(0.4,0,0.2,1), border-color 0.3s cubic-bezier(0.4,0,0.2,1)',
   flexShrink: 0,
 })
 
@@ -29,7 +29,7 @@ const thumbStyle = (isVibe: boolean): CSSProperties => ({
   borderRadius: '50%',
   background: isVibe ? 'rgba(var(--vc-fg,255,255,255),0.9)' : 'rgba(var(--vc-fg,255,255,255),0.4)',
   boxShadow: isVibe ? '0 0 6px rgba(var(--vc-fg,255,255,255),0.2)' : 'none',
-  transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+  transition: 'left 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s cubic-bezier(0.4,0,0.2,1)',
 })
 
 const containerStyle: CSSProperties = {
@@ -46,7 +46,7 @@ const labelStyle = (active: boolean): CSSProperties => ({
   fontSize: 14,
   fontWeight: active ? 600 : 400,
   color: active ? 'rgba(var(--vc-fg,255,255,255),0.8)' : 'rgba(var(--vc-fg,255,255,255),0.25)',
-  transition: 'all 0.3s ease',
+  transition: 'color 0.3s ease, font-weight 0.3s ease',
 })
 
 export const ModeToggle = ({ mode, onToggle }: ModeToggleProps) => {

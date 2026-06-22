@@ -24,14 +24,14 @@ const dotStyle = (color: string): CSSProperties => ({
 })
 
 const labelStyle: CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.45)',
+  color: 'rgba(var(--vc-fg,255,255,255), 0.45)',
   flex: 1,
 }
 
 const countStyle = (count: number, color: string): CSSProperties => ({
   fontVariantNumeric: 'tabular-nums',
   fontWeight: count > 0 ? 500 : 400,
-  color: count > 0 ? color : 'rgba(255, 255, 255, 0.2)',
+  color: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255), 0.2)',
   minWidth: 24,
   textAlign: 'right',
 })

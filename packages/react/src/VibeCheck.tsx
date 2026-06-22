@@ -35,11 +35,11 @@ const ANIMATIONS_CSS = `
 @keyframes vc-ring-in { from { stroke-dashoffset: var(--vc-circ); } }
 @keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes vc-slide-in { from { opacity: 0; transform: translate3d(6px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
-[data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+[data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; text-wrap: pretty; }
 /* Theme tokens. --vc-fg is the foreground tint applied to every
    rgba(var(--vc-fg),a) surface/border/text, so one variable flips the theme. */
-[data-vc-theme="dark"] { --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97); }
-[data-vc-theme="light"] { --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98); }
+[data-vc-theme="dark"] { --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97); --vc-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3); --vc-shadow-md: 0 8px 32px rgba(0,0,0,0.5); }
+[data-vc-theme="light"] { --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98); --vc-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08); --vc-shadow-md: 0 8px 28px rgba(20,20,22,0.13); }
 [data-vc-issue]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
 [data-vc-pill]:hover { background: rgba(var(--vc-fg,255,255,255),0.06) !important; }
 [data-vc-tab]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
@@ -307,7 +307,7 @@ export const VibeCheck = ({
               background: T.bg,
               borderRadius: 22, cursor: 'pointer', userSelect: 'none',
               border: `1px solid ${T.border}`,
-              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
+              boxShadow: `var(--vc-shadow-md, 0 8px 32px rgba(0,0,0,0.5)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
               backdropFilter: 'blur(24px)',
               animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
             }}>
@@ -357,7 +357,7 @@ export const VibeCheck = ({
         color: T.text, overflow: 'hidden',
         background: T.bg,
         borderRadius: 18, border: `1px solid ${T.border}`,
-        boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
+        boxShadow: `var(--vc-shadow-lg, 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
         backdropFilter: 'blur(32px)',
         animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
@@ -443,7 +443,7 @@ export const VibeCheck = ({
                           flex: 1, padding: '8px 6px 7px', textAlign: 'center', borderRadius: T.radiusSm,
                           background: T.bgSubtle,
                           border: `1px solid ${T.borderSubtle}`,
-                          transition: 'all 0.3s ease', cursor: 'default',
+                          transition: 'background 0.3s ease, border-color 0.3s ease', cursor: 'default',
                         }}>
                           <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 4 }}>
                             {mode === 'vibe' ? vibeLabels[key] : key}
@@ -514,8 +514,8 @@ export const VibeCheck = ({
                           fontSize: 14, fontWeight: 500,
                           color: T.textSecondary, background: T.bgSubtle,
                           border: `1px solid ${T.border}`, borderRadius: 6,
-                          padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
-                          transition: 'all 0.2s ease',
+                          padding: '5px 11px', minHeight: 30, cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+                          transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                         }}
                       >
                         {mode === 'vibe' ? 'fix with AI →' : 'view prompts →'}
@@ -698,7 +698,7 @@ const Dot = ({ count, color, label }: { count: number; color: string; label: str
       width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
       background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.08)',
       boxShadow: count > 0 ? `0 0 4px ${color}40` : 'none',
-      transition: 'all 0.2s ease',
+      transition: 'background 0.2s ease, box-shadow 0.2s ease',
     }} />
     <span style={{
       fontSize: 14, fontVariantNumeric: 'tabular-nums', fontWeight: count > 0 ? 600 : 400,

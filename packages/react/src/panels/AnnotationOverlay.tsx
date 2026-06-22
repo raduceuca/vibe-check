@@ -188,7 +188,7 @@ const Marker = ({
         border: expanded ? '2px solid rgba(255,59,48,0.4)' : '2px solid rgba(255,59,48,0.2)',
         background: expanded ? 'rgba(255,59,48,0.04)' : 'none',
         pointerEvents: 'none',
-        transition: 'all 0.2s ease',
+        transition: 'border-color 0.2s ease, background 0.2s ease',
         zIndex: T.zOverlay,
       }} />
 
