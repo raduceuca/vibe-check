@@ -118,12 +118,12 @@ describe('VibeCheck', () => {
   it('respects panels prop to control which panels render', () => {
     render(<VibeCheck enabled panels={['fps']} />)
 
-    // FPS section header should be present (defaults to 'vibe' mode → "Smoothness")
-    expect(screen.getByText('Smoothness')).toBeTruthy()
+    // FPS hero renders the "fps" unit
+    expect(screen.getByText('fps')).toBeTruthy()
 
-    // Section titles for other panels should not be present
-    expect(screen.queryByText('Page Speed')).toBeNull()
-    expect(screen.queryByText('Memory')).toBeNull()
+    // Other panels should not be present (their kickers are absent)
+    expect(screen.queryByText('page speed')).toBeNull()
+    expect(screen.queryByText('memory')).toBeNull()
   })
 
   it('shows issues panel with all-clear state', () => {

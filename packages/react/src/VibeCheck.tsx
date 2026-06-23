@@ -118,33 +118,6 @@ const POS: Record<Position, CSSProperties> = {
   'bottom-left': { bottom: 12, left: 12 }, 'bottom-right': { bottom: 12, right: 12 },
 }
 
-// ── Gradient Ring Gauge ─────────────────────────────────────────────────────
-
-const Ring = ({ value, max, color, size = 56 }: { value: number; max: number; color: string; size?: number }) => {
-  const sw = 3; const r = (size - sw * 2) / 2; const c = 2 * Math.PI * r
-  const offset = c * (1 - Math.min(value / max, 1)); const mid = size / 2
-  const gid = `vc-rg-${size}`
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <defs>
-        <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={T.green} />
-          <stop offset="50%" stopColor={T.yellow} />
-          <stop offset="100%" stopColor={T.red} />
-        </linearGradient>
-      </defs>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--vc-fg,255,255,255),0.06)" strokeWidth={sw} />
-      <circle cx={mid} cy={mid} r={r} fill="none"
-        stroke={value / max > 0.65 ? color : `url(#${gid})`}
-        strokeWidth={sw} strokeDasharray={c} strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 4px ${color}40)`, transition: 'stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1), stroke 0.3s ease' }}
-      />
-    </svg>
-  )
-}
-
 // ── Mini ring for collapsed pill ────────────────────────────────────────────
 
 const MiniRing = ({ value, max, color }: { value: number; max: number; color: string }) => {
@@ -165,6 +138,54 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
 
 const PillDivider = () => (
   <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(var(--vc-fg,255,255,255),0.12)', flexShrink: 0, margin: '0 1px' }} />
+)
+
+// ── Live FPS trace (oscilloscope) — the one ornament, and it's the data ──────
+// Keeps a rolling window of recent FPS samples and draws a single polyline. New
+// samples shift the line left, so it reads as a living instrument. Cheap: ~N
+// points re-rendered on the snapshot tick (≈2/s), not per frame.
+
+const FpsTrace = ({ fps, tick, color, width = 292, height = 24, points = 70 }: {
+  fps: number; tick: number; color: string; width?: number; height?: number; points?: number
+}) => {
+  const [series, setSeries] = useState<readonly number[]>([])
+  useEffect(() => {
+    setSeries((prev) => [...prev, Math.max(0, Math.min(60, fps))].slice(-points))
+  }, [tick, fps, points])
+
+  const pad = 2
+  const h = height - pad * 2
+  const poly = series.map((v, i) => {
+    const x = series.length <= 1 ? width : (i / (points - 1)) * width
+    const y = pad + (1 - v / 60) * h
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
+      <polyline points={poly} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.55} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── Borderless type-and-space helpers (Quiet Instrument) ────────────────────
+
+const KICKER: CSSProperties = {
+  fontSize: 12, fontWeight: 500, textTransform: 'uppercase',
+  letterSpacing: '0.07em', color: T.textTertiary,
+}
+const QUIET_LINK: CSSProperties = {
+  fontSize: 13, fontWeight: 500, color: T.textSecondary,
+  background: 'transparent', border: 'none', cursor: 'pointer',
+  fontFamily: 'inherit', outline: 'none', padding: '4px 2px', minHeight: 30,
+  transition: 'color 0.2s ease, scale 0.12s ease',
+}
+const ConsoleStat = ({ count, color, label }: { count: number; color: string; label: string }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <span style={{ width: 5, height: 5, borderRadius: '50%', background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0 }} />
+    <span style={{ color: count > 0 ? T.textSecondary : T.textMuted, fontWeight: count > 0 ? 600 : 400 }}>{count}</span>
+    <span style={{ color: T.textTertiary }}>{label}</span>
+  </span>
 )
 
 // ── FONT ────────────────────────────────────────────────────────────────────
@@ -215,12 +236,6 @@ const NAV_TAB_INACTIVE: CSSProperties = {
 const navTabStyle = (active: boolean): CSSProperties =>
   active ? NAV_TAB_ACTIVE : NAV_TAB_INACTIVE
 
-// Clean active-tab indicator: a short centered bar at the top edge of the nav
-// (doesn't touch the panel's rounded corners the way a full-width border did).
-const NAV_INDICATOR: CSSProperties = {
-  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-  width: 18, height: 2, borderRadius: '0 0 3px 3px', background: T.text,
-}
 // Count dot for icon tabs — sits at the upper-right of the centered icon.
 const NAV_DOT: CSSProperties = {
   position: 'absolute', top: 9, left: 'calc(50% + 7px)',
@@ -387,8 +402,8 @@ export const VibeCheck = ({
         position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: FONT, fontSize: 14,
         color: T.text, overflow: 'hidden',
         background: T.bg,
-        borderRadius: 18, border: `1px solid ${T.border}`,
-        boxShadow: `var(--vc-shadow-lg, 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
+        borderRadius: 16,
+        boxShadow: `var(--vc-shadow-lg, 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.08)`,
         backdropFilter: 'blur(32px)',
         animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
@@ -398,8 +413,7 @@ export const VibeCheck = ({
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '10px 14px 9px', cursor: 'default', userSelect: 'none',
-          borderBottom: `1px solid ${T.borderSubtle}`,
+          padding: '12px 16px 6px', cursor: 'default', userSelect: 'none',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -429,173 +443,120 @@ export const VibeCheck = ({
         {/* Fixed body height keeps the panel a stable size as you switch tabs
             (short tabs no longer make it shrink and jump). Clamps on short
             viewports; content beyond it scrolls. */}
-        <div data-testid="vibe-check-body" style={{ height: 'min(420px, calc(100vh - 168px))', overflowY: 'auto', overscrollBehavior: 'contain', padding: '12px 14px 10px' }}>
+        <div data-testid="vibe-check-body" style={{ height: 'min(420px, calc(100vh - 168px))', overflowY: 'auto', overscrollBehavior: 'contain', padding: '10px 16px 14px' }}>
 
           {/* ── MONITOR VIEW ───────────────────────────────────────── */}
           {activeView === 'monitor' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
-              {/* FPS HERO */}
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+              {/* FPS HERO — quiet numeral + avg/worst + live trace */}
               {ps.has('fps') && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 12 }}>
-                  <div style={{ position: 'relative' }}>
-                    <Ring value={snapshot.frameRate.fps} max={60} color={fc} size={58} />
-                    <div style={{
-                      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: fc,
-                    }}>{Math.round(snapshot.frameRate.fps)}</div>
+                <div style={{ paddingBottom: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ fontSize: 42, fontWeight: 600, lineHeight: 1, color: fc, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
+                      <span style={{ fontSize: 14, color: T.textTertiary, fontWeight: 500 }}>fps</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ color: T.textTertiary }}>avg <span style={{ color: T.textSecondary }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span></span>
+                      <span style={{ color: T.textTertiary }}>worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? T.orange : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span></span>
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: T.textTertiary, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                      {mode === 'vibe' ? 'Smoothness' : 'Frame Rate'}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>
-                      <span style={{ color: T.textTertiary }}>Avg</span>
-                      <span style={{ color: T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span>
-                      <span style={{ color: T.textTertiary }}>Worst</span>
-                      <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? T.orange : T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.maxFrameTime.toFixed(1)}ms</span>
-                      <span style={{ color: T.textTertiary }}>Smooth</span>
-                      <span style={{ color: T.textSecondary, textAlign: 'right' }}>{snapshot.frameRate.smoothness.toFixed(0)}%</span>
-                    </div>
+                  <div style={{ marginTop: 8 }}>
+                    <FpsTrace fps={snapshot.frameRate.fps} tick={snapshot.timestamp} color={fc} />
                   </div>
                 </div>
               )}
 
-              {/* WEB VITALS */}
+              {/* WEB VITALS — borderless columns */}
               {ps.has('vitals') && (
-                <Section title={mode === 'vibe' ? 'Page Speed' : 'Web Vitals'}>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ paddingBottom: 18 }}>
+                  <div style={{ ...KICKER, marginBottom: 8 }}>{mode === 'vibe' ? 'page speed' : 'web vitals'}</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
                     {(['lcp', 'inp', 'cls'] as const).map((key) => {
                       const v = snapshot.webVitals[key]
                       const c = vitalColor(v?.rating)
-                      const val = key === 'cls' ? (v ? v.value.toFixed(3) : '--') : (v ? fmtMs(v.value) : '--')
+                      const val = key === 'cls' ? (v ? v.value.toFixed(3) : '—') : (v ? fmtMs(v.value) : '—')
                       const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
                       return (
-                        <div key={key} data-vc-pill style={{
-                          flex: 1, padding: '8px 6px 7px', textAlign: 'center', borderRadius: T.radiusSm,
-                          background: T.bgSubtle,
-                          border: `1px solid ${T.borderSubtle}`,
-                          transition: 'background 0.3s ease, border-color 0.3s ease', cursor: 'default',
-                        }}>
-                          <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 4 }}>
+                        <div key={key} style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                            <span style={{ fontSize: 19, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: v ? c : T.textMuted }}>{val}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                             {mode === 'vibe' ? vibeLabels[key] : key}
                           </div>
-                          <div style={{
-                            fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                            color: v ? c : T.textMuted,
-                          }}>{val}</div>
                         </div>
                       )
                     })}
                   </div>
-                </Section>
+                </div>
               )}
 
-              {/* MEMORY + CONSOLE */}
+              {/* MEMORY + CONSOLE — single quiet line */}
               {(ps.has('memory') || ps.has('console')) && (
-                <Section>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {ps.has('memory') && (
-                      <MetricCard
-                        label={mode === 'vibe' ? 'Memory' : 'Heap'}
-                        value={snapshot.memory ? `${snapshot.memory.jsHeapSizeMB.toFixed(0)}` : '--'}
-                        unit="MB"
-                        color={!snapshot.memory ? T.textMuted : snapshot.memory.usedPct > 80 ? T.red : snapshot.memory.usedPct > 60 ? T.yellow : T.text}
-                        sub={snapshot.memory ? `${snapshot.memory.usedPct.toFixed(0)}% used` : 'Chrome only'}
-                      />
-                    )}
-                    {ps.has('console') && (
-                      <div style={{
-                        flex: 1, padding: '8px 10px', borderRadius: T.radiusSm,
-                        background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
-                      }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 6 }}>
-                          {mode === 'vibe' ? 'Errors' : 'Console'}
-                        </div>
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <Dot count={snapshot.console.errorCount} color={T.red} label="err" />
-                          <Dot count={snapshot.console.warnCount} color={T.yellow} label="wrn" />
-                          <Dot count={snapshot.console.logCount} color={T.textTertiary} label="log" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Section>
+                <div style={{ paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, fontVariantNumeric: 'tabular-nums', color: T.textSecondary }}>
+                  {ps.has('memory') && (
+                    <span>
+                      <span style={{ color: T.textTertiary }}>{mode === 'vibe' ? 'memory ' : 'heap '}</span>
+                      {snapshot.memory
+                        ? <span style={{ color: snapshot.memory.usedPct > 80 ? T.red : snapshot.memory.usedPct > 60 ? T.yellow : T.text, fontWeight: 600 }}>{snapshot.memory.jsHeapSizeMB.toFixed(0)} MB</span>
+                        : <span style={{ color: T.textMuted }}>Chrome only</span>}
+                      {snapshot.memory && <span style={{ color: T.textTertiary }}> · {snapshot.memory.usedPct.toFixed(0)}%</span>}
+                    </span>
+                  )}
+                  {ps.has('memory') && ps.has('console') && <span style={{ color: T.textMuted }}>·</span>}
+                  {ps.has('console') && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                      <ConsoleStat count={snapshot.console.errorCount} color={T.red} label="err" />
+                      <ConsoleStat count={snapshot.console.warnCount} color={T.yellow} label="wrn" />
+                      <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />
+                    </span>
+                  )}
+                </div>
               )}
 
-              {/* QUICK ISSUES SUMMARY */}
+              {/* ISSUES — count heading + borderless tick rows */}
               {ps.has('issues') && (
-                <Section>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary }}>
-                        {mode === 'vibe' ? 'Problems' : 'Issues'}
-                      </span>
-                      {activeCount > 0 && (
-                        <span style={{
-                          fontSize: 14, fontWeight: 700, color: T.text,
-                          background: 'rgba(var(--vc-fg,255,255,255),0.08)', padding: '2px 7px', borderRadius: 6,
-                          animation: 'vc-count-pop 0.3s ease',
-                        }}>{activeCount}</span>
-                      )}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={KICKER}>
+                      {mode === 'vibe' ? 'problems' : 'issues'}
+                      {activeCount > 0 && <span style={{ color: T.textSecondary, marginLeft: 6, fontWeight: 600 }}>{activeCount}</span>}
                     </div>
                     {activeCount > 0 && (
-                      <button
-                        onClick={() => setActiveView('agent')}
-                        style={{
-                          fontSize: 14, fontWeight: 500,
-                          color: T.textSecondary, background: T.bgSubtle,
-                          border: `1px solid ${T.border}`, borderRadius: 6,
-                          padding: '5px 11px', minHeight: 30, cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
-                          transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-                        }}
-                      >
+                      <button onClick={() => setActiveView('agent')} style={QUIET_LINK}>
                         {mode === 'vibe' ? 'fix with AI →' : 'view prompts →'}
                       </button>
                     )}
                   </div>
                   {activeCount === 0 ? (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-                      borderRadius: T.radiusSm, background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: T.textSecondary }}>
                       <span data-vc-breathe style={{
-                        width: 8, height: 8, borderRadius: '50%', background: T.green,
+                        width: 7, height: 7, borderRadius: '50%', background: T.green,
                         boxShadow: `0 0 6px ${T.green}50`, animation: 'vc-breathe 3s ease-in-out infinite',
                       }} />
-                      <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
-                        {mode === 'vibe' ? 'All vibes are good' : 'No active issues'}
-                      </span>
+                      {mode === 'vibe' ? 'All vibes are good' : 'No active issues'}
                     </div>
                   ) : (
-                    <div style={{ borderRadius: T.radiusSm, background: T.bgSubtle, border: `1px solid ${T.borderSubtle}` }}>
-                      {tracked.filter((t) => t.status === 'new').slice(0, 4).map((t, i, arr) => (
-                        <QuickIssue key={t.issue.id} issue={t.issue} mode={mode} last={i === arr.length - 1} />
+                    <div>
+                      {tracked.filter((t) => t.status === 'new').slice(0, 4).map((t) => (
+                        <QuickIssue key={t.issue.id} issue={t.issue} mode={mode} />
                       ))}
                       {activeCount > 4 && (
-                        <button
-                          onClick={() => setActiveView('agent')}
-                          style={{
-                            width: '100%', fontSize: 14, color: T.textSecondary, textAlign: 'center',
-                            padding: '8px 0', minHeight: 36,
-                            borderTop: `1px solid ${T.borderSubtle}`, cursor: 'pointer',
-                            background: 'transparent', border: 'none', borderTopStyle: 'solid',
-                            borderTopWidth: 1, borderTopColor: T.borderSubtle,
-                            fontFamily: 'inherit', outline: 'none',
-                          }}
-                        >
+                        <button onClick={() => setActiveView('agent')} style={{ ...QUIET_LINK, marginTop: 4 }}>
                           +{activeCount - 4} more →
                         </button>
                       )}
                     </div>
                   )}
-                </Section>
+                </div>
               )}
             </div>
           )}
 
           {/* ── AGENT VIEW ─────────────────────────────────────────── */}
           {activeView === 'agent' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               <AgentPanel
                 tracked={tracked}
                 mode={mode}
@@ -611,7 +572,7 @@ export const VibeCheck = ({
 
           {/* ── SEO VIEW ──────────────────────────────────────────── */}
           {activeView === 'seo' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               <AuditPanel
                 tracked={tracked}
                 detector="seo"
@@ -631,7 +592,7 @@ export const VibeCheck = ({
 
           {/* ── AEO VIEW ──────────────────────────────────────────── */}
           {activeView === 'aeo' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               <AuditPanel
                 tracked={tracked}
                 detector="aeo"
@@ -651,14 +612,14 @@ export const VibeCheck = ({
 
           {/* ── PROMPTS VIEW ──────────────────────────────────────── */}
           {activeView === 'prompts' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               <PromptsPanel mode={mode} copiedId={copiedId} onCopy={copy} />
             </div>
           )}
 
           {/* ── SETTINGS VIEW ────────────────────────────────────── */}
           {activeView === 'settings' && (
-            <div style={{ animation: 'vc-slide-in 0.2s ease' }}>
+            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
             </div>
           )}
@@ -667,9 +628,18 @@ export const VibeCheck = ({
         {/* ── Bottom navigation ───────────────────────────────────── */}
         <div style={{
           display: 'flex',
-          borderTop: `1px solid ${T.borderSubtle}`,
           flexShrink: 0,
+          position: 'relative',
+          paddingTop: 1,
         }}>
+          {/* One accent bar that SLIDES between tab centers (signature motion) */}
+          <span aria-hidden="true" style={{
+            position: 'absolute', top: 0,
+            left: `calc((${TAB_CONFIG.findIndex((t) => t.key === activeView)} + 0.5) * (100% / ${TAB_CONFIG.length}))`,
+            transform: 'translateX(-50%)',
+            width: 18, height: 2, borderRadius: '0 0 3px 3px', background: T.text,
+            transition: 'left 0.28s cubic-bezier(0.4,0,0.2,1)',
+          }} />
           {TAB_CONFIG.map((tab) => {
             const active = activeView === tab.key
             const count = tab.key === 'agent' ? activeCount
@@ -686,7 +656,6 @@ export const VibeCheck = ({
                 aria-label={tab.label}
                 title={tab.label}
               >
-                {active && <span aria-hidden="true" style={NAV_INDICATOR} />}
                 <NavIcon name={tab.key} />
                 {count > 0 && (
                   <>
@@ -705,66 +674,26 @@ export const VibeCheck = ({
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
-  <div style={{ paddingTop: 12, marginTop: 4, borderTop: `1px solid ${T.borderSubtle}` }}>
-    {title && <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary, marginBottom: 8 }}>{title}</div>}
-    {children}
-  </div>
-)
+const SEV_TICK: Record<string, string> = {
+  info: 'var(--vc-sev-info, #60a5fa)',
+  warning: 'var(--vc-sev-warning, #facc15)',
+  error: 'var(--vc-sev-error, #fb923c)',
+  critical: 'var(--vc-sev-critical, #f87171)',
+}
 
-const MetricCard = ({ label, value, unit, color, sub }: { label: string; value: string; unit: string; color: string; sub: string }) => (
-  <div style={{
-    flex: 1, padding: '8px 10px', borderRadius: T.radiusSm,
-    background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
-  }}>
-    <div style={{ fontSize: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: T.textTertiary }}>{label}</div>
-    <div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color, marginTop: 4, letterSpacing: '-0.02em', lineHeight: 1 }}>
-      {value}<span style={{ fontSize: 14, fontWeight: 400, color: T.textMuted, marginLeft: 2 }}>{unit}</span>
-    </div>
-    <div style={{ fontSize: 14, color: T.textTertiary, marginTop: 4 }}>{sub}</div>
-  </div>
-)
-
-const Dot = ({ count, color, label }: { count: number; color: string; label: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-    <span style={{
-      width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-      background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.08)',
-      boxShadow: count > 0 ? `0 0 4px ${color}40` : 'none',
-      transition: 'background 0.2s ease, box-shadow 0.2s ease',
-    }} />
-    <span style={{
-      fontSize: 14, fontVariantNumeric: 'tabular-nums', fontWeight: count > 0 ? 600 : 400,
-      color: count > 0 ? T.text : T.textMuted,
-      transition: 'color 0.2s ease',
-    }}>{count}</span>
-    <span style={{ fontSize: 14, color: T.textTertiary }}>{label}</span>
-  </div>
-)
-
-const QuickIssue = ({ issue, mode, last }: { readonly issue: VibeIssue; mode: string; last: boolean }) => {
-  const SEV: Record<string, string> = { info: T.blue, warning: T.yellow, error: T.orange, critical: T.red }
-  const c = SEV[issue.severity] ?? T.orange
-
+const QuickIssue = ({ issue, mode }: { readonly issue: VibeIssue; mode: string }) => {
+  const c = SEV_TICK[issue.severity] ?? SEV_TICK['error']
   const vibeTitle = mode === 'vibe'
     ? issue.title.replace(/DOM/g, 'page elements').replace(/\bheap\b/gi, 'memory').replace(/\bCLS\b/g, 'layout shift')
     : issue.title
 
   return (
-    <div style={{
-      display: 'flex', gap: 8, padding: '8px 10px',
-      borderBottom: last ? 'none' : `1px solid ${T.borderSubtle}`,
-    }}>
-      <div style={{
-        width: 3, borderRadius: 2, flexShrink: 0, alignSelf: 'stretch', minHeight: 16,
-        background: c,
-      }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 14, color: T.textSecondary, fontWeight: 500,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{vibeTitle}</div>
-      </div>
+    <div style={{ display: 'flex', gap: 9, padding: '5px 0', alignItems: 'stretch' }}>
+      <span style={{ width: 3, minHeight: 15, borderRadius: 2, background: c, flexShrink: 0 }} />
+      <span style={{
+        flex: 1, minWidth: 0, fontSize: 14, color: T.textSecondary, alignSelf: 'center',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{vibeTitle}</span>
     </div>
   )
 }
