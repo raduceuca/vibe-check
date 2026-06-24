@@ -47,3 +47,19 @@ export const Badge = ({ severity }: BadgeProps) => {
     </span>
   )
 }
+
+// Collapsed severity indicator — a colour-coded dot for dense one-line rows where
+// a full badge would dominate. The label is exposed to assistive tech + on hover.
+export const SeverityDot = ({ severity }: BadgeProps) => (
+  <span
+    aria-label={severity}
+    title={severity}
+    style={{
+      width: 9,
+      height: 9,
+      borderRadius: '50%',
+      flexShrink: 0,
+      backgroundColor: SEV_VAR[severity],
+    }}
+  />
+)

@@ -3,7 +3,8 @@ import type { SuggestionMode, DetectorName } from '@wcgw/vibe-check-core'
 import { getSuggestion } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
-import { Badge } from './ui/Badge.js'
+import { SeverityDot } from './ui/Badge.js'
+import { Chevron } from './ui/Chevron.js'
 import { CopyButton } from './ui/CopyButton.js'
 
 // Shared panel for the audit tabs (SEO, AEO) — lists the findings from one
@@ -49,20 +50,21 @@ const AuditRow = ({
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((p) => !p) } }}
-        style={{ cursor: 'pointer' }}
+        aria-expanded={expanded}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 20 }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'rgba(var(--vc-fg,255,255,255),0.85)', textWrap: 'balance' }}>
-            {issue.title}
-          </span>
-          <span style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'▼'}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Badge severity={issue.severity} />
-          {detail && (
-            <span style={{ fontSize: 13, color: T.textTertiary, fontFamily: T.fontMono }}>{detail}</span>
-          )}
-        </div>
+        <SeverityDot severity={issue.severity} />
+        <span style={{
+          flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          color: 'rgba(var(--vc-fg,255,255,255),0.95)',
+        }}>
+          {issue.title}
+        </span>
+        {detail && (
+          <span style={{ fontSize: 12, color: T.textTertiary, fontFamily: T.fontMono, flexShrink: 0, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>
+        )}
+        <Chevron open={expanded} />
       </div>
 
       {expanded && (

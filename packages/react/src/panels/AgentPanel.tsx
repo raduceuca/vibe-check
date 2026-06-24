@@ -1,10 +1,11 @@
 import { useState, type CSSProperties } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
 import { getSuggestion, getAgentPrompt } from '@wcgw/vibe-check-core'
-import type { TrackedIssue, IssueStatus } from '../store/issueStore.js'
+import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { CopyButton } from './ui/CopyButton.js'
-import { Badge } from './ui/Badge.js'
+import { SeverityDot } from './ui/Badge.js'
+import { Chevron } from './ui/Chevron.js'
 
 interface AgentPanelProps {
   readonly tracked: readonly TrackedIssue[]
@@ -15,12 +16,6 @@ interface AgentPanelProps {
   readonly onMarkSentBatch: (issueIds: readonly string[]) => void
   readonly onMarkResolved: (issueId: string) => void
   readonly onClearResolved: () => void
-}
-
-const STATUS_STYLES: Record<IssueStatus, { color: string; bg: string; label: string; vibeLabel: string }> = {
-  new: { color: 'var(--vc-sev-warning, #facc15)', bg: 'color-mix(in srgb, var(--vc-sev-warning, #facc15) var(--vc-badge-alpha, 14%), transparent)', label: 'NEW', vibeLabel: 'needs fix' },
-  'sent-to-agent': { color: 'var(--vc-sev-neutral, rgba(255,255,255,0.5))', bg: 'rgba(var(--vc-fg,255,255,255),0.06)', label: 'SENT', vibeLabel: 'sent to AI' },
-  resolved: { color: 'var(--vc-sev-success, #4ade80)', bg: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) var(--vc-badge-alpha, 14%), transparent)', label: 'FIXED', vibeLabel: 'fixed' },
 }
 
 type TabKey = 'active' | 'sent' | 'resolved'
@@ -63,7 +58,6 @@ const IssueRow = ({
   const [expanded, setExpanded] = useState(false)
   const { issue } = tracked
   const suggestion = getSuggestion(issue, mode)
-  const statusConfig = STATUS_STYLES[tracked.status]
 
   const handleCopyAndMark = async () => {
     const success = await onCopy(suggestion.prompt, issue.id)
@@ -79,42 +73,19 @@ const IssueRow = ({
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((p) => !p) } }}
-        style={{ cursor: 'pointer' }}
+        aria-expanded={expanded}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 20 }}
       >
-        {/* Title — full width, never truncated */}
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8,
-          marginBottom: 4,
+        <SeverityDot severity={issue.severity} />
+        <span style={{
+          flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          color: tracked.status === 'resolved' ? 'rgba(var(--vc-fg,255,255,255),0.4)' : 'rgba(var(--vc-fg,255,255,255),0.95)',
+          textDecoration: tracked.status === 'resolved' ? 'line-through' : 'none',
         }}>
-          <span style={{
-            fontSize: 14, fontWeight: 500, lineHeight: 1.4, textWrap: 'balance',
-            color: tracked.status === 'resolved' ? 'rgba(var(--vc-fg,255,255,255),0.35)' : 'rgba(var(--vc-fg,255,255,255),0.85)',
-            textDecoration: tracked.status === 'resolved' ? 'line-through' : 'none',
-          }}>
-            {mode === 'vibe' ? suggestion.title : issue.title}
-          </span>
-          <span style={{
-            fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0,
-            transition: 'transform 0.15s ease',
-            transform: expanded ? 'rotate(180deg)' : 'none',
-          }}>{'\u25BC'}</span>
-        </div>
-        {/* Meta: severity, plus a status badge only when it adds info beyond the
-            current tab (i.e. once sent/resolved — "needs fix" in the to-fix tab
-            is redundant). */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Badge severity={issue.severity} />
-          {tracked.status !== 'new' && (
-            <span style={{
-              fontSize: 14, fontWeight: 500,
-              color: statusConfig.color,
-              background: statusConfig.bg,
-              padding: '2px 7px', borderRadius: T.radiusXs,
-            }}>
-              {mode === 'vibe' ? statusConfig.vibeLabel : statusConfig.label}
-            </span>
-          )}
-        </div>
+          {mode === 'vibe' ? suggestion.title : issue.title}
+        </span>
+        <Chevron open={expanded} />
       </div>
 
       {expanded && (
