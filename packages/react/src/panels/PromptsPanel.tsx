@@ -11,12 +11,8 @@ interface PromptsPanelProps {
 }
 
 const cardStyle: CSSProperties = {
-  padding: '10px 12px',
-  borderRadius: 8,
-  background: 'rgba(var(--vc-fg,255,255,255),0.02)',
-  border: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
-  marginBottom: 6,
-  transition: 'background 0.2s ease, border-color 0.2s ease',
+  padding: '12px 0',
+  borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.06)',
 }
 
 export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
@@ -25,7 +21,7 @@ export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
       {mode === 'vibe' ? 'Ask Your AI To...' : 'Proactive Prompts'}
     </div>
 
-    <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+    <div>
       {PROACTIVE_PROMPTS.map((prompt) => (
         <div key={prompt.id} style={cardStyle}>
           <div style={{

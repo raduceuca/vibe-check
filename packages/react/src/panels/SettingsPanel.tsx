@@ -3,11 +3,13 @@ import type { SuggestionMode, BeaconStatus } from '@wcgw/vibe-check-core'
 import { T, sectionHeaderStyle } from '../tokens.js'
 import type { VibeCheckPreferences } from '../store/preferences.js'
 import { ToggleRow } from './ui/ToggleRow.js'
+import { ModeToggle } from './ui/ModeToggle.js'
 
 interface SettingsPanelProps {
   readonly prefs: VibeCheckPreferences
   readonly onUpdate: (updates: Partial<VibeCheckPreferences>) => void
   readonly mode: SuggestionMode
+  readonly onToggleMode: () => void
   readonly beaconUrl?: string
   readonly beaconStatus?: BeaconStatus | null
   readonly onClearAll: () => void
@@ -40,8 +42,8 @@ const firstSection: CSSProperties = {
 
 const DOT_COLOR: Record<ConnectionState, string> = {
   inactive: 'rgba(var(--vc-fg,255,255,255),0.15)',
-  pending: T.yellow,
-  active: T.green,
+  pending: 'var(--vc-sev-warning, #facc15)',
+  active: 'var(--vc-sev-success, #4ade80)',
 }
 
 const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
@@ -61,7 +63,7 @@ const infoRowStyle: CSSProperties = {
   fontSize: 14,
 }
 
-export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
+export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
   const connection = deriveConnectionState(beaconUrl, beaconStatus)
   const statusLabel: Record<ConnectionState, string> = {
     inactive: mode === 'vibe' ? 'not connected' : 'inactive',
@@ -70,14 +72,21 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, beaconStatus, 
   }
   const statusColor: Record<ConnectionState, string> = {
     inactive: T.textMuted,
-    pending: T.yellow,
-    active: T.green,
+    pending: 'var(--vc-sev-warning, #facc15)',
+    active: 'var(--vc-sev-success, #4ade80)',
   }
 
   return (
     <div style={{ paddingTop: 4 }}>
       <div style={firstSection}>
         {mode === 'vibe' ? 'Settings' : 'Configuration'}
+      </div>
+
+      <div style={{ ...infoRowStyle, paddingBottom: 8 }}>
+        <span style={{ color: T.textSecondary }}>
+          {mode === 'vibe' ? 'Wording' : 'Mode'}
+        </span>
+        <ModeToggle mode={mode} onToggle={onToggleMode} />
       </div>
 
       <ToggleRow
@@ -94,6 +103,11 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, beaconStatus, 
         label={mode === 'vibe' ? 'Light theme' : 'Light theme'}
         checked={prefs.theme === 'light'}
         onChange={(checked) => onUpdate({ theme: checked ? 'light' : 'dark' })}
+      />
+      <ToggleRow
+        label={mode === 'vibe' ? 'Remember performance history' : 'Persist FPS history'}
+        checked={prefs.keepHistory}
+        onChange={(checked) => onUpdate({ keepHistory: checked })}
       />
 
       <div style={sectionTitle}>

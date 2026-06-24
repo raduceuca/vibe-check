@@ -25,22 +25,25 @@ const STATUS_STYLES: Record<IssueStatus, { color: string; bg: string; label: str
 
 type TabKey = 'active' | 'sent' | 'resolved'
 
-const tabStyle = (active: boolean): CSSProperties => ({
+// Borderless segmented control — text only, a single underline slides between
+// tabs on a faint track. Matches the bottom-nav language; no boxy active fill.
+const segTabStyle = (active: boolean): CSSProperties => ({
   flex: 1,
-  padding: '11px 0',
-  minHeight: 44,
+  padding: '8px 0 10px',
+  minHeight: 40,
   fontSize: 14,
-  fontWeight: active ? 600 : 400,
+  fontWeight: active ? 600 : 500,
   textAlign: 'center',
   color: active ? T.text : T.textTertiary,
-  background: active ? 'rgba(var(--vc-fg,255,255,255),0.04)' : 'transparent',
+  background: 'transparent',
   border: 'none',
-  borderBottom: active ? `2px solid rgba(var(--vc-fg,255,255,255),0.2)` : '2px solid transparent',
   cursor: 'pointer',
-  transition: 'color 0.2s ease, background 0.2s ease, border-color 0.2s ease',
+  transition: 'color 0.2s ease',
   fontFamily: 'inherit',
   outline: 'none',
 })
+
+const TAB_INDEX: Record<TabKey, number> = { active: 0, sent: 1, resolved: 2 }
 
 const IssueRow = ({
   tracked,
@@ -70,7 +73,7 @@ const IssueRow = ({
   }
 
   return (
-    <div style={{ padding: '10px 10px', borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.05)' }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.06)' }}>
       <div
         onClick={() => setExpanded((p) => !p)}
         role="button"
@@ -96,17 +99,21 @@ const IssueRow = ({
             transform: expanded ? 'rotate(180deg)' : 'none',
           }}>{'\u25BC'}</span>
         </div>
-        {/* Meta: severity + status on second line */}
+        {/* Meta: severity, plus a status badge only when it adds info beyond the
+            current tab (i.e. once sent/resolved — "needs fix" in the to-fix tab
+            is redundant). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Badge severity={issue.severity} />
-          <span style={{
-            fontSize: 14, fontWeight: 500,
-            color: statusConfig.color,
-            background: statusConfig.bg,
-            padding: '2px 7px', borderRadius: T.radiusXs,
-          }}>
-            {mode === 'vibe' ? statusConfig.vibeLabel : statusConfig.label}
-          </span>
+          {tracked.status !== 'new' && (
+            <span style={{
+              fontSize: 14, fontWeight: 500,
+              color: statusConfig.color,
+              background: statusConfig.bg,
+              padding: '2px 7px', borderRadius: T.radiusXs,
+            }}>
+              {mode === 'vibe' ? statusConfig.vibeLabel : statusConfig.label}
+            </span>
+          )}
         </div>
       </div>
 
@@ -157,9 +164,9 @@ const IssueRow = ({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '4px 10px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                  border: '1px solid rgba(74,222,128,0.15)',
-                  background: 'rgba(74,222,128,0.06)',
-                  color: '#4ade80', cursor: 'pointer', minHeight: 30,
+                  border: '1px solid color-mix(in srgb, var(--vc-sev-success, #4ade80) 22%, transparent)',
+                  background: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) 8%, transparent)',
+                  color: 'var(--vc-sev-success, #4ade80)', cursor: 'pointer', minHeight: 30,
                   fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                 }}
               >
@@ -233,35 +240,39 @@ export const AgentPanel = ({
       </div>
 
       <div style={{
-        display: 'flex',
-        borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
-        marginBottom: 6,
+        display: 'flex', position: 'relative', marginBottom: 10,
+        boxShadow: 'inset 0 -1px 0 rgba(var(--vc-fg,255,255,255),0.07)',
       }}>
-        <button style={tabStyle(activeTab === 'active')} onClick={() => setActiveTab('active')}>
+        {/* One underline that slides between the active tab's center */}
+        <span aria-hidden="true" style={{
+          position: 'absolute', bottom: 0,
+          left: `calc((${TAB_INDEX[activeTab]} + 0.5) * (100% / 3))`,
+          transform: 'translateX(-50%)',
+          width: 24, height: 2, borderRadius: 2, background: T.text,
+          transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
+        }} />
+        <button style={segTabStyle(activeTab === 'active')} onClick={() => setActiveTab('active')}>
           {mode === 'vibe' ? `to fix (${active.length})` : `active (${active.length})`}
         </button>
-        <button style={tabStyle(activeTab === 'sent')} onClick={() => setActiveTab('sent')}>
+        <button style={segTabStyle(activeTab === 'sent')} onClick={() => setActiveTab('sent')}>
           sent ({sent.length})
         </button>
-        <button style={tabStyle(activeTab === 'resolved')} onClick={() => setActiveTab('resolved')}>
+        <button style={segTabStyle(activeTab === 'resolved')} onClick={() => setActiveTab('resolved')}>
           {mode === 'vibe' ? `fixed (${resolved.length})` : `resolved (${resolved.length})`}
         </button>
       </div>
 
       {currentIssues.length === 0 ? (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 8, padding: '16px 12px', borderRadius: 8,
-          background: 'rgba(var(--vc-fg,255,255,255),0.02)', border: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
+          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0',
         }}>
           {activeTab === 'active' && (
             <span data-vc-breathe style={{
-              width: 8, height: 8, borderRadius: '50%', background: '#4ade80',
-              boxShadow: '0 0 6px rgba(74,222,128,0.4)',
+              width: 7, height: 7, borderRadius: '50%', background: 'var(--vc-sev-success, #4ade80)',
               animation: 'vc-breathe 3s ease-in-out infinite',
             }} />
           )}
-          <span style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.4)', fontWeight: 500 }}>
+          <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
             {activeTab === 'active'
               ? (mode === 'vibe' ? 'All good! No issues found' : 'No active issues')
               : activeTab === 'sent'
@@ -271,10 +282,7 @@ export const AgentPanel = ({
           </span>
         </div>
       ) : (
-        <div style={{
-          maxHeight: 240, overflowY: 'auto', borderRadius: 8,
-          background: 'rgba(var(--vc-fg,255,255,255),0.015)', border: '1px solid rgba(var(--vc-fg,255,255,255),0.05)',
-        }}>
+        <div>
           {currentIssues.map((t) => (
             <IssueRow
               key={t.issue.id} tracked={t} mode={mode} copiedId={copiedId}

@@ -29,7 +29,8 @@
   },
   "dependencies": {
     "@wcgw/vibe-check-core": "workspace:^",
-    "@phosphor-icons/react": "^2.1.7"
+    "@phosphor-icons/react": "^2.1.7",
+    "liveline": "^0.0.7"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

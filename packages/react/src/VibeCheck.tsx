@@ -5,13 +5,13 @@ import { useIssueStore } from './hooks/useIssueStore.js'
 import { usePreferences } from './hooks/usePreferences.js'
 import { useClipboard } from './hooks/useClipboard.js'
 import { VibeCheckProvider } from './context.js'
-import { ModeToggle } from './panels/ui/ModeToggle.js'
 import { AgentPanel } from './panels/AgentPanel.js'
 import { PromptsPanel } from './panels/PromptsPanel.js'
 import { SettingsPanel } from './panels/SettingsPanel.js'
 import { AuditPanel } from './panels/AuditPanel.js'
 import { AnnotationOverlay } from './panels/AnnotationOverlay.js'
 import { Gauge, Wrench, MagnifyingGlass, Robot, Lightbulb, SlidersHorizontal } from '@phosphor-icons/react'
+import { Liveline, type LivelinePoint } from 'liveline'
 
 type PanelType = 'fps' | 'vitals' | 'memory' | 'console' | 'issues'
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
@@ -105,10 +105,24 @@ const getHealth = (s: VibeSnapshot) => {
   return { color: T.green, labelColor: 'var(--vc-sev-success, #4ade80)', glow: 'rgba(74,222,128,0.1)', label: 'healthy', vibeLabel: 'looking good' }
 }
 
-// ── Colors ──────────────────────────────────────────────────────────────────
+// ── Accent colors ───────────────────────────────────────────────────────────
+// The UI is mostly monochromatic (neutrals from --vc-fg); colour appears only as
+// a deliberate accent — the lifeline, the health dot, severity, problem states.
+// Concrete hex per theme (the <canvas> line can't resolve CSS variables, and the
+// bright tones are illegible on the light surface). Mirrors the --vc-sev-* vars.
+const SEV_HEX = {
+  dark: { success: '#4ade80', warning: '#facc15', error: '#fb923c', critical: '#f87171', info: '#60a5fa' },
+  light: { success: '#15803d', warning: '#b45309', error: '#c2410c', critical: '#b91c1c', info: '#1d4ed8' },
+} as const
+type SevKey = keyof (typeof SEV_HEX)['dark']
+const sevHex = (key: SevKey, light: boolean): string => SEV_HEX[light ? 'light' : 'dark'][key]
 
-const fpsColor = (fps: number) => fps >= 55 ? T.green : fps >= 40 ? T.yellow : fps >= 25 ? T.orange : T.red
-const vitalColor = (r?: string) => r === 'good' ? T.green : r === 'needs-improvement' ? T.yellow : T.red
+const fpsKey = (fps: number): SevKey => fps >= 55 ? 'success' : fps >= 40 ? 'warning' : fps >= 25 ? 'error' : 'critical'
+const healthKey = (s: VibeSnapshot): SevKey => {
+  const n = s.issues.length, fps = s.frameRate.fps
+  return n > 3 || fps < 25 ? 'critical' : n > 0 || fps < 40 ? 'warning' : 'success'
+}
+const vitalKey = (r?: string): SevKey => r === 'good' ? 'success' : r === 'needs-improvement' ? 'warning' : 'critical'
 const fmtMs = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`
 
 // ── Position ────────────────────────────────────────────────────────────────
@@ -140,10 +154,101 @@ const PillDivider = () => (
   <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(var(--vc-fg,255,255,255),0.12)', flexShrink: 0, margin: '0 1px' }} />
 )
 
-// ── Live FPS trace (oscilloscope) — the one ornament, and it's the data ──────
-// Keeps a rolling window of recent FPS samples and draws a single polyline. New
-// samples shift the line left, so it reads as a living instrument. Cheap: ~N
-// points re-rendered on the snapshot tick (≈2/s), not per frame.
+// ── Honest FPS history — real samples, persisted to localStorage ─────────────
+// Two resolutions so the lifeline can zoom from live to an hour without storing
+// or rendering tens of thousands of points: a full-res recent buffer (the live
+// view) and a coarse buffer (one sample every LONG_STEP_SEC) for the 15m/1h
+// views. Persisted (throttled) so the timeline survives reloads; samples are the
+// measured frame rate verbatim — no smoothing.
+
+interface FpsSample { readonly time: number; readonly value: number }
+interface FpsHistory { readonly live: readonly FpsSample[]; readonly long: readonly FpsSample[] }
+const EMPTY_HISTORY: FpsHistory = { live: [], long: [] }
+
+const FPS_HISTORY_KEY = 'vibe-check:fps-history'
+const LIVE_CAP = 1200 // ~10 min at the 500ms snapshot tick
+const LONG_STEP_SEC = 15 // one coarse sample every 15s
+const LONG_CAP = 280 // ~70 min of coarse samples
+const STALE_SEC = 3600 // drop a stored session whose newest sample is older than this
+const PERSIST_EVERY_MS = 8000
+
+const isSample = (p: unknown): p is FpsSample =>
+  !!p && typeof (p as FpsSample).time === 'number' && typeof (p as FpsSample).value === 'number'
+
+// Restore the timeline across reloads. Validates shape, caps each buffer, and
+// drops a stale session — there's a real downtime gap between sessions, so
+// resurrecting an hours-old line as "live" would be dishonest.
+const loadFpsHistory = (): FpsHistory => {
+  try {
+    if (typeof localStorage === 'undefined') return EMPTY_HISTORY
+    const parsed = JSON.parse(localStorage.getItem(FPS_HISTORY_KEY) || 'null')
+    if (!parsed || !Array.isArray(parsed.live) || !Array.isArray(parsed.long)) return EMPTY_HISTORY
+    const live = parsed.live.filter(isSample).slice(-LIVE_CAP)
+    const long = parsed.long.filter(isSample).slice(-LONG_CAP)
+    const newest = Math.max(live[live.length - 1]?.time ?? 0, long[long.length - 1]?.time ?? 0)
+    if (!newest || newest < Date.now() / 1000 - STALE_SEC) return EMPTY_HISTORY
+    return { live, long }
+  } catch { return EMPTY_HISTORY }
+}
+
+const useFpsHistory = (fps: number, tick: number, persist: boolean): FpsHistory => {
+  const [history, setHistory] = useState<FpsHistory>(() => (persist ? loadFpsHistory() : EMPTY_HISTORY))
+  const lastPersist = useRef(0)
+
+  useEffect(() => {
+    if (tick === 0) return // no real snapshot yet
+    const time = tick / 1000 // Liveline windows by `time` in Unix *seconds*
+    const value = Math.round(fps)
+    setHistory((prev) => {
+      const live = [...prev.live, { time, value }].slice(-LIVE_CAP)
+      const lastLong = prev.long[prev.long.length - 1]
+      const long = !lastLong || time - lastLong.time >= LONG_STEP_SEC
+        ? [...prev.long, { time, value }].slice(-LONG_CAP)
+        : prev.long
+      return { live, long }
+    })
+  }, [tick, fps])
+
+  // Throttled persistence — writing the full buffer every tick would be a waste
+  // for a perf tool to inflict on the page it's measuring.
+  useEffect(() => {
+    if (!persist || tick === 0 || tick - lastPersist.current < PERSIST_EVERY_MS) return
+    lastPersist.current = tick
+    try { localStorage.setItem(FPS_HISTORY_KEY, JSON.stringify(history)) } catch { /* full/blocked */ }
+  }, [tick, persist, history])
+
+  useEffect(() => {
+    if (!persist) { try { localStorage.removeItem(FPS_HISTORY_KEY) } catch { /* noop */ } }
+  }, [persist])
+
+  return history
+}
+
+// ── Lifeline timescale ───────────────────────────────────────────────────────
+const WINDOW_OPTIONS = [
+  { secs: 30, label: 'live' },
+  { secs: 300, label: '5m' },
+  { secs: 900, label: '15m' },
+  { secs: 3600, label: '1h' },
+] as const
+
+const winBtnStyle = (active: boolean): CSSProperties => ({
+  fontSize: 12, fontWeight: active ? 600 : 500,
+  color: active ? T.text : T.textTertiary,
+  background: active ? 'rgba(var(--vc-fg,255,255,255),0.07)' : 'transparent',
+  border: 'none', borderRadius: 5, padding: '3px 8px', minHeight: 26,
+  cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+  transition: 'color 0.15s ease, background 0.15s ease',
+})
+
+// Liveline renders to a <canvas>; jsdom (tests) and SSR have none, so we fall
+// back to the lightweight SVG trace there.
+const CANVAS_OK = typeof document !== 'undefined' && (() => {
+  try { return !!document.createElement('canvas').getContext('2d') } catch { return false }
+})()
+
+// ── Live FPS trace (oscilloscope) — SVG fallback when canvas is unavailable ──
+// Keeps a rolling window of recent FPS samples and draws a single polyline.
 
 const FpsTrace = ({ fps, tick, color, width = 292, height = 24, points = 70 }: {
   fps: number; tick: number; color: string; width?: number; height?: number; points?: number
@@ -240,7 +345,7 @@ const navTabStyle = (active: boolean): CSSProperties =>
 const NAV_DOT: CSSProperties = {
   position: 'absolute', top: 9, left: 'calc(50% + 7px)',
   width: 6, height: 6, borderRadius: '50%',
-  background: T.yellow, boxShadow: `0 0 5px ${T.yellow}70`,
+  background: 'var(--vc-sev-warning, #facc15)',
 }
 const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }
 
@@ -277,6 +382,11 @@ export const VibeCheck = ({
   const { copiedId, copy } = useClipboard()
   const { tracked, markSent, markSentBatch, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
   const mode = prefs.mode
+  // Honest performance lifeline — accrues even while collapsed.
+  const fpsHistory = useFpsHistory(snapshot.frameRate.fps, snapshot.timestamp, prefs.keepHistory)
+  const [chartWindow, setChartWindow] = useState(30)
+  // Live/5m read the full-res buffer; 15m/1h read the coarse one.
+  const chartData = chartWindow <= 300 ? fpsHistory.live : fpsHistory.long
 
   // Real beacon delivery status, re-read each snapshot tick (~500ms) so the
   // settings indicator reflects whether snapshots actually reach the MCP server
@@ -310,6 +420,9 @@ export const VibeCheck = ({
   const toggle = useCallback(() => setCollapsed((p) => !p), [])
   const h = useMemo(() => getHealth(snapshot), [snapshot])
   const ps = useMemo(() => new Set(panels), [panels])
+
+  const isLight = prefs.theme === 'light'
+  const hColor = sevHex(healthKey(snapshot), isLight)
 
   const activeCount = tracked.filter((t) => t.status === 'new').length
   const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
@@ -359,11 +472,11 @@ export const VibeCheck = ({
             }}>
             {/* Overall health */}
             <span data-vc-breathe aria-hidden="true" style={{
-              width: 8, height: 8, borderRadius: '50%', background: h.color, flexShrink: 0,
-              boxShadow: `0 0 8px ${h.color}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+              width: 8, height: 8, borderRadius: '50%', background: hColor, flexShrink: 0,
+              boxShadow: `0 0 8px ${hColor}60`, animation: 'vc-breathe 3s ease-in-out infinite',
             }} />
             {/* FPS */}
-            <MiniRing value={snapshot.frameRate.fps} max={60} color={fpsColor(snapshot.frameRate.fps)} />
+            <MiniRing value={snapshot.frameRate.fps} max={60} color={sevHex(fpsKey(snapshot.frameRate.fps), isLight)} />
             <span style={{ fontWeight: 600 }}>{Math.round(snapshot.frameRate.fps)}</span>
             <span style={{ color: T.textTertiary, fontWeight: 400 }}>fps</span>
             {/* Memory (Chrome only) */}
@@ -393,7 +506,7 @@ export const VibeCheck = ({
   // ═══════════════════════════════════════════════════════════════════════════
   // EXPANDED — Full panel with tabbed navigation
   // ═══════════════════════════════════════════════════════════════════════════
-  const fc = fpsColor(snapshot.frameRate.fps)
+  const fc = sevHex(fpsKey(snapshot.frameRate.fps), isLight)
 
   return (
     <VibeCheckProvider value={engine}>
@@ -423,8 +536,8 @@ export const VibeCheck = ({
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
             >
               <span data-vc-breathe style={{
-                width: 8, height: 8, borderRadius: '50%', background: h.color, flexShrink: 0,
-                boxShadow: `0 0 8px ${h.color}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+                width: 8, height: 8, borderRadius: '50%', background: hColor, flexShrink: 0,
+                boxShadow: `0 0 8px ${hColor}60`, animation: 'vc-breathe 3s ease-in-out infinite',
               }} />
               <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
                 vibe check
@@ -435,8 +548,6 @@ export const VibeCheck = ({
               background: `color-mix(in srgb, ${h.labelColor} 14%, transparent)`, padding: '2px 8px', borderRadius: 6,
             }}>{mode === 'vibe' ? h.vibeLabel : h.label}</span>
           </div>
-
-          <ModeToggle mode={mode} onToggle={toggleMode} />
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
@@ -453,17 +564,49 @@ export const VibeCheck = ({
                 <div style={{ paddingBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontSize: 42, fontWeight: 600, lineHeight: 1, color: fc, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
+                      <span style={{ fontSize: 42, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
                       <span style={{ fontSize: 14, color: T.textTertiary, fontWeight: 500 }}>fps</span>
                     </div>
                     <div style={{ display: 'flex', gap: 14, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
                       <span style={{ color: T.textTertiary }}>avg <span style={{ color: T.textSecondary }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span></span>
-                      <span style={{ color: T.textTertiary }}>worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? T.orange : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span></span>
+                      <span style={{ color: T.textTertiary }}>worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span></span>
                     </div>
                   </div>
-                  <div style={{ marginTop: 8 }}>
-                    <FpsTrace fps={snapshot.frameRate.fps} tick={snapshot.timestamp} color={fc} />
+                  {/* The lifeline — the one prominent accent. Parent sets the height. */}
+                  <div style={{ marginTop: 12, height: 96 }}>
+                    {CANVAS_OK ? (
+                      <Liveline
+                        data={chartData as unknown as LivelinePoint[]}
+                        value={Math.round(snapshot.frameRate.fps)}
+                        theme={prefs.theme}
+                        color={fc}
+                        window={chartWindow}
+                        lineWidth={2}
+                        fill
+                        pulse
+                        grid={false}
+                        badge={false}
+                        scrub={false}
+                        momentum={false}
+                        showValue={false}
+                        exaggerate={false}
+                        referenceLine={{ value: 60 }}
+                        emptyText="measuring…"
+                      />
+                    ) : (
+                      <FpsTrace fps={snapshot.frameRate.fps} tick={snapshot.timestamp} color={fc} />
+                    )}
                   </div>
+                  {/* Timescale selector — live / 5m / 15m / 1h */}
+                  {CANVAS_OK && (
+                    <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end', marginTop: 4 }}>
+                      {WINDOW_OPTIONS.map((o) => (
+                        <button key={o.secs} type="button" style={winBtnStyle(chartWindow === o.secs)} onClick={() => setChartWindow(o.secs)}>
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -474,13 +617,14 @@ export const VibeCheck = ({
                   <div style={{ display: 'flex', gap: 4 }}>
                     {(['lcp', 'inp', 'cls'] as const).map((key) => {
                       const v = snapshot.webVitals[key]
-                      const c = vitalColor(v?.rating)
+                      const poor = !!v && v.rating !== 'good'
                       const val = key === 'cls' ? (v ? v.value.toFixed(3) : '—') : (v ? fmtMs(v.value) : '—')
                       const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
                       return (
                         <div key={key} style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                            <span style={{ fontSize: 19, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: v ? c : T.textMuted }}>{val}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ fontSize: 19, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: v ? T.text : T.textMuted }}>{val}</span>
+                            {poor && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: sevHex(vitalKey(v.rating), isLight), flexShrink: 0 }} />}
                           </div>
                           <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                             {mode === 'vibe' ? vibeLabels[key] : key}
@@ -499,7 +643,7 @@ export const VibeCheck = ({
                     <span>
                       <span style={{ color: T.textTertiary }}>{mode === 'vibe' ? 'memory ' : 'heap '}</span>
                       {snapshot.memory
-                        ? <span style={{ color: snapshot.memory.usedPct > 80 ? T.red : snapshot.memory.usedPct > 60 ? T.yellow : T.text, fontWeight: 600 }}>{snapshot.memory.jsHeapSizeMB.toFixed(0)} MB</span>
+                        ? <span style={{ color: snapshot.memory.usedPct > 80 ? sevHex('critical', isLight) : snapshot.memory.usedPct > 60 ? sevHex('warning', isLight) : T.text, fontWeight: 600 }}>{snapshot.memory.jsHeapSizeMB.toFixed(0)} MB</span>
                         : <span style={{ color: T.textMuted }}>Chrome only</span>}
                       {snapshot.memory && <span style={{ color: T.textTertiary }}> · {snapshot.memory.usedPct.toFixed(0)}%</span>}
                     </span>
@@ -507,8 +651,8 @@ export const VibeCheck = ({
                   {ps.has('memory') && ps.has('console') && <span style={{ color: T.textMuted }}>·</span>}
                   {ps.has('console') && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                      <ConsoleStat count={snapshot.console.errorCount} color={T.red} label="err" />
-                      <ConsoleStat count={snapshot.console.warnCount} color={T.yellow} label="wrn" />
+                      <ConsoleStat count={snapshot.console.errorCount} color={sevHex('critical', isLight)} label="err" />
+                      <ConsoleStat count={snapshot.console.warnCount} color={sevHex('warning', isLight)} label="wrn" />
                       <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />
                     </span>
                   )}
@@ -532,8 +676,8 @@ export const VibeCheck = ({
                   {activeCount === 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: T.textSecondary }}>
                       <span data-vc-breathe style={{
-                        width: 7, height: 7, borderRadius: '50%', background: T.green,
-                        boxShadow: `0 0 6px ${T.green}50`, animation: 'vc-breathe 3s ease-in-out infinite',
+                        width: 7, height: 7, borderRadius: '50%', background: sevHex('success', isLight),
+                        boxShadow: `0 0 6px ${sevHex('success', isLight)}50`, animation: 'vc-breathe 3s ease-in-out infinite',
                       }} />
                       {mode === 'vibe' ? 'All vibes are good' : 'No active issues'}
                     </div>
@@ -620,7 +764,7 @@ export const VibeCheck = ({
           {/* ── SETTINGS VIEW ────────────────────────────────────── */}
           {activeView === 'settings' && (
             <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
-              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
+              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} onToggleMode={toggleMode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
             </div>
           )}
         </div>

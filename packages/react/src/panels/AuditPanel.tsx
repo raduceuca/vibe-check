@@ -43,7 +43,7 @@ const AuditRow = ({
   }
 
   return (
-    <div style={{ padding: '10px 10px', borderBottom: `1px solid ${T.borderSubtle}` }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.06)' }}>
       <div
         onClick={() => setExpanded((p) => !p)}
         role="button"
@@ -105,13 +105,10 @@ export const AuditPanel = ({
       </div>
 
       {findings.length === 0 ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '16px 12px',
-          borderRadius: 8, background: T.bgSubtle, border: `1px solid ${T.borderSubtle}`,
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
           <span data-vc-breathe style={{
-            width: 8, height: 8, borderRadius: '50%', background: T.green,
-            boxShadow: `0 0 6px ${T.green}50`, animation: 'vc-breathe 3s ease-in-out infinite',
+            width: 7, height: 7, borderRadius: '50%', background: 'var(--vc-sev-success, #4ade80)',
+            animation: 'vc-breathe 3s ease-in-out infinite',
           }} />
           <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
             {mode === 'vibe' ? vibeEmptyLabel : emptyLabel}
@@ -119,10 +116,10 @@ export const AuditPanel = ({
         </div>
       ) : (
         <>
-          <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 10px' }}>
+          <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 6px' }}>
             {mode === 'vibe' ? vibeSubtitle : subtitle}
           </p>
-          <div style={{ borderRadius: 8, background: 'rgba(var(--vc-fg,255,255,255),0.015)', border: `1px solid ${T.borderSubtle}`, overflow: 'hidden' }}>
+          <div>
             {findings.map((t) => (
               <AuditRow
                 key={t.issue.id} tracked={t} mode={mode}

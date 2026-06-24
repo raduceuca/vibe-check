@@ -9,6 +9,9 @@ export interface VibeCheckPreferences {
   readonly annotationsVisible: boolean
   readonly clearOnSend: boolean
   readonly theme: VibeCheckTheme
+  // Persist the FPS history to localStorage so the performance lifeline survives
+  // reloads instead of starting blank each time.
+  readonly keepHistory: boolean
 }
 
 // ── Storage ────────────────────────────────���────────────────────────────────
@@ -20,6 +23,7 @@ const DEFAULTS: VibeCheckPreferences = {
   annotationsVisible: true,
   clearOnSend: false,
   theme: 'dark',
+  keepHistory: true,
 }
 
 export const readPreferences = (): VibeCheckPreferences => {
