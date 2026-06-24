@@ -11,6 +11,7 @@ interface AnnotationOverlayProps {
   readonly tracked: readonly TrackedIssue[]
   readonly visible: boolean
   readonly mode: SuggestionMode
+  readonly theme: 'dark' | 'light'
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
   readonly onMarkSent: (issueId: string) => void
@@ -40,6 +41,14 @@ const safeQuery = (selector: string): Element | null => {
 const findElement = (issue: TrackedIssue): Element | null => {
   const detector = issue.issue.detector
   const evidence = issue.issue.evidence
+
+  // Generic: any detector may publish a CSS selector pointing at its target
+  // element, so on-page flagging isn't limited to the hand-rolled cases below.
+  const selector = typeof evidence['selector'] === 'string' ? (evidence['selector'] as string) : ''
+  if (selector) {
+    const el = safeQuery(selector)
+    if (el) return el
+  }
 
   // Image issues — match by URL or natural dimensions
   if (detector === 'unoptimized-images' || detector === 'large-images') {
@@ -233,7 +242,7 @@ const Marker = ({
             top: popoverTop,
             width: 290,
             zIndex: T.zPopover,
-            background: 'rgba(12,12,12,0.97)',
+            background: 'var(--vc-panel-bg, rgba(12,12,12,0.97))',
             borderRadius: 12,
             border: '1px solid rgba(var(--vc-fg,255,255,255),0.1)',
             boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
@@ -289,8 +298,9 @@ const Marker = ({
                       style={{
                         display: 'flex', alignItems: 'center', gap: 4,
                         padding: '3px 8px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                        border: '1px solid rgba(74,222,128,0.15)', background: 'rgba(74,222,128,0.06)',
-                        color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+                        border: '1px solid color-mix(in srgb, var(--vc-sev-success, #4ade80) 22%, transparent)',
+                        background: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) 8%, transparent)',
+                        color: 'var(--vc-sev-success, #4ade80)', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
                       }}
                     >
                       <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
@@ -312,7 +322,7 @@ const Marker = ({
 // ── Main Overlay ────────────────────────────────────────────────────────────
 
 export const AnnotationOverlay = ({
-  tracked, visible, mode, copiedId, onCopy, onMarkSent, onMarkResolved,
+  tracked, visible, mode, theme, copiedId, onCopy, onMarkSent, onMarkResolved,
 }: AnnotationOverlayProps) => {
   const [groups, setGroups] = useState<readonly AnnotationGroup[]>([])
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
@@ -439,6 +449,8 @@ export const AnnotationOverlay = ({
 
   return (
     <div
+      data-vc
+      data-vc-theme={theme}
       style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%',

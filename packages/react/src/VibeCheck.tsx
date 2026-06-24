@@ -439,6 +439,7 @@ export const VibeCheck = ({
       tracked={tracked}
       visible={prefs.annotationsVisible && !collapsed}
       mode={mode}
+      theme={prefs.theme}
       copiedId={copiedId}
       onCopy={copy}
       onMarkSent={handleMarkSent}

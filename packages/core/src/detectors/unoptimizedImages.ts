@@ -4,7 +4,11 @@ import { createIssue } from './createIssue.js'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type ImageIssueType = 'missing-lazy' | 'missing-dimensions' | 'oversized'
+type ImageIssueType = 'missing-lazy' | 'missing-dimensions' | 'oversized' | 'missing-alt' | 'distorted'
+
+// Declared vs natural aspect ratios diverging beyond this fraction read as
+// stretched/squished — a wrongly declared size.
+const ASPECT_TOLERANCE = 0.15
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +30,8 @@ const PROBLEM_DESCRIPTIONS: Record<ImageIssueType, string> = {
   'missing-lazy': 'missing loading="lazy" (below the fold, so it blocks the critical render path)',
   'missing-dimensions': 'missing width/height attributes (causes layout shift / CLS)',
   'oversized': 'natural size much larger than its rendered size (wastes bandwidth)',
+  'missing-alt': 'no alt text (screen readers and search engines can\'t describe it)',
+  'distorted': 'declared width/height don\'t match the file\'s real aspect ratio (it\'s stretched or squished)',
 }
 
 export const createUnoptimizedImagesDetector = (): Detector => {
@@ -54,6 +60,22 @@ export const createUnoptimizedImagesDetector = (): Detector => {
     if (img.naturalWidth > 0 && img.width > 0 && img.naturalWidth > 2 * img.width) {
       problems.push('oversized')
     }
+    // Missing alt text — accessibility + SEO. An explicit empty alt="" is a
+    // valid "decorative" signal, so only flag a truly absent attribute.
+    if (!img.hasAttribute('alt')) {
+      problems.push('missing-alt')
+    }
+    // Wrongly declared size: the width/height attributes describe a different
+    // aspect ratio than the actual file, so the image renders stretched/squished.
+    const wAttr = img.getAttribute('width')
+    const hAttr = img.getAttribute('height')
+    if (wAttr && hAttr && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const declared = Number(wAttr) / Number(hAttr)
+      const natural = img.naturalWidth / img.naturalHeight
+      if (declared > 0 && natural > 0 && Math.abs(declared - natural) / natural > ASPECT_TOLERANCE) {
+        problems.push('distorted')
+      }
+    }
 
     if (problems.length === 0) return
     checkedSrcs.add(src)
@@ -67,7 +89,7 @@ export const createUnoptimizedImagesDetector = (): Detector => {
       createIssue(
         'unoptimized-images',
         severity,
-        `Unoptimized image (${problems.length} issue${problems.length > 1 ? 's' : ''})`,
+        `Image has ${problems.length} issue${problems.length > 1 ? 's' : ''}`,
         `Image "${src}" has: ${detail}.`,
         { src, problems },
       ),

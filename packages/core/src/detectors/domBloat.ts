@@ -20,6 +20,36 @@ const computeMaxDepth = (node: Node, depth: number): number => {
   return max
 }
 
+// A short, queryable selector for an element — id when present, else a tag +
+// :nth-of-type path bounded to a few levels.
+const selectorFor = (el: Element): string => {
+  if (el.id) return `#${typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(el.id) : el.id}`
+  const parts: string[] = []
+  let node: Element | null = el
+  while (node && node !== document.body && node.parentElement && parts.length < 4) {
+    let part = node.tagName.toLowerCase()
+    const siblings = Array.from(node.parentElement.children).filter((c) => c.tagName === node!.tagName)
+    if (siblings.length > 1) part += `:nth-of-type(${siblings.indexOf(node) + 1})`
+    parts.unshift(part)
+    node = node.parentElement
+  }
+  return parts.join(' > ')
+}
+
+// The single top-level container holding the most elements — the bloat is almost
+// always concentrated there, and scanning only body's direct children keeps this
+// cheap (no per-element descendant counting).
+const heaviestSubtreeSelector = (): string | undefined => {
+  if (typeof document === 'undefined' || !document.body) return undefined
+  let heaviest: Element | null = null
+  let maxCount = 0
+  for (const child of Array.from(document.body.children)) {
+    const count = child.querySelectorAll('*').length
+    if (count > maxCount) { maxCount = count; heaviest = child }
+  }
+  return heaviest ? selectorFor(heaviest) : undefined
+}
+
 // ── Detector ─────────────────────────────────────────────────────────────────
 
 export const createDomBloatDetector = (): Detector => {
@@ -51,7 +81,7 @@ export const createDomBloatDetector = (): Detector => {
           severity,
           `DOM has ${nodeCount} nodes`,
           `The document contains ${nodeCount} DOM nodes, which exceeds the ${threshold === 'error' ? ERROR_NODE_THRESHOLD : WARN_NODE_THRESHOLD} threshold. Large DOMs slow down style calculations, layout, and memory usage.`,
-          { nodeCount, maxDepth: lastMaxDepth, timestamp: Date.now() },
+          { nodeCount, maxDepth: lastMaxDepth, timestamp: Date.now(), selector: heaviestSubtreeSelector() },
         ),
       ]
     }

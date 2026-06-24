@@ -63,6 +63,9 @@ export interface DomBloatEvidence {
   readonly nodeCount: number
   readonly maxDepth: number
   readonly timestamp: number
+  // CSS selector for the heaviest top-level subtree, so the overlay can flag it
+  // on the page.
+  readonly selector?: string
 }
 export interface DuplicateRequestsEvidence {
   readonly url: string
