@@ -55,6 +55,11 @@ interface AeoFinding {
   readonly detail?: string
 }
 
+// Total criteria evaluated, used to score the audit as a pass rate: structured
+// data (present + valid), <main> landmark, authorship/freshness, llms.txt,
+// content-without-JS, markdown negotiation, AI-crawler access, MCP discovery.
+export const AEO_CRITERIA_COUNT = 9
+
 const okText = async (path: string, init?: RequestInit): Promise<{ ok: boolean; type: string; body: string }> => {
   try {
     if (typeof fetch === 'undefined') return { ok: false, type: '', body: '' }
@@ -98,8 +103,31 @@ export const createAeoDetector = (): Detector => {
     hasRun = true
 
     // ── Synchronous: structured data ─────────────────────────────────────
-    if (document.querySelector('script[type="application/ld+json"]') === null) {
+    const ld = document.querySelector('script[type="application/ld+json"]')
+    if (ld === null) {
       emit({ check: 'structured-data-missing', severity: 'warning', title: 'No structured data (JSON-LD)', description: 'No <script type="application/ld+json">. Answer engines extract entities, facts, and answers from schema.org JSON-LD — without it they have to guess from prose.' })
+    } else {
+      // Present, but does it parse and reference schema.org?
+      let valid = false
+      try {
+        const parsed: unknown = JSON.parse(ld.textContent ?? '')
+        valid = parsed !== null && typeof parsed === 'object' && JSON.stringify(parsed).includes('schema.org')
+      } catch {
+        valid = false
+      }
+      if (!valid) {
+        emit({ check: 'structured-data-invalid', severity: 'warning', title: 'Structured data is invalid', description: 'The JSON-LD <script> is malformed or missing a schema.org @context, so answer engines will skip it. Validate it with Google\'s Rich Results test.' })
+      }
+    }
+
+    // ── Synchronous: semantic structure ──────────────────────────────────
+    if (document.querySelector('main') === null) {
+      emit({ check: 'no-main-landmark', severity: 'info', title: 'No <main> landmark', description: 'The page has no <main> element. Landmarks (<main>, <article>, <nav>) let assistants and readers locate the primary content instead of guessing from the DOM.' })
+    }
+
+    // ── Synchronous: authorship / freshness ──────────────────────────────
+    if (document.querySelector('meta[name="author"], meta[property="article:author"], [itemprop="author"]') === null) {
+      emit({ check: 'no-author-metadata', severity: 'info', title: 'No author or date signals', description: 'No author or published-date metadata (meta author, article:author, or schema). Answer engines weigh authorship and freshness when deciding which sources to trust and cite.' })
     }
 
     // ── Async probes ─────────────────────────────────────────────────────

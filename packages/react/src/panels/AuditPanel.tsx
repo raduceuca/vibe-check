@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import type { SuggestionMode, DetectorName } from '@wcgw/vibe-check-core'
-import { getSuggestion } from '@wcgw/vibe-check-core'
+import { getSuggestion, SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { SeverityDot } from './ui/Badge.js'
 import { Chevron } from './ui/Chevron.js'
+import { ScoreRing } from './ui/ScoreRing.js'
 import { CopyButton } from './ui/CopyButton.js'
+
+// Total criteria each audit detector evaluates — the denominator for the score.
+const CRITERIA_TOTAL: Partial<Record<DetectorName, number>> = {
+  seo: SEO_CRITERIA_COUNT,
+  aeo: AEO_CRITERIA_COUNT,
+}
 
 // Shared panel for the audit tabs (SEO, AEO) — lists the findings from one
 // detector, each row expandable with a copy-to-AI fix prompt.
@@ -91,20 +98,38 @@ export const AuditPanel = ({
 }: AuditPanelProps) => {
   const findings = tracked.filter((t) => t.issue.detector === detector && t.status !== 'resolved')
 
+  // Score the audit as a pass rate over the detector's criteria. Resolving an
+  // issue removes it from `findings`, so the score climbs as you fix things.
+  const total = CRITERIA_TOTAL[detector] ?? Math.max(findings.length, 1)
+  const failed = Math.min(findings.length, total)
+  const passed = total - failed
+  const score = Math.round((passed / total) * 100)
+
   return (
     <div style={{ paddingTop: 4 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <span style={{
-          fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-          letterSpacing: '0.05em', color: 'rgba(var(--vc-fg,255,255,255),0.4)',
-        }}>{mode === 'vibe' ? vibeHeading : heading}</span>
-        {findings.length > 0 && (
-          <span style={{
-            fontSize: 14, fontWeight: 700, color: T.text,
-            background: 'rgba(var(--vc-fg,255,255,255),0.08)', padding: '2px 7px', borderRadius: 6,
-          }}>{findings.length}</span>
-        )}
+      {/* Score header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+        <ScoreRing score={score} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{
+            fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
+            letterSpacing: '0.05em', color: 'rgba(var(--vc-fg,255,255,255),0.5)',
+          }}>{mode === 'vibe' ? vibeHeading : heading}</div>
+          <div style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
+            {passed} of {total} checks pass
+          </div>
+          {failed > 0 && (
+            <div style={{ fontSize: 13, color: T.textTertiary, marginTop: 2 }}>
+              {failed} {mode === 'vibe' ? (failed === 1 ? 'thing to fix' : 'things to fix') : failed === 1 ? 'issue below' : 'issues below'}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Plain-language description of what this audit checks */}
+      <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 14px' }}>
+        {mode === 'vibe' ? vibeSubtitle : subtitle}
+      </p>
 
       {findings.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
@@ -117,19 +142,14 @@ export const AuditPanel = ({
           </span>
         </div>
       ) : (
-        <>
-          <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 6px' }}>
-            {mode === 'vibe' ? vibeSubtitle : subtitle}
-          </p>
-          <div>
-            {findings.map((t) => (
-              <AuditRow
-                key={t.issue.id} tracked={t} mode={mode}
-                copiedId={copiedId} onCopy={onCopy} onMarkSent={onMarkSent}
-              />
-            ))}
-          </div>
-        </>
+        <div>
+          {findings.map((t) => (
+            <AuditRow
+              key={t.issue.id} tracked={t} mode={mode}
+              copiedId={copiedId} onCopy={onCopy} onMarkSent={onMarkSent}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

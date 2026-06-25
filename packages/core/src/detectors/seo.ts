@@ -121,7 +121,51 @@ const domChecks: ReadonlyArray<() => SeoFinding | null> = [
     }
     return null
   },
+  // ── Indexability ───────────────────────────────────────────────────────
+  () => {
+    const robots = (document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? '').toLowerCase()
+    if (robots.includes('noindex')) {
+      return { check: 'noindex', severity: 'error', title: 'Page is set to "noindex"', description: 'A <meta name="robots" content="noindex"> tells search engines to leave this page out of results entirely. If that is not deliberate, remove it.', detail: 'noindex' }
+    }
+    return null
+  },
+  // ── Short title ────────────────────────────────────────────────────────
+  () => {
+    const t = document.title.trim()
+    if (t.length > 0 && t.length < 10 && !DEFAULT_TITLES.includes(t.toLowerCase())) {
+      return { check: 'title-too-short', severity: 'warning', title: 'Page title is very short', description: `The <title> is only ${t.length} characters ("${t}"). A descriptive 30–60 character title ranks better and tells people what the page is about.`, detail: `${t.length} chars` }
+    }
+    return null
+  },
+  // ── Open Graph URL ─────────────────────────────────────────────────────
+  () => {
+    if (text(document.querySelector('meta[property="og:url"]')).length === 0) {
+      return { check: 'og-url-missing', severity: 'info', title: 'Missing og:url', description: 'No <meta property="og:url">. It tells social platforms the canonical address to credit shares to, even when the link has tracking params.' }
+    }
+    return null
+  },
+  // ── Twitter / X card ───────────────────────────────────────────────────
+  () => {
+    if (text(document.querySelector('meta[name="twitter:card"]')).length === 0) {
+      return { check: 'twitter-card-missing', severity: 'info', title: 'Missing Twitter/X card', description: 'No <meta name="twitter:card">. Without it, links shared on X show a plain URL instead of a rich preview.' }
+    }
+    return null
+  },
+  // ── Link text quality ──────────────────────────────────────────────────
+  () => {
+    const generic = /^(click here|here|read more|learn more|more|link|this|click)$/i
+    const vague = Array.from(document.querySelectorAll('a')).filter((a) => generic.test((a?.textContent ?? '').trim())).length
+    if (vague > 0) {
+      return { check: 'generic-link-text', severity: 'info', title: 'Vague link text', description: `${vague} link${vague > 1 ? 's use' : ' uses'} generic text like "click here" or "read more". Descriptive link text ("View pricing") tells search engines and screen readers where each link goes.`, detail: `${vague} link${vague > 1 ? 's' : ''}` }
+    }
+    return null
+  },
 ]
+
+// Total criteria evaluated = the DOM checks plus the two async resource probes
+// (sitemap, robots). Used to score the audit as a pass rate. Derived from the
+// check list so it stays correct as checks are added.
+export const SEO_CRITERIA_COUNT = domChecks.length + 2
 
 // HTTP checks for sitemap/robots — same-origin GET, treated as missing unless
 // the response is OK and the content type looks right (a SPA dev server returns

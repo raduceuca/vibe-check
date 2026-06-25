@@ -77,6 +77,59 @@ describe('aeo detector', () => {
     d.stop()
   })
 
+  it('flags invalid JSON-LD instead of missing', () => {
+    const s = document.createElement('script')
+    s.setAttribute('type', 'application/ld+json')
+    s.textContent = '{ not valid json'
+    document.head.appendChild(s)
+
+    const d = createAeoDetector()
+    d.start()
+    vi.advanceTimersByTime(600)
+    const checks = checksOf(d)
+    expect(checks).toContain('structured-data-invalid')
+    expect(checks).not.toContain('structured-data-missing')
+    d.stop()
+  })
+
+  it('flags a missing <main> landmark', () => {
+    const d = createAeoDetector()
+    d.start()
+    vi.advanceTimersByTime(600)
+    expect(checksOf(d)).toContain('no-main-landmark')
+    d.stop()
+  })
+
+  it('does not flag <main> when it is present', () => {
+    document.body.appendChild(document.createElement('main'))
+    const d = createAeoDetector()
+    d.start()
+    vi.advanceTimersByTime(600)
+    expect(checksOf(d)).not.toContain('no-main-landmark')
+    d.stop()
+  })
+
+  it('flags missing author/date metadata', () => {
+    const d = createAeoDetector()
+    d.start()
+    vi.advanceTimersByTime(600)
+    expect(checksOf(d)).toContain('no-author-metadata')
+    d.stop()
+  })
+
+  it('does not flag authorship when an author meta is present', () => {
+    const m = document.createElement('meta')
+    m.setAttribute('name', 'author')
+    m.setAttribute('content', 'Jane Doe')
+    document.head.appendChild(m)
+
+    const d = createAeoDetector()
+    d.start()
+    vi.advanceTimersByTime(600)
+    expect(checksOf(d)).not.toContain('no-author-metadata')
+    d.stop()
+  })
+
   it('clears issues', () => {
     const d = createAeoDetector()
     d.start()

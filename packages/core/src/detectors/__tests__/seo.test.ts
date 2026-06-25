@@ -61,6 +61,8 @@ describe('seo detector', () => {
       <meta property="og:title" content="Acme">
       <meta property="og:description" content="Invoicing for freelancers">
       <meta property="og:image" content="https://acme.com/og.png">
+      <meta property="og:url" content="https://acme.com/">
+      <meta name="twitter:card" content="summary_large_image">
       <link rel="canonical" href="https://acme.com/">
     `
     document.title = 'Acme — Invoicing for freelancers'
@@ -78,6 +80,49 @@ describe('seo detector', () => {
     expect(checks).not.toContain('canonical-missing')
     expect(checks).not.toContain('h1-missing')
     expect(checks).not.toContain('image-alt-missing')
+    expect(checks).not.toContain('og-url-missing')
+    expect(checks).not.toContain('twitter-card-missing')
+    expect(checks).not.toContain('noindex')
+    expect(checks).not.toContain('title-too-short')
+    d.stop()
+  })
+
+  it('flags a noindex robots meta as an error', () => {
+    document.title = 'A perfectly reasonable title'
+    const m = document.createElement('meta'); m.setAttribute('name', 'robots'); m.setAttribute('content', 'noindex, nofollow')
+    document.head.appendChild(m)
+    const d = createSeoDetector()
+    run(d)
+    const issue = d.getIssues().find((i) => i.evidence['check'] === 'noindex')
+    expect(issue).toBeDefined()
+    expect(issue?.severity).toBe('error')
+    d.stop()
+  })
+
+  it('flags a very short (but non-default) title', () => {
+    document.title = 'Pricing' // 7 chars, not a framework default
+    const d = createSeoDetector()
+    run(d)
+    expect(checksOf(d)).toContain('title-too-short')
+    d.stop()
+  })
+
+  it('flags missing og:url and twitter card', () => {
+    document.title = 'A reasonable, descriptive page title'
+    const d = createSeoDetector()
+    run(d)
+    const checks = checksOf(d)
+    expect(checks).toContain('og-url-missing')
+    expect(checks).toContain('twitter-card-missing')
+    d.stop()
+  })
+
+  it('flags vague link text like "click here"', () => {
+    document.title = 'A reasonable, descriptive page title'
+    document.body.innerHTML = '<a href="/pricing">click here</a>'
+    const d = createSeoDetector()
+    run(d)
+    expect(checksOf(d)).toContain('generic-link-text')
     d.stop()
   })
 
