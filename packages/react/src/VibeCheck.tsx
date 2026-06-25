@@ -1,5 +1,7 @@
-import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { VibeIssue, VibeSnapshot, BeaconStatus } from '@wcgw/vibe-check-core'
+import { SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
+import { auditScore, gradeFor, scoreColor } from './panels/ui/ScoreRing.js'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
 import { usePreferences } from './hooks/usePreferences.js'
@@ -293,6 +295,38 @@ const ConsoleStat = ({ count, color, label }: { count: number; color: string; la
   </span>
 )
 
+// Compact metric for the FPS-hero row (vitals, memory). Value over label — like
+// the audit chips — so values align to the grid columns whatever the label width.
+const MiniMetric = ({ label, value, color }: { label: string; value: ReactNode; color?: string }) => (
+  <div style={{ minWidth: 0 }}>
+    <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: color ?? T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+    <div style={{ fontSize: 10, color: T.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+  </div>
+)
+
+// Shared 3-column grid so every stat (vitals, system, audits) aligns to the same
+// columns — the difference between an organised metrics panel and a loose pile.
+const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: 'start' }
+const SUBKICKER: CSSProperties = { ...KICKER, fontSize: 11, marginBottom: 6 }
+const STAT_LABEL: CSSProperties = { fontSize: 11, color: T.textTertiary, marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+const STAT_VALUE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, fontSize: 15, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', minHeight: 19 }
+
+// Compact audit score cell — value + grade over a label; click jumps to the tab.
+const AuditScoreChip = ({ label, score, onClick }: { label: string; score: number; onClick: () => void }) => {
+  const c = scoreColor(score)
+  return (
+    <button type="button" onClick={onClick} style={{
+      minWidth: 0, display: 'block', textAlign: 'left', padding: 0,
+      background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+    }}>
+      <div style={{ ...STAT_VALUE, gap: 5, color: c }}>
+        {score}<span style={{ fontSize: 11, fontWeight: 600 }}>{gradeFor(score)}</span>
+      </div>
+      <div style={STAT_LABEL}>{label}</div>
+    </button>
+  )
+}
+
 // ── FONT ────────────────────────────────────────────────────────────────────
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif'
@@ -427,6 +461,10 @@ export const VibeCheck = ({
   const activeCount = tracked.filter((t) => t.status === 'new').length
   const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
   const aeoCount = tracked.filter((t) => t.issue.detector === 'aeo' && t.status === 'new').length
+
+  // Audit scores for the dashboard chips — unresolved findings vs total criteria.
+  const seoScore = auditScore(SEO_CRITERIA_COUNT, tracked.filter((t) => t.issue.detector === 'seo' && t.status !== 'resolved').length)
+  const aeoScore = auditScore(AEO_CRITERIA_COUNT, tracked.filter((t) => t.issue.detector === 'aeo' && t.status !== 'resolved').length)
 
   if (!enabled) return null
   const pos = POS[position]
@@ -563,14 +601,35 @@ export const VibeCheck = ({
               {/* FPS HERO — quiet numeral + avg/worst + live trace */}
               {ps.has('fps') && (
                 <div style={{ paddingBottom: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontSize: 42, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
-                      <span style={{ fontSize: 14, color: T.textTertiary, fontWeight: 500 }}>fps</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                    {/* FPS + frame timing */}
+                    <div style={{ flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                        <span style={{ fontSize: 38, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
+                        <span style={{ fontSize: 13, color: T.textTertiary, fontWeight: 500 }}>fps</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: T.textTertiary, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>
+                        avg {snapshot.frameRate.avgFrameTime.toFixed(1)} · worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 14, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
-                      <span style={{ color: T.textTertiary }}>avg <span style={{ color: T.textSecondary }}>{snapshot.frameRate.avgFrameTime.toFixed(1)}ms</span></span>
-                      <span style={{ color: T.textTertiary }}>worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span></span>
+                    {/* Inline metrics — web vitals + memory, compact next to the FPS */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 12px', alignContent: 'start' }}>
+                      {ps.has('vitals') && (['lcp', 'inp', 'cls'] as const).map((key) => {
+                        const v = snapshot.webVitals[key]
+                        const poor = !!v && v.rating !== 'good'
+                        const val = key === 'cls' ? (v ? v.value.toFixed(3) : '—') : (v ? fmtMs(v.value) : '—')
+                        const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
+                        return (
+                          <MiniMetric key={key} label={mode === 'vibe' ? vibeLabels[key] : key} value={val} color={!v ? T.textMuted : poor ? sevHex(vitalKey(v.rating), isLight) : T.text} />
+                        )
+                      })}
+                      {ps.has('memory') && (
+                        <MiniMetric
+                          label={mode === 'vibe' ? 'mem' : 'heap'}
+                          value={snapshot.memory ? `${snapshot.memory.jsHeapSizeMB.toFixed(0)} MB` : 'n/a'}
+                          color={snapshot.memory ? (snapshot.memory.usedPct > 80 ? sevHex('critical', isLight) : snapshot.memory.usedPct > 60 ? sevHex('warning', isLight) : T.text) : T.textMuted}
+                        />
+                      )}
                     </div>
                   </div>
                   {/* The lifeline — the one prominent accent. Parent sets the height. */}
@@ -611,54 +670,14 @@ export const VibeCheck = ({
                 </div>
               )}
 
-              {/* WEB VITALS — borderless columns */}
-              {ps.has('vitals') && (
-                <div style={{ paddingBottom: 18 }}>
-                  <div style={{ ...KICKER, marginBottom: 8 }}>{mode === 'vibe' ? 'page speed' : 'web vitals'}</div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {(['lcp', 'inp', 'cls'] as const).map((key) => {
-                      const v = snapshot.webVitals[key]
-                      const poor = !!v && v.rating !== 'good'
-                      const val = key === 'cls' ? (v ? v.value.toFixed(3) : '—') : (v ? fmtMs(v.value) : '—')
-                      const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
-                      return (
-                        <div key={key} style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ fontSize: 19, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: v ? T.text : T.textMuted }}>{val}</span>
-                            {poor && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: sevHex(vitalKey(v.rating), isLight), flexShrink: 0 }} />}
-                          </div>
-                          <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {mode === 'vibe' ? vibeLabels[key] : key}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+              {/* AUDITS — SEO + AEO scores on the same grid; click opens the tab */}
+              <div style={{ paddingBottom: 14 }}>
+                <div style={SUBKICKER}>audits</div>
+                <div style={STAT_GRID}>
+                  <AuditScoreChip label={mode === 'vibe' ? 'search' : 'seo'} score={seoScore} onClick={() => setActiveView('seo')} />
+                  <AuditScoreChip label={mode === 'vibe' ? 'ai answers' : 'aeo'} score={aeoScore} onClick={() => setActiveView('aeo')} />
                 </div>
-              )}
-
-              {/* MEMORY + CONSOLE — single quiet line */}
-              {(ps.has('memory') || ps.has('console')) && (
-                <div style={{ paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, fontVariantNumeric: 'tabular-nums', color: T.textSecondary }}>
-                  {ps.has('memory') && (
-                    <span>
-                      <span style={{ color: T.textTertiary }}>{mode === 'vibe' ? 'memory ' : 'heap '}</span>
-                      {snapshot.memory
-                        ? <span style={{ color: snapshot.memory.usedPct > 80 ? sevHex('critical', isLight) : snapshot.memory.usedPct > 60 ? sevHex('warning', isLight) : T.text, fontWeight: 600 }}>{snapshot.memory.jsHeapSizeMB.toFixed(0)} MB</span>
-                        : <span style={{ color: T.textMuted }}>Chrome only</span>}
-                      {snapshot.memory && <span style={{ color: T.textTertiary }}> · {snapshot.memory.usedPct.toFixed(0)}%</span>}
-                    </span>
-                  )}
-                  {ps.has('memory') && ps.has('console') && <span style={{ color: T.textMuted }}>·</span>}
-                  {ps.has('console') && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                      <ConsoleStat count={snapshot.console.errorCount} color={sevHex('critical', isLight)} label="err" />
-                      <ConsoleStat count={snapshot.console.warnCount} color={sevHex('warning', isLight)} label="wrn" />
-                      <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />
-                    </span>
-                  )}
-                </div>
-              )}
+              </div>
 
               {/* ISSUES — count heading + borderless tick rows */}
               {ps.has('issues') && (
@@ -674,6 +693,15 @@ export const VibeCheck = ({
                       </button>
                     )}
                   </div>
+                  {/* Console breakdown — these problems come from the console log */}
+                  {ps.has('console') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, fontVariantNumeric: 'tabular-nums', marginBottom: 10 }}>
+                      <span style={{ fontSize: 10, color: T.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>console</span>
+                      <ConsoleStat count={snapshot.console.errorCount} color={sevHex('critical', isLight)} label="err" />
+                      <ConsoleStat count={snapshot.console.warnCount} color={sevHex('warning', isLight)} label="wrn" />
+                      <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />
+                    </div>
+                  )}
                   {activeCount === 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: T.textSecondary }}>
                       <span data-vc-breathe style={{
@@ -721,12 +749,12 @@ export const VibeCheck = ({
               <AuditPanel
                 tracked={tracked}
                 detector="seo"
-                heading="Discoverability"
-                vibeHeading="Found online"
-                subtitle="SEO, social-preview, and indexability checks."
-                vibeSubtitle="How your page looks to Google and when shared on social."
-                emptyLabel="All discoverability checks passed"
-                vibeEmptyLabel="Your page is search & share ready"
+                heading="Search visibility"
+                vibeHeading="Found on Google"
+                subtitle="Whether search engines can find, read, and rank this page — and how it previews when shared."
+                vibeSubtitle="How your page shows up on Google and in shared links."
+                emptyLabel="Search-ready — every check passes"
+                vibeEmptyLabel="This page is ready for Google"
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
@@ -741,12 +769,12 @@ export const VibeCheck = ({
               <AuditPanel
                 tracked={tracked}
                 detector="aeo"
-                heading="AI readiness"
-                vibeHeading="AI ready"
-                subtitle="Can AI assistants & answer engines read, understand, and cite this page?"
-                vibeSubtitle="How ready your page is for ChatGPT, Perplexity, Claude & friends."
-                emptyLabel="Agent-ready — all checks passed"
-                vibeEmptyLabel="Your page is AI-assistant ready"
+                heading="AI answers"
+                vibeHeading="AI-ready"
+                subtitle="Whether AI assistants — ChatGPT, Perplexity, Claude — can read this page and cite it in answers."
+                vibeSubtitle="Whether ChatGPT, Perplexity & Claude can read and recommend this page."
+                emptyLabel="AI-ready — every check passes"
+                vibeEmptyLabel="Ready for AI assistants to read and cite"
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
