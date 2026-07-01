@@ -4,8 +4,10 @@ import { getSuggestion, getAgentPrompt } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { CopyButton } from './ui/CopyButton.js'
-import { SeverityDot } from './ui/Badge.js'
-import { Chevron } from './ui/Chevron.js'
+import { Row } from './ui/Row.js'
+import { Button } from './ui/Button.js'
+import { SectionHeader } from './ui/SectionHeader.js'
+import { EmptyState } from './ui/EmptyState.js'
 
 interface AgentPanelProps {
   readonly tracked: readonly TrackedIssue[]
@@ -55,9 +57,9 @@ const IssueRow = ({
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
 }) => {
-  const [expanded, setExpanded] = useState(false)
   const { issue } = tracked
   const suggestion = getSuggestion(issue, mode)
+  const isResolved = tracked.status === 'resolved'
 
   const handleCopyAndMark = async () => {
     const success = await onCopy(suggestion.prompt, issue.id)
@@ -67,90 +69,64 @@ const IssueRow = ({
   }
 
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--wcgw-fg),0.06)' }}>
-      <div
-        onClick={() => setExpanded((p) => !p)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((p) => !p) } }}
-        aria-expanded={expanded}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 20 }}
-      >
-        <SeverityDot severity={issue.severity} />
-        <span style={{
-          flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: tracked.status === 'resolved' ? 'rgba(var(--wcgw-fg),0.4)' : 'rgba(var(--wcgw-fg),0.95)',
-          textDecoration: tracked.status === 'resolved' ? 'line-through' : 'none',
-        }}>
-          {mode === 'vibe' ? suggestion.title : issue.title}
-        </span>
-        <Chevron open={expanded} />
+    <Row
+      severity={issue.severity}
+      title={mode === 'vibe' ? suggestion.title : issue.title}
+      titleColor={isResolved ? T.textMuted : undefined}
+      strikethrough={isResolved}
+    >
+      <div style={{
+        fontSize: 14, color: T.textTertiary,
+        lineHeight: 1.55, marginBottom: 10, paddingLeft: 2,
+      }}>
+        {suggestion.explanation}
       </div>
 
-      {expanded && (
-        <div style={{ marginTop: 10, animation: 'vc-fade-in 0.15s ease' }}>
-          <div style={{
-            fontSize: 14, color: 'rgba(var(--wcgw-fg),0.55)',
-            lineHeight: 1.55, marginBottom: 10, paddingLeft: 2,
-          }}>
-            {suggestion.explanation}
-          </div>
+      <div style={{
+        background: T.bgSubtle,
+        border: `1px solid ${T.borderSubtle}`,
+        borderRadius: T.radiusMd, padding: '10px 12px', marginBottom: 10,
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', marginBottom: 8,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: T.textMuted }}>
+            {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
+          </span>
+          <CopyButton
+            copied={copiedId === issue.id}
+            onClick={handleCopyAndMark}
+            label={tracked.status === 'new' ? 'copy & send' : 'copy'}
+          />
+        </div>
+        <div style={{
+          fontSize: 14, color: T.textTertiary,
+          lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
+          fontFamily: T.fontMono,
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {suggestion.prompt.slice(0, 300)}{suggestion.prompt.length > 300 ? '...' : ''}
+        </div>
+      </div>
 
-          <div style={{
-            background: 'rgba(var(--wcgw-fg),0.02)',
-            border: '1px solid rgba(var(--wcgw-fg),0.06)',
-            borderRadius: 8, padding: '10px 12px', marginBottom: 10,
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', marginBottom: 8,
-            }}>
-              <span style={{
-                fontSize: 14, fontWeight: 500,
-                color: 'rgba(var(--wcgw-fg),0.35)',
-              }}>
-                {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
-              </span>
-              <CopyButton
-                copied={copiedId === issue.id}
-                onClick={handleCopyAndMark}
-                label={tracked.status === 'new' ? 'copy & send' : 'copy'}
-              />
-            </div>
-            <div style={{
-              fontSize: 14, color: T.textTertiary,
-              lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
-              fontFamily: T.fontMono,
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            }}>
-              {suggestion.prompt.slice(0, 300)}{suggestion.prompt.length > 300 ? '...' : ''}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 6 }}>
-            {tracked.status !== 'resolved' && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onMarkResolved(issue.id) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                  border: '1px solid color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)',
-                  background: 'color-mix(in srgb, var(--wcgw-sev-success) 8%, transparent)',
-                  color: 'var(--wcgw-sev-success)', cursor: 'pointer', minHeight: 30,
-                  fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-                }}
-              >
-                <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                  <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {mode === 'vibe' ? 'mark as fixed' : 'resolve'}
-              </button>
+      {!isResolved && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button
+            variant="success"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onMarkResolved(issue.id) }}
+            icon={(
+              <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             )}
-          </div>
+          >
+            {mode === 'vibe' ? 'mark as fixed' : 'resolve'}
+          </Button>
         </div>
       )}
-    </div>
+    </Row>
   )
 }
 
@@ -180,35 +156,19 @@ export const AgentPanel = ({
 
   return (
     <div style={{ paddingTop: 4 }}>
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: 8,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: 'rgba(var(--wcgw-fg),0.4)',
-          }}>
-            {mode === 'vibe' ? 'AI Fixes' : 'Agent Queue'}
-          </span>
-          {active.length > 0 && (
-            <span style={{
-              fontSize: 14, fontWeight: 700, color: 'rgba(var(--wcgw-fg),0.9)',
-              background: 'rgba(var(--wcgw-fg),0.08)',
-              padding: '2px 7px', borderRadius: 6,
-            }}>{active.length}</span>
-          )}
-        </div>
-
-        {currentIssues.length > 0 && (
+      <SectionHeader
+        count={active.length}
+        action={currentIssues.length > 0 ? (
           <CopyButton
             copied={copiedId === 'all'}
             onClick={handleCopyAll}
             size="sm"
             label={mode === 'vibe' ? 'copy all' : 'copy all prompts'}
           />
-        )}
-      </div>
+        ) : undefined}
+      >
+        {mode === 'vibe' ? 'AI Fixes' : 'Agent Queue'}
+      </SectionHeader>
 
       <div style={{
         display: 'flex', position: 'relative', marginBottom: 10,
@@ -219,7 +179,7 @@ export const AgentPanel = ({
           position: 'absolute', bottom: 0,
           left: `calc((${TAB_INDEX[activeTab]} + 0.5) * (100% / 3))`,
           transform: 'translateX(-50%)',
-          width: 24, height: 2, borderRadius: 2, background: T.text,
+          width: 24, height: 2, borderRadius: T.radiusPill, background: T.text,
           transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
         }} />
         <button style={segTabStyle(activeTab === 'active')} onClick={() => setActiveTab('active')}>
@@ -234,24 +194,14 @@ export const AgentPanel = ({
       </div>
 
       {currentIssues.length === 0 ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0',
-        }}>
-          {activeTab === 'active' && (
-            <span data-wcgw-breathe style={{
-              width: 7, height: 7, borderRadius: '50%', background: 'var(--wcgw-sev-success)',
-              animation: 'vc-breathe 3s ease-in-out infinite',
-            }} />
-          )}
-          <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
-            {activeTab === 'active'
-              ? (mode === 'vibe' ? 'All good! No issues found' : 'No active issues')
-              : activeTab === 'sent'
-                ? (mode === 'vibe' ? 'No prompts sent yet' : 'No issues in sent queue')
-                : (mode === 'vibe' ? 'Nothing fixed yet' : 'No resolved issues')
-            }
-          </span>
-        </div>
+        <EmptyState
+          showDot={activeTab === 'active'}
+          label={activeTab === 'active'
+            ? (mode === 'vibe' ? 'All good! No issues found' : 'No active issues')
+            : activeTab === 'sent'
+              ? (mode === 'vibe' ? 'No prompts sent yet' : 'No issues in sent queue')
+              : (mode === 'vibe' ? 'Nothing fixed yet' : 'No resolved issues')}
+        />
       ) : (
         <div>
           {currentIssues.map((t) => (
@@ -264,19 +214,11 @@ export const AgentPanel = ({
       )}
 
       {activeTab === 'resolved' && resolved.length > 0 && (
-        <button
-          onClick={onClearResolved}
-          style={{
-            width: '100%', marginTop: 8, padding: '7px 0', borderRadius: 6,
-            fontSize: 14, fontWeight: 500,
-            border: '1px solid rgba(var(--wcgw-fg),0.06)',
-            background: 'rgba(var(--wcgw-fg),0.02)',
-            color: 'rgba(var(--wcgw-fg),0.35)', cursor: 'pointer', minHeight: 36,
-            fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-          }}
-        >
-          {mode === 'vibe' ? 'clear all fixed issues' : 'clear resolved'}
-        </button>
+        <div style={{ marginTop: 8 }}>
+          <Button variant="ghost" fullWidth onClick={onClearResolved}>
+            {mode === 'vibe' ? 'clear all fixed issues' : 'clear resolved'}
+          </Button>
+        </div>
       )}
     </div>
   )

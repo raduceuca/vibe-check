@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
 import { PROACTIVE_PROMPTS } from '@wcgw/vibe-check-core'
-import { T, sectionHeaderStyle } from '../tokens.js'
+import { T } from '../tokens.js'
 import { CopyButton } from './ui/CopyButton.js'
+import { SectionHeader } from './ui/SectionHeader.js'
 
 interface PromptsPanelProps {
   readonly mode: SuggestionMode
@@ -12,14 +13,14 @@ interface PromptsPanelProps {
 
 const cardStyle: CSSProperties = {
   padding: '12px 0',
-  borderBottom: '1px solid rgba(var(--wcgw-fg),0.06)',
+  borderBottom: `1px solid ${T.borderSubtle}`,
 }
 
 export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
   <div style={{ paddingTop: 4 }}>
-    <div style={sectionHeaderStyle}>
+    <SectionHeader>
       {mode === 'vibe' ? 'Ask Your AI To...' : 'Proactive Prompts'}
-    </div>
+    </SectionHeader>
 
     <div>
       {PROACTIVE_PROMPTS.map((prompt) => (

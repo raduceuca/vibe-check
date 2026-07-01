@@ -50,14 +50,3 @@ export const T = {
   fontMono: 'var(--wcgw-font-mono)',
   fontSize: 14,
 } as const
-
-// ── Shared styles ───────────────────────────────────────────────────────────
-
-export const sectionHeaderStyle = {
-  fontSize: 14,
-  fontWeight: 500 as const,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: T.textTertiary,
-  marginBottom: 8,
-}

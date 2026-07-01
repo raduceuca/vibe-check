@@ -22,7 +22,7 @@ export const Badge = ({ severity }: BadgeProps) => {
     alignItems: 'center',
     gap: 4,
     padding: '2px 7px',
-    borderRadius: 4,
+    borderRadius: 'var(--wcgw-radius-xs)',
     fontSize: 13,
     fontWeight: 600,
     textTransform: 'uppercase',

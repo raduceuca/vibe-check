@@ -13,7 +13,7 @@ const baseStyle = (size: 'sm' | 'md', copied: boolean): CSSProperties => ({
   gap: 4,
   padding: size === 'sm' ? '5px 9px' : '6px 12px',
   minHeight: size === 'sm' ? 28 : 32,
-  borderRadius: 6,
+  borderRadius: 'var(--wcgw-radius-sm)',
   fontSize: 14,
   fontWeight: 500,
   border: `1px solid ${copied ? 'color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)' : 'var(--wcgw-border)'}`,

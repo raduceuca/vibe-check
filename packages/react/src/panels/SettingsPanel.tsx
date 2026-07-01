@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
 import type { SuggestionMode, BeaconStatus } from '@wcgw/vibe-check-core'
-import { T, sectionHeaderStyle } from '../tokens.js'
+import { T } from '../tokens.js'
+import { Button } from './ui/Button.js'
+import { sectionLabelStyle } from './ui/SectionHeader.js'
 import type { VibeCheckPreferences } from '../store/preferences.js'
 import { ToggleRow } from './ui/ToggleRow.js'
 import { ModeToggle } from './ui/ModeToggle.js'
@@ -31,13 +33,15 @@ const deriveConnectionState = (
 }
 
 const sectionTitle: CSSProperties = {
-  ...sectionHeaderStyle,
+  ...sectionLabelStyle,
   marginTop: 14,
+  marginBottom: 8,
 }
 
 const firstSection: CSSProperties = {
-  ...sectionHeaderStyle,
+  ...sectionLabelStyle,
   marginTop: 0,
+  marginBottom: 8,
 }
 
 const DOT_COLOR: Record<ConnectionState, string> = {
@@ -49,7 +53,7 @@ const DOT_COLOR: Record<ConnectionState, string> = {
 const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
   width: 7,
   height: 7,
-  borderRadius: '50%',
+  borderRadius: T.radiusPill,
   background: DOT_COLOR[state],
   boxShadow: state === 'active' ? `0 0 6px color-mix(in srgb, var(--wcgw-sev-success) 40%, transparent)` : 'none',
   flexShrink: 0,
@@ -156,25 +160,9 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}
       </div>
-      <button
-        onClick={onClearAll}
-        style={{
-          width: '100%',
-          padding: '8px 0',
-          borderRadius: 6,
-          fontSize: 14,
-          fontWeight: 500,
-          border: `1px solid color-mix(in srgb, var(--wcgw-sev-critical) 22%, transparent)`,
-          background: 'color-mix(in srgb, var(--wcgw-sev-critical) 8%, transparent)',
-          color: T.red,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          outline: 'none',
-          transition: 'background 0.2s ease',
-        }}
-      >
+      <Button variant="danger" fullWidth onClick={onClearAll}>
         {mode === 'vibe' ? 'Clear all issues & start fresh' : 'Clear all tracked issues'}
-      </button>
+      </Button>
 
       <div style={sectionTitle}>About</div>
       <div style={{

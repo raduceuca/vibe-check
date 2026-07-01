@@ -30,7 +30,7 @@ const trackStyle = (on: boolean): CSSProperties => ({
   position: 'relative',
   width: 32,
   height: 16,
-  borderRadius: 8,
+  borderRadius: 'var(--wcgw-radius-pill)',
   backgroundColor: on ? 'rgba(var(--wcgw-fg), 0.2)' : 'rgba(var(--wcgw-fg), 0.08)',
   border: `1px solid ${on ? 'rgba(var(--wcgw-fg), 0.25)' : 'rgba(var(--wcgw-fg), 0.1)'}`,
   cursor: 'pointer',

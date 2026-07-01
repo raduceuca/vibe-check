@@ -10,7 +10,7 @@ const trackStyle = (isVibe: boolean): CSSProperties => ({
   position: 'relative',
   width: 36,
   height: 18,
-  borderRadius: 9,
+  borderRadius: 'var(--wcgw-radius-pill)',
   background: isVibe
     ? 'rgba(var(--wcgw-fg),0.12)'
     : 'rgba(var(--wcgw-fg),0.06)',

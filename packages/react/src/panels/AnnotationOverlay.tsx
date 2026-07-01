@@ -4,6 +4,7 @@ import { getSuggestion } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { CopyButton } from './ui/CopyButton.js'
+import { Button } from './ui/Button.js'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -193,7 +194,7 @@ const Marker = ({
         left: rect.left - 2,
         width: rect.width + 4,
         height: rect.height + 4,
-        borderRadius: 4,
+        borderRadius: T.radiusXs,
         border: expanded ? '2px solid rgba(var(--wcgw-marker-rgb),0.4)' : '2px solid rgba(var(--wcgw-marker-rgb),0.2)',
         background: expanded ? 'rgba(var(--wcgw-marker-rgb),0.04)' : 'none',
         pointerEvents: 'none',
@@ -215,7 +216,7 @@ const Marker = ({
           minWidth: 22, height: 22,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 6px',
-          borderRadius: 11,
+          borderRadius: T.radiusPill,
           background: 'var(--wcgw-marker)',
           boxShadow: '0 2px 8px rgba(var(--wcgw-marker-rgb),0.45), 0 1px 2px rgba(0,0,0,0.3)',
           cursor: 'pointer',
@@ -243,7 +244,7 @@ const Marker = ({
             width: 290,
             zIndex: T.zPopover,
             background: 'var(--wcgw-bg)',
-            borderRadius: 12,
+            borderRadius: T.radiusLg,
             border: '1px solid rgba(var(--wcgw-fg),0.1)',
             boxShadow: 'var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
             backdropFilter: 'blur(32px)',
@@ -293,21 +294,18 @@ const Marker = ({
                 <div style={{ display: 'flex', gap: 6 }}>
                   <CopyButton copied={copiedId === t.issue.id} onClick={handleCopy} size="sm" label={mode === 'vibe' ? 'copy for AI' : 'copy prompt'} />
                   {t.status !== 'resolved' && (
-                    <button
+                    <Button
+                      variant="success"
+                      size="sm"
                       onClick={() => onMarkResolved(t.issue.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '3px 8px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                        border: '1px solid color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)',
-                        background: 'color-mix(in srgb, var(--wcgw-sev-success) 8%, transparent)',
-                        color: 'var(--wcgw-sev-success)', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
-                      }}
+                      icon={(
+                        <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
+                          <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
                     >
-                      <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                        <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
                       {mode === 'vibe' ? 'fixed' : 'resolve'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

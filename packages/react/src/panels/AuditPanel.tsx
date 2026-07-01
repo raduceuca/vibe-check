@@ -1,12 +1,12 @@
-import { useState } from 'react'
 import type { SuggestionMode, DetectorName } from '@wcgw/vibe-check-core'
 import { getSuggestion, SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
-import { SeverityDot } from './ui/Badge.js'
-import { Chevron } from './ui/Chevron.js'
 import { ScoreRing } from './ui/ScoreRing.js'
 import { CopyButton } from './ui/CopyButton.js'
+import { Row } from './ui/Row.js'
+import { EmptyState } from './ui/EmptyState.js'
+import { sectionLabelStyle } from './ui/SectionHeader.js'
 
 // Total criteria each audit detector evaluates — the denominator for the score.
 const CRITERIA_TOTAL: Partial<Record<DetectorName, number>> = {
@@ -40,7 +40,6 @@ const AuditRow = ({
   readonly onCopy: (text: string, id: string) => Promise<boolean>
   readonly onMarkSent: (issueId: string) => void
 }) => {
-  const [expanded, setExpanded] = useState(false)
   const { issue } = tracked
   const suggestion = getSuggestion(issue, mode)
   const detail = typeof issue.evidence['detail'] === 'string' ? (issue.evidence['detail'] as string) : ''
@@ -51,44 +50,24 @@ const AuditRow = ({
   }
 
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--wcgw-fg),0.06)' }}>
-      <div
-        onClick={() => setExpanded((p) => !p)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((p) => !p) } }}
-        aria-expanded={expanded}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 20 }}
-      >
-        <SeverityDot severity={issue.severity} />
-        <span style={{
-          flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: 'rgba(var(--wcgw-fg),0.95)',
-        }}>
-          {issue.title}
-        </span>
-        {detail && (
-          <span style={{ fontSize: 12, color: T.textTertiary, fontFamily: T.fontMono, flexShrink: 0, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>
-        )}
-        <Chevron open={expanded} />
+    <Row
+      severity={issue.severity}
+      title={issue.title}
+      trailing={detail ? (
+        <span style={{ fontSize: 12, color: T.textTertiary, fontFamily: T.fontMono, flexShrink: 0, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>
+      ) : undefined}
+    >
+      <div style={{ fontSize: 14, color: T.textTertiary, lineHeight: 1.55, marginBottom: 10 }}>
+        {suggestion.explanation}
       </div>
-
-      {expanded && (
-        <div style={{ marginTop: 10, animation: 'vc-fade-in 0.15s ease' }}>
-          <div style={{ fontSize: 14, color: 'rgba(var(--wcgw-fg),0.55)', lineHeight: 1.55, marginBottom: 10 }}>
-            {suggestion.explanation}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <CopyButton
-              copied={copiedId === issue.id}
-              onClick={handleCopy}
-              label={tracked.status === 'new' ? 'copy & send' : 'copy'}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <CopyButton
+          copied={copiedId === issue.id}
+          onClick={handleCopy}
+          label={tracked.status === 'new' ? 'copy & send' : 'copy'}
+        />
+      </div>
+    </Row>
   )
 }
 
@@ -111,10 +90,7 @@ export const AuditPanel = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
         <ScoreRing score={score} />
         <div style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: 'rgba(var(--wcgw-fg),0.5)',
-          }}>{mode === 'vibe' ? vibeHeading : heading}</div>
+          <div style={sectionLabelStyle}>{mode === 'vibe' ? vibeHeading : heading}</div>
           <div style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
             {passed} of {total} checks pass
           </div>
@@ -132,15 +108,7 @@ export const AuditPanel = ({
       </p>
 
       {findings.length === 0 ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
-          <span data-wcgw-breathe style={{
-            width: 7, height: 7, borderRadius: '50%', background: 'var(--wcgw-sev-success)',
-            animation: 'vc-breathe 3s ease-in-out infinite',
-          }} />
-          <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>
-            {mode === 'vibe' ? vibeEmptyLabel : emptyLabel}
-          </span>
-        </div>
+        <EmptyState label={mode === 'vibe' ? vibeEmptyLabel : emptyLabel} />
       ) : (
         <div>
           {findings.map((t) => (
