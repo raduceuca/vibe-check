@@ -235,7 +235,7 @@ const WINDOW_OPTIONS = [
 ] as const
 
 const winBtnStyle = (active: boolean): CSSProperties => ({
-  fontSize: 12, fontWeight: active ? 600 : 500,
+  fontSize: 14, fontWeight: active ? 600 : 500,
   color: active ? T.text : T.textTertiary,
   background: active ? 'rgba(var(--vc-fg,255,255,255),0.07)' : 'transparent',
   border: 'none', borderRadius: 5, padding: '3px 8px', minHeight: 26,
@@ -277,16 +277,33 @@ const FpsTrace = ({ fps, tick, color, width = 292, height = 24, points = 70 }: {
 
 // ── Borderless type-and-space helpers (Quiet Instrument) ────────────────────
 
-const KICKER: CSSProperties = {
-  fontSize: 12, fontWeight: 500, textTransform: 'uppercase',
-  letterSpacing: '0.07em', color: T.textTertiary,
-}
+// ── Type scale ───────────────────────────────────────────────────────────────
+// TWO sizes only: DISPLAY (the one hero number) and TEXT (14px — everything
+// else). Hierarchy comes from weight, case, and the text-colour ladder, never
+// from more sizes. Codified so styles can't drift back into a dozen ad-hoc px.
+const DISPLAY_PX = 34
+const TEXT_PX = 14
+const T_VALUE: CSSProperties = { fontSize: TEXT_PX, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: T.text }
+const T_LABEL: CSSProperties = { fontSize: TEXT_PX, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', color: T.textTertiary }
+const T_UNIT: CSSProperties = { fontSize: TEXT_PX, fontWeight: 500, color: T.textTertiary }
+
+const KICKER: CSSProperties = { ...T_LABEL }
+const SUBKICKER: CSSProperties = { ...T_LABEL, marginBottom: 6 }
+const STAT_LABEL: CSSProperties = { ...T_LABEL, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+const STAT_VALUE: CSSProperties = { ...T_VALUE, display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }
+const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: 'start' }
+// Hairline that separates the panel's major blocks without a hard border.
+const DIVIDER: CSSProperties = { borderTop: '1px solid rgba(var(--vc-fg,255,255,255),0.07)', paddingTop: 14, marginTop: 4 }
+// Finer, tighter separation for related sub-groups (e.g. FPS -> its metrics).
+const FINE: CSSProperties = { borderTop: '1px solid rgba(var(--vc-fg,255,255,255),0.05)', paddingTop: 11, marginTop: 11 }
+
 const QUIET_LINK: CSSProperties = {
-  fontSize: 13, fontWeight: 500, color: T.textSecondary,
+  fontSize: 14, fontWeight: 500, color: T.textSecondary,
   background: 'transparent', border: 'none', cursor: 'pointer',
   fontFamily: 'inherit', outline: 'none', padding: '4px 2px', minHeight: 30,
   transition: 'color 0.2s ease, scale 0.12s ease',
 }
+
 const ConsoleStat = ({ count, color, label }: { count: number; color: string; label: string }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
     <span style={{ width: 5, height: 5, borderRadius: '50%', background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0 }} />
@@ -295,21 +312,13 @@ const ConsoleStat = ({ count, color, label }: { count: number; color: string; la
   </span>
 )
 
-// Compact metric for the FPS-hero row (vitals, memory). Value over label — like
-// the audit chips — so values align to the grid columns whatever the label width.
+// Compact metric for the FPS-hero row — value over label, aligned to the grid.
 const MiniMetric = ({ label, value, color }: { label: string; value: ReactNode; color?: string }) => (
   <div style={{ minWidth: 0 }}>
-    <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: color ?? T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-    <div style={{ fontSize: 10, color: T.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+    <div style={{ ...T_VALUE, color: color ?? T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+    <div style={STAT_LABEL}>{label}</div>
   </div>
 )
-
-// Shared 3-column grid so every stat (vitals, system, audits) aligns to the same
-// columns — the difference between an organised metrics panel and a loose pile.
-const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: 'start' }
-const SUBKICKER: CSSProperties = { ...KICKER, fontSize: 11, marginBottom: 6 }
-const STAT_LABEL: CSSProperties = { fontSize: 11, color: T.textTertiary, marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
-const STAT_VALUE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, fontSize: 15, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', minHeight: 19 }
 
 // Compact audit score cell — value + grade over a label; click jumps to the tab.
 const AuditScoreChip = ({ label, score, onClick }: { label: string; score: number; onClick: () => void }) => {
@@ -320,7 +329,7 @@ const AuditScoreChip = ({ label, score, onClick }: { label: string; score: numbe
       background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
     }}>
       <div style={{ ...STAT_VALUE, gap: 5, color: c }}>
-        {score}<span style={{ fontSize: 11, fontWeight: 600 }}>{gradeFor(score)}</span>
+        {score}<span style={{ fontWeight: 600 }}>{gradeFor(score)}</span>
       </div>
       <div style={STAT_LABEL}>{label}</div>
     </button>
@@ -600,20 +609,19 @@ export const VibeCheck = ({
             <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
               {/* FPS HERO — quiet numeral + avg/worst + live trace */}
               {ps.has('fps') && (
-                <div style={{ paddingBottom: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                    {/* FPS + frame timing */}
-                    <div style={{ flexShrink: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                        <span style={{ fontSize: 38, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
-                        <span style={{ fontSize: 13, color: T.textTertiary, fontWeight: 500 }}>fps</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: T.textTertiary, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>
-                        avg {snapshot.frameRate.avgFrameTime.toFixed(1)} · worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span>
-                      </div>
-                    </div>
-                    {/* Inline metrics — web vitals + memory, compact next to the FPS */}
-                    <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 12px', alignContent: 'start' }}>
+                <div style={{ paddingBottom: 14 }}>
+                  {/* Main metric — FPS, left-aligned */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontSize: DISPLAY_PX, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
+                    <span style={T_UNIT}>fps</span>
+                  </div>
+                  <div style={{ ...T_UNIT, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>
+                    avg {snapshot.frameRate.avgFrameTime.toFixed(1)} · worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span>
+                  </div>
+
+                  {/* Secondary metrics — stacked under the FPS, left-aligned, fine separation */}
+                  {(ps.has('vitals') || ps.has('memory')) && (
+                    <div style={{ ...FINE, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
                       {ps.has('vitals') && (['lcp', 'inp', 'cls'] as const).map((key) => {
                         const v = snapshot.webVitals[key]
                         const poor = !!v && v.rating !== 'good'
@@ -631,7 +639,7 @@ export const VibeCheck = ({
                         />
                       )}
                     </div>
-                  </div>
+                  )}
                   {/* The lifeline — the one prominent accent. Parent sets the height. */}
                   <div style={{ marginTop: 12, height: 96 }}>
                     {CANVAS_OK ? (
@@ -659,7 +667,7 @@ export const VibeCheck = ({
                   </div>
                   {/* Timescale selector — live / 5m / 15m / 1h */}
                   {CANVAS_OK && (
-                    <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end', marginTop: 4 }}>
+                    <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-start', marginTop: 4 }}>
                       {WINDOW_OPTIONS.map((o) => (
                         <button key={o.secs} type="button" style={winBtnStyle(chartWindow === o.secs)} onClick={() => setChartWindow(o.secs)}>
                           {o.label}
@@ -671,7 +679,7 @@ export const VibeCheck = ({
               )}
 
               {/* AUDITS — SEO + AEO scores on the same grid; click opens the tab */}
-              <div style={{ paddingBottom: 14 }}>
+              <div style={{ ...DIVIDER, paddingBottom: 14 }}>
                 <div style={SUBKICKER}>audits</div>
                 <div style={STAT_GRID}>
                   <AuditScoreChip label={mode === 'vibe' ? 'search' : 'seo'} score={seoScore} onClick={() => setActiveView('seo')} />
@@ -681,7 +689,7 @@ export const VibeCheck = ({
 
               {/* ISSUES — count heading + borderless tick rows */}
               {ps.has('issues') && (
-                <div>
+                <div style={DIVIDER}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={KICKER}>
                       {mode === 'vibe' ? 'problems' : 'issues'}
@@ -695,8 +703,8 @@ export const VibeCheck = ({
                   </div>
                   {/* Console breakdown — these problems come from the console log */}
                   {ps.has('console') && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12.5, fontVariantNumeric: 'tabular-nums', marginBottom: 10 }}>
-                      <span style={{ fontSize: 10, color: T.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>console</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontVariantNumeric: 'tabular-nums', marginBottom: 10 }}>
+                      <span style={T_LABEL}>console</span>
                       <ConsoleStat count={snapshot.console.errorCount} color={sevHex('critical', isLight)} label="err" />
                       <ConsoleStat count={snapshot.console.warnCount} color={sevHex('warning', isLight)} label="wrn" />
                       <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />

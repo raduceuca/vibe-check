@@ -11,11 +11,12 @@ export const T = {
   border: 'rgba(var(--vc-fg,255,255,255),0.08)',
   borderSubtle: 'rgba(var(--vc-fg,255,255,255),0.05)',
 
-  // Text — high contrast, always readable
-  text: 'rgba(var(--vc-fg,255,255,255),0.92)',
-  textSecondary: 'rgba(var(--vc-fg,255,255,255),0.6)',
-  textTertiary: 'rgba(var(--vc-fg,255,255,255),0.4)',
-  textMuted: 'rgba(var(--vc-fg,255,255,255),0.35)',
+  // Text ladder — transparencies of --vc-fg (flips per theme). Four steps only.
+  // Kept high-contrast: labels (tertiary) must stay legible, not ghosted.
+  text: 'rgba(var(--vc-fg,255,255,255),0.96)',
+  textSecondary: 'rgba(var(--vc-fg,255,255,255),0.72)',
+  textTertiary: 'rgba(var(--vc-fg,255,255,255),0.56)',
+  textMuted: 'rgba(var(--vc-fg,255,255,255),0.42)',
 
   // Status — only for semantic indicators
   green: '#4ade80',
