@@ -1,42 +1,43 @@
 // ── Shared design tokens for the vibe-check widget ──────────────────────────
-// Pure neutrals, no color tint. 14px minimum text. High contrast.
+// Thin JS accessor over the --wcgw-* CSS variables (the single source of truth,
+// declared per theme in VibeCheck's injected stylesheet). Kept in sync with that
+// scale; values flip with the theme via --wcgw-fg. Semantic tokens first; reach
+// for the raw --wcgw-fg tint only for one-off alphas.
 
 export const T = {
-  // Backgrounds — pure neutral. `--vc-fg` (set per theme on the panel root) is
-  // the foreground tint — white in dark mode, near-black in light mode — so
-  // every `rgba(var(--vc-fg),a)` surface/border/text flips with the theme.
-  bg: 'var(--vc-panel-bg, rgba(12,12,12,0.97))',
-  bgSubtle: 'rgba(var(--vc-fg,255,255,255),0.03)',
-  bgHover: 'rgba(var(--vc-fg,255,255,255),0.06)',
-  border: 'rgba(var(--vc-fg,255,255,255),0.08)',
-  borderSubtle: 'rgba(var(--vc-fg,255,255,255),0.05)',
+  // Surfaces
+  bg: 'var(--wcgw-bg)',
+  bgSubtle: 'var(--wcgw-surface)',
+  bgHover: 'var(--wcgw-surface-hover)',
+  border: 'var(--wcgw-border)',
+  borderSubtle: 'var(--wcgw-border-subtle)',
+  borderStrong: 'var(--wcgw-border-strong)',
 
-  // Text ladder — transparencies of --vc-fg (flips per theme). Four steps only.
-  // Kept high-contrast: labels (tertiary) must stay legible, not ghosted.
-  text: 'rgba(var(--vc-fg,255,255,255),0.96)',
-  textSecondary: 'rgba(var(--vc-fg,255,255,255),0.72)',
-  textTertiary: 'rgba(var(--vc-fg,255,255,255),0.56)',
-  textMuted: 'rgba(var(--vc-fg,255,255,255),0.42)',
+  // Text ladder — four steps, high contrast (labels stay legible, not ghosted)
+  text: 'var(--wcgw-text)',
+  textSecondary: 'var(--wcgw-text-secondary)',
+  textTertiary: 'var(--wcgw-text-tertiary)',
+  textMuted: 'var(--wcgw-text-muted)',
 
-  // Status — only for semantic indicators
-  green: '#4ade80',
-  yellow: '#facc15',
-  orange: '#fb923c',
-  red: '#ef4444',
-  blue: '#60a5fa',
+  // Status — semantic indicators only (theme-tuned per mode)
+  green: 'var(--wcgw-sev-success)',
+  yellow: 'var(--wcgw-sev-warning)',
+  orange: 'var(--wcgw-sev-error)',
+  red: 'var(--wcgw-sev-critical)',
+  blue: 'var(--wcgw-sev-info)',
 
-  // Radii (4px scale)
-  radiusXs: 4,
-  radiusSm: 6,
-  radiusMd: 8,
-  radiusLg: 12,
-  radiusXl: 18,
-  radiusPill: 24,
+  // Radii
+  radiusXs: 'var(--wcgw-radius-xs)',
+  radiusSm: 'var(--wcgw-radius-sm)',
+  radiusMd: 'var(--wcgw-radius-md)',
+  radiusLg: 'var(--wcgw-radius-lg)',
+  radiusXl: 'var(--wcgw-radius-xl)',
+  radiusPill: 'var(--wcgw-radius-pill)',
 
-  // Shadows
-  shadowSm: '0 2px 8px rgba(0,0,0,0.3)',
-  shadowMd: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
-  shadowLg: '0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
+  // Shadows (base var + a hairline ring for definition on any host bg)
+  shadowSm: 'var(--wcgw-shadow-sm)',
+  shadowMd: 'var(--wcgw-shadow-md), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
+  shadowLg: 'var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
 
   // Z-index scale (high values to sit above host page)
   zOverlay: 2147483630,
@@ -45,8 +46,8 @@ export const T = {
   zPanel: 2147483645,
 
   // Font
-  font: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif',
-  fontMono: 'ui-monospace, "SF Mono", "Cascadia Code", monospace',
+  font: 'var(--wcgw-font-sans)',
+  fontMono: 'var(--wcgw-font-mono)',
   fontSize: 14,
 } as const
 

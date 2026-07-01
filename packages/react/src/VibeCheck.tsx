@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { VibeIssue, VibeSnapshot, BeaconStatus } from '@wcgw/vibe-check-core'
 import { SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
 import { auditScore, gradeFor, scoreColor } from './panels/ui/ScoreRing.js'
@@ -35,46 +35,84 @@ const STYLE_ID = 'vibe-check-styles'
 const ANIMATIONS_CSS = `
 @keyframes vc-breathe { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
 @keyframes vc-fade-in { from { opacity: 0; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
-@keyframes vc-ring-in { from { stroke-dashoffset: var(--vc-circ); } }
+@keyframes vc-ring-in { from { stroke-dashoffset: var(--wcgw-circ); } }
 @keyframes vc-count-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes vc-slide-in { from { opacity: 0; transform: translate3d(6px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
-[data-vc] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; text-wrap: pretty; }
-/* Theme tokens. --vc-fg is the foreground tint applied to every
-   rgba(var(--vc-fg),a) surface/border/text, so one variable flips the theme. */
-[data-vc-theme="dark"] {
-  --vc-fg: 255,255,255; --vc-panel-bg: rgba(12,12,12,0.97);
-  --vc-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3);
-  --vc-shadow-md: 0 8px 32px rgba(0,0,0,0.5);
-  --vc-sev-info: #60a5fa; --vc-sev-warning: #facc15; --vc-sev-error: #fb923c; --vc-sev-critical: #f87171; --vc-sev-success: #4ade80; --vc-sev-neutral: rgba(255,255,255,0.55);
-  --vc-badge-alpha: 13%;
+[data-wcgw] { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; text-wrap: pretty; }
+/* ── Design tokens (adapted from the shared theme spec; all prefixed --wcgw) ──
+   Scale tokens + the foreground-derived neutral ladder are theme-agnostic here —
+   the neutrals flip automatically via --wcgw-fg. Only the anchors that genuinely
+   differ per mode are set in the theme blocks below. Reach-for order:
+   semantic token (--wcgw-text/-surface/-border/-sev-*) → the --wcgw-fg tint. */
+[data-wcgw] {
+  --wcgw-font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  --wcgw-font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  --wcgw-text-xs: 11px; --wcgw-text-sm: 12px; --wcgw-text-base: 14px; --wcgw-text-lg: 16px; --wcgw-text-xl: 20px; --wcgw-text-display: 34px;
+  --wcgw-radius-xs: 4px; --wcgw-radius-sm: 6px; --wcgw-radius-md: 8px; --wcgw-radius-lg: 12px; --wcgw-radius-xl: 16px; --wcgw-radius-pill: 999px;
+  --wcgw-ease: cubic-bezier(0.4,0,0.2,1); --wcgw-duration-fast: 0.15s; --wcgw-duration-normal: 0.2s; --wcgw-duration-slow: 0.4s;
+  --wcgw-text: rgba(var(--wcgw-fg),0.96);
+  --wcgw-text-secondary: rgba(var(--wcgw-fg),0.72);
+  --wcgw-text-tertiary: rgba(var(--wcgw-fg),0.56);
+  --wcgw-text-muted: rgba(var(--wcgw-fg),0.42);
+  --wcgw-surface: rgba(var(--wcgw-fg),0.03);
+  --wcgw-surface-sunken: rgba(var(--wcgw-fg),0.02);
+  --wcgw-surface-hover: rgba(var(--wcgw-fg),0.06);
+  --wcgw-border: rgba(var(--wcgw-fg),0.08);
+  --wcgw-border-subtle: rgba(var(--wcgw-fg),0.05);
+  --wcgw-border-strong: rgba(var(--wcgw-fg),0.14);
+  --wcgw-focus-ring: rgba(var(--wcgw-fg),0.5);
+  --wcgw-sev-neutral: rgba(var(--wcgw-fg),0.55);
+  /* On-page annotation pins live on the host page, not our surface — a fixed
+     alert red (+ its channels for tinting) so they read the same on any theme. */
+  --wcgw-marker-rgb: 255,59,48;
+  --wcgw-marker: rgb(var(--wcgw-marker-rgb));
+  --wcgw-marker-fg: #fff;
 }
-[data-vc-theme="light"] {
-  --vc-fg: 28,28,30; --vc-panel-bg: rgba(252,251,248,0.98);
-  --vc-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08);
-  --vc-shadow-md: 0 8px 28px rgba(20,20,22,0.13);
-  --vc-sev-info: #1d4ed8; --vc-sev-warning: #a16207; --vc-sev-error: #c2410c; --vc-sev-critical: #b91c1c; --vc-sev-success: #15803d; --vc-sev-neutral: rgba(28,28,30,0.55);
-  --vc-badge-alpha: 16%;
+[data-wcgw-theme="dark"] {
+  --wcgw-fg: 255,255,255;
+  --wcgw-bg: rgba(12,12,12,0.97);
+  --wcgw-elevated: rgba(20,20,20,0.98);
+  --wcgw-shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --wcgw-shadow-md: 0 8px 32px rgba(0,0,0,0.5);
+  --wcgw-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3);
+  --wcgw-sev-info: #60a5fa; --wcgw-sev-warning: #facc15; --wcgw-sev-error: #fb923c; --wcgw-sev-critical: #f87171; --wcgw-sev-success: #4ade80;
+  --wcgw-badge-alpha: 13%;
 }
-[data-vc-issue]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
-[data-vc-pill]:hover { background: rgba(var(--vc-fg,255,255,255),0.06) !important; }
-[data-vc-tab]:hover { background: rgba(var(--vc-fg,255,255,255),0.04) !important; }
-[data-vc] button:hover { filter: brightness(1.12); }
-[data-vc-pill] { transition: scale 0.12s ease, background 0.15s ease; }
+[data-wcgw-theme="light"] {
+  --wcgw-fg: 28,28,30;
+  --wcgw-bg: rgba(252,251,248,0.98);
+  --wcgw-elevated: rgba(255,255,255,0.99);
+  --wcgw-shadow-sm: 0 2px 8px rgba(20,20,22,0.08);
+  --wcgw-shadow-md: 0 8px 28px rgba(20,20,22,0.13);
+  --wcgw-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08);
+  --wcgw-sev-info: #1d4ed8; --wcgw-sev-warning: #a16207; --wcgw-sev-error: #c2410c; --wcgw-sev-critical: #b91c1c; --wcgw-sev-success: #15803d;
+  --wcgw-badge-alpha: 16%;
+}
+[data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
+[data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
+[data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
+[data-wcgw] button:hover { filter: brightness(1.12); }
+[data-wcgw-pill] { transition: scale 0.12s ease, background 0.15s ease; }
 /* Tactile press feedback (scale 0.96) on interactive controls. */
-[data-vc] button:active, [data-vc-pill]:active { scale: 0.96; }
-[data-vc] [role="button"]:focus-visible, [data-vc] [role="switch"]:focus-visible, [data-vc] button:focus-visible {
-  outline: 2px solid rgba(var(--vc-fg,255,255,255),0.5); outline-offset: 2px; border-radius: 4px;
+[data-wcgw] button:active, [data-wcgw-pill]:active { scale: 0.96; }
+[data-wcgw] [role="button"]:focus-visible, [data-wcgw] [role="switch"]:focus-visible, [data-wcgw] button:focus-visible {
+  outline: 2px solid rgba(var(--wcgw-fg),0.5); outline-offset: 2px; border-radius: 4px;
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-vc-breathe], [data-vc] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  [data-vc] button:active, [data-vc-pill]:active { scale: 1; }
+  [data-wcgw-breathe], [data-wcgw] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  [data-wcgw] button:active, [data-wcgw-pill]:active { scale: 1; }
 }
 `
 
 let styleRefCount = 0
 
+// Inject the token stylesheet before the browser paints so every `var(--wcgw-*)`
+// resolves on the first frame — this is what lets the codebase drop hardcoded
+// colour fallbacks entirely. Falls back to useEffect under SSR (no window).
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 const useAnimations = () => {
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof document === 'undefined') return
     styleRefCount++
     if (styleRefCount === 1) {
@@ -99,25 +137,35 @@ const useAnimations = () => {
 
 const getHealth = (s: VibeSnapshot) => {
   const n = s.issues.length; const fps = s.frameRate.fps
-  // `color` drives the bright dots/glow (legible on any background); `labelColor`
-  // is the theme-tuned variant used for badge text so it stays readable on the
-  // light surface too.
-  if (n > 3 || fps < 25) return { color: T.red, labelColor: 'var(--vc-sev-critical, #f87171)', glow: 'rgba(239,68,68,0.15)', label: 'critical', vibeLabel: 'needs help' }
-  if (n > 0 || fps < 40) return { color: T.yellow, labelColor: 'var(--vc-sev-warning, #facc15)', glow: 'rgba(250,204,21,0.1)', label: 'issues', vibeLabel: 'some issues' }
-  return { color: T.green, labelColor: 'var(--vc-sev-success, #4ade80)', glow: 'rgba(74,222,128,0.1)', label: 'healthy', vibeLabel: 'looking good' }
+  // `labelColor` is the theme-tuned severity variable used for the badge text so
+  // it stays legible on the light surface too.
+  if (n > 3 || fps < 25) return { labelColor: 'var(--wcgw-sev-critical)', label: 'critical', vibeLabel: 'needs help' }
+  if (n > 0 || fps < 40) return { labelColor: 'var(--wcgw-sev-warning)', label: 'issues', vibeLabel: 'some issues' }
+  return { labelColor: 'var(--wcgw-sev-success)', label: 'healthy', vibeLabel: 'looking good' }
 }
 
 // ── Accent colors ───────────────────────────────────────────────────────────
-// The UI is mostly monochromatic (neutrals from --vc-fg); colour appears only as
+// The UI is mostly monochromatic (neutrals from --wcgw-fg); colour appears only as
 // a deliberate accent — the lifeline, the health dot, severity, problem states.
-// Concrete hex per theme (the <canvas> line can't resolve CSS variables, and the
-// bright tones are illegible on the light surface). Mirrors the --vc-sev-* vars.
+//
+// Everything in the DOM references the severity tokens via `sevVar`. The single
+// exception is the Liveline <canvas>, which cannot resolve CSS variables — so it
+// gets a concrete hex from `SEV_HEX`. Keep SEV_HEX in sync with the --wcgw-sev-*
+// definitions in the theme blocks above; it is the ONLY hardcoded palette left,
+// and it exists solely because a canvas draw call needs a literal colour string.
 const SEV_HEX = {
   dark: { success: '#4ade80', warning: '#facc15', error: '#fb923c', critical: '#f87171', info: '#60a5fa' },
   light: { success: '#15803d', warning: '#b45309', error: '#c2410c', critical: '#b91c1c', info: '#1d4ed8' },
 } as const
 type SevKey = keyof (typeof SEV_HEX)['dark']
+// Canvas-only: literal hex for the lifeline draw call.
 const sevHex = (key: SevKey, light: boolean): string => SEV_HEX[light ? 'light' : 'dark'][key]
+// DOM/SVG: the theme-tuned severity token (flips with the theme automatically).
+const sevVar = (key: SevKey): string => `var(--wcgw-sev-${key})`
+// A soft glow of a severity token — box-shadow/drop-shadow can take color-mix,
+// so we tint the token instead of appending a hex alpha to a concrete colour.
+const sevGlow = (key: SevKey, pct = 38): string =>
+  `color-mix(in srgb, var(--wcgw-sev-${key}) ${pct}%, transparent)`
 
 const fpsKey = (fps: number): SevKey => fps >= 55 ? 'success' : fps >= 40 ? 'warning' : fps >= 25 ? 'error' : 'critical'
 const healthKey = (s: VibeSnapshot): SevKey => {
@@ -141,10 +189,10 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
   const offset = c * (1 - Math.min(value / max, 1)); const mid = size / 2
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--vc-fg,255,255,255),0.08)" strokeWidth={sw} />
+      <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--wcgw-fg),0.08)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 3px ${color}50)`, transition: 'stroke-dashoffset 0.3s ease' }}
+        style={{ filter: `drop-shadow(0 0 3px color-mix(in srgb, ${color} 31%, transparent))`, transition: 'stroke-dashoffset 0.3s ease' }}
       />
     </svg>
   )
@@ -153,7 +201,7 @@ const MiniRing = ({ value, max, color }: { value: number; max: number; color: st
 // ── Thin separator for the collapsed pill ───────────────────────────────────
 
 const PillDivider = () => (
-  <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(var(--vc-fg,255,255,255),0.12)', flexShrink: 0, margin: '0 1px' }} />
+  <span aria-hidden="true" style={{ width: 1, height: 13, background: 'rgba(var(--wcgw-fg),0.12)', flexShrink: 0, margin: '0 1px' }} />
 )
 
 // ── Honest FPS history — real samples, persisted to localStorage ─────────────
@@ -237,7 +285,7 @@ const WINDOW_OPTIONS = [
 const winBtnStyle = (active: boolean): CSSProperties => ({
   fontSize: 14, fontWeight: active ? 600 : 500,
   color: active ? T.text : T.textTertiary,
-  background: active ? 'rgba(var(--vc-fg,255,255,255),0.07)' : 'transparent',
+  background: active ? 'rgba(var(--wcgw-fg),0.07)' : 'transparent',
   border: 'none', borderRadius: 5, padding: '3px 8px', minHeight: 26,
   cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
   transition: 'color 0.15s ease, background 0.15s ease',
@@ -293,9 +341,9 @@ const STAT_LABEL: CSSProperties = { ...T_LABEL, marginTop: 1, whiteSpace: 'nowra
 const STAT_VALUE: CSSProperties = { ...T_VALUE, display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }
 const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: 'start' }
 // Hairline that separates the panel's major blocks without a hard border.
-const DIVIDER: CSSProperties = { borderTop: '1px solid rgba(var(--vc-fg,255,255,255),0.07)', paddingTop: 14, marginTop: 4 }
+const DIVIDER: CSSProperties = { borderTop: '1px solid rgba(var(--wcgw-fg),0.07)', paddingTop: 14, marginTop: 4 }
 // Finer, tighter separation for related sub-groups (e.g. FPS -> its metrics).
-const FINE: CSSProperties = { borderTop: '1px solid rgba(var(--vc-fg,255,255,255),0.05)', paddingTop: 11, marginTop: 11 }
+const FINE: CSSProperties = { borderTop: '1px solid rgba(var(--wcgw-fg),0.05)', paddingTop: 11, marginTop: 11 }
 
 const QUIET_LINK: CSSProperties = {
   fontSize: 14, fontWeight: 500, color: T.textSecondary,
@@ -306,7 +354,7 @@ const QUIET_LINK: CSSProperties = {
 
 const ConsoleStat = ({ count, color, label }: { count: number; color: string; label: string }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-    <span style={{ width: 5, height: 5, borderRadius: '50%', background: count > 0 ? color : 'rgba(var(--vc-fg,255,255,255),0.15)', flexShrink: 0 }} />
+    <span style={{ width: 5, height: 5, borderRadius: '50%', background: count > 0 ? color : 'rgba(var(--wcgw-fg),0.15)', flexShrink: 0 }} />
     <span style={{ color: count > 0 ? T.textSecondary : T.textMuted, fontWeight: count > 0 ? 600 : 400 }}>{count}</span>
     <span style={{ color: T.textTertiary }}>{label}</span>
   </span>
@@ -388,7 +436,7 @@ const navTabStyle = (active: boolean): CSSProperties =>
 const NAV_DOT: CSSProperties = {
   position: 'absolute', top: 9, left: 'calc(50% + 7px)',
   width: 6, height: 6, borderRadius: '50%',
-  background: 'var(--vc-sev-warning, #facc15)',
+  background: 'var(--wcgw-sev-warning)',
 }
 const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }
 
@@ -465,7 +513,8 @@ export const VibeCheck = ({
   const ps = useMemo(() => new Set(panels), [panels])
 
   const isLight = prefs.theme === 'light'
-  const hColor = sevHex(healthKey(snapshot), isLight)
+  const hKey = healthKey(snapshot)
+  const hColor = sevVar(hKey)
 
   const activeCount = tracked.filter((t) => t.status === 'new').length
   const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
@@ -501,8 +550,8 @@ export const VibeCheck = ({
     return (
       <>
         {annotationOverlay}
-        <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-vc data-vc-theme={prefs.theme}>
-          <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-vc-pill
+        <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={prefs.theme}>
+          <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-wcgw-pill
             aria-label={`Expand vibe check — ${Math.round(snapshot.frameRate.fps)} fps, ${activeCount} issues`} aria-expanded={false}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
             style={{
@@ -514,17 +563,17 @@ export const VibeCheck = ({
               background: T.bg,
               borderRadius: 22, cursor: 'pointer', userSelect: 'none',
               border: `1px solid ${T.border}`,
-              boxShadow: `var(--vc-shadow-md, 0 8px 32px rgba(0,0,0,0.5)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)`,
+              boxShadow: `var(--wcgw-shadow-md), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)`,
               backdropFilter: 'blur(24px)',
               animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
             }}>
             {/* Overall health */}
-            <span data-vc-breathe aria-hidden="true" style={{
+            <span data-wcgw-breathe aria-hidden="true" style={{
               width: 8, height: 8, borderRadius: '50%', background: hColor, flexShrink: 0,
-              boxShadow: `0 0 8px ${hColor}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+              boxShadow: `0 0 8px ${sevGlow(hKey)}`, animation: 'vc-breathe 3s ease-in-out infinite',
             }} />
             {/* FPS */}
-            <MiniRing value={snapshot.frameRate.fps} max={60} color={sevHex(fpsKey(snapshot.frameRate.fps), isLight)} />
+            <MiniRing value={snapshot.frameRate.fps} max={60} color={sevVar(fpsKey(snapshot.frameRate.fps))} />
             <span style={{ fontWeight: 600 }}>{Math.round(snapshot.frameRate.fps)}</span>
             <span style={{ color: T.textTertiary, fontWeight: 400 }}>fps</span>
             {/* Memory (Chrome only) */}
@@ -559,12 +608,12 @@ export const VibeCheck = ({
   return (
     <VibeCheckProvider value={engine}>
       {annotationOverlay}
-      <div data-testid="vibe-check-overlay" data-vc data-vc-theme={prefs.theme} style={{
+      <div data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={prefs.theme} style={{
         position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: FONT, fontSize: 14,
         color: T.text, overflow: 'hidden',
         background: T.bg,
         borderRadius: 16,
-        boxShadow: `var(--vc-shadow-lg, 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3)), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.08)`,
+        boxShadow: `var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.08)`,
         backdropFilter: 'blur(32px)',
         animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
@@ -583,9 +632,9 @@ export const VibeCheck = ({
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
             >
-              <span data-vc-breathe style={{
+              <span data-wcgw-breathe style={{
                 width: 8, height: 8, borderRadius: '50%', background: hColor, flexShrink: 0,
-                boxShadow: `0 0 8px ${hColor}60`, animation: 'vc-breathe 3s ease-in-out infinite',
+                boxShadow: `0 0 8px ${sevGlow(hKey)}`, animation: 'vc-breathe 3s ease-in-out infinite',
               }} />
               <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
                 vibe check
@@ -616,7 +665,7 @@ export const VibeCheck = ({
                     <span style={T_UNIT}>fps</span>
                   </div>
                   <div style={{ ...T_UNIT, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>
-                    avg {snapshot.frameRate.avgFrameTime.toFixed(1)} · worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevHex('error', isLight) : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span>
+                    avg {snapshot.frameRate.avgFrameTime.toFixed(1)} · worst <span style={{ color: snapshot.frameRate.maxFrameTime > 50 ? sevVar('error') : T.textSecondary }}>{snapshot.frameRate.maxFrameTime.toFixed(0)}ms</span>
                   </div>
 
                   {/* Secondary metrics — stacked under the FPS, left-aligned, fine separation */}
@@ -628,14 +677,14 @@ export const VibeCheck = ({
                         const val = key === 'cls' ? (v ? v.value.toFixed(3) : '—') : (v ? fmtMs(v.value) : '—')
                         const vibeLabels: Record<string, string> = { lcp: 'load', inp: 'response', cls: 'stability' }
                         return (
-                          <MiniMetric key={key} label={mode === 'vibe' ? vibeLabels[key] : key} value={val} color={!v ? T.textMuted : poor ? sevHex(vitalKey(v.rating), isLight) : T.text} />
+                          <MiniMetric key={key} label={mode === 'vibe' ? vibeLabels[key] : key} value={val} color={!v ? T.textMuted : poor ? sevVar(vitalKey(v.rating)) : T.text} />
                         )
                       })}
                       {ps.has('memory') && (
                         <MiniMetric
                           label={mode === 'vibe' ? 'mem' : 'heap'}
                           value={snapshot.memory ? `${snapshot.memory.jsHeapSizeMB.toFixed(0)} MB` : 'n/a'}
-                          color={snapshot.memory ? (snapshot.memory.usedPct > 80 ? sevHex('critical', isLight) : snapshot.memory.usedPct > 60 ? sevHex('warning', isLight) : T.text) : T.textMuted}
+                          color={snapshot.memory ? (snapshot.memory.usedPct > 80 ? sevVar('critical') : snapshot.memory.usedPct > 60 ? sevVar('warning') : T.text) : T.textMuted}
                         />
                       )}
                     </div>
@@ -705,16 +754,16 @@ export const VibeCheck = ({
                   {ps.has('console') && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontVariantNumeric: 'tabular-nums', marginBottom: 10 }}>
                       <span style={T_LABEL}>console</span>
-                      <ConsoleStat count={snapshot.console.errorCount} color={sevHex('critical', isLight)} label="err" />
-                      <ConsoleStat count={snapshot.console.warnCount} color={sevHex('warning', isLight)} label="wrn" />
+                      <ConsoleStat count={snapshot.console.errorCount} color={sevVar('critical')} label="err" />
+                      <ConsoleStat count={snapshot.console.warnCount} color={sevVar('warning')} label="wrn" />
                       <ConsoleStat count={snapshot.console.logCount} color={T.textTertiary} label="log" />
                     </div>
                   )}
                   {activeCount === 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: T.textSecondary }}>
-                      <span data-vc-breathe style={{
-                        width: 7, height: 7, borderRadius: '50%', background: sevHex('success', isLight),
-                        boxShadow: `0 0 6px ${sevHex('success', isLight)}50`, animation: 'vc-breathe 3s ease-in-out infinite',
+                      <span data-wcgw-breathe style={{
+                        width: 7, height: 7, borderRadius: '50%', background: sevVar('success'),
+                        boxShadow: `0 0 6px ${sevGlow('success', 31)}`, animation: 'vc-breathe 3s ease-in-out infinite',
                       }} />
                       {mode === 'vibe' ? 'All vibes are good' : 'No active issues'}
                     </div>
@@ -830,7 +879,7 @@ export const VibeCheck = ({
             return (
               <button
                 key={tab.key}
-                data-vc-tab
+                data-wcgw-tab
                 style={navTabStyle(active)}
                 onClick={() => setActiveView(tab.key)}
                 aria-current={active ? 'page' : undefined}
@@ -856,10 +905,10 @@ export const VibeCheck = ({
 // ── Sub-components ──────────────────────────────────────────────────────────
 
 const SEV_TICK: Record<string, string> = {
-  info: 'var(--vc-sev-info, #60a5fa)',
-  warning: 'var(--vc-sev-warning, #facc15)',
-  error: 'var(--vc-sev-error, #fb923c)',
-  critical: 'var(--vc-sev-critical, #f87171)',
+  info: 'var(--wcgw-sev-info)',
+  warning: 'var(--wcgw-sev-warning)',
+  error: 'var(--wcgw-sev-error)',
+  critical: 'var(--wcgw-sev-critical)',
 }
 
 const QuickIssue = ({ issue, mode }: { readonly issue: VibeIssue; mode: string }) => {

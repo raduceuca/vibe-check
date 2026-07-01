@@ -41,9 +41,9 @@ const firstSection: CSSProperties = {
 }
 
 const DOT_COLOR: Record<ConnectionState, string> = {
-  inactive: 'rgba(var(--vc-fg,255,255,255),0.15)',
-  pending: 'var(--vc-sev-warning, #facc15)',
-  active: 'var(--vc-sev-success, #4ade80)',
+  inactive: 'rgba(var(--wcgw-fg),0.15)',
+  pending: 'var(--wcgw-sev-warning)',
+  active: 'var(--wcgw-sev-success)',
 }
 
 const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
@@ -51,7 +51,7 @@ const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
   height: 7,
   borderRadius: '50%',
   background: DOT_COLOR[state],
-  boxShadow: state === 'active' ? `0 0 6px rgba(74,222,128,0.4)` : 'none',
+  boxShadow: state === 'active' ? `0 0 6px color-mix(in srgb, var(--wcgw-sev-success) 40%, transparent)` : 'none',
   flexShrink: 0,
 })
 
@@ -72,8 +72,8 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
   }
   const statusColor: Record<ConnectionState, string> = {
     inactive: T.textMuted,
-    pending: 'var(--vc-sev-warning, #facc15)',
-    active: 'var(--vc-sev-success, #4ade80)',
+    pending: 'var(--wcgw-sev-warning)',
+    active: 'var(--wcgw-sev-success)',
   }
 
   return (
@@ -164,8 +164,8 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
           borderRadius: 6,
           fontSize: 14,
           fontWeight: 500,
-          border: `1px solid rgba(239,68,68,0.12)`,
-          background: 'rgba(239,68,68,0.04)',
+          border: `1px solid color-mix(in srgb, var(--wcgw-sev-critical) 22%, transparent)`,
+          background: 'color-mix(in srgb, var(--wcgw-sev-critical) 8%, transparent)',
           color: T.red,
           cursor: 'pointer',
           fontFamily: 'inherit',

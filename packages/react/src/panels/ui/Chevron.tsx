@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react'
 export const Chevron = ({ open }: { open: boolean }) => {
   const style: CSSProperties = {
     flexShrink: 0,
-    color: 'rgba(var(--vc-fg,255,255,255),0.5)',
+    color: 'rgba(var(--wcgw-fg),0.5)',
     transform: open ? 'rotate(180deg)' : 'none',
     transition: 'transform 0.18s ease',
   }

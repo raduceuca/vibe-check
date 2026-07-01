@@ -67,7 +67,7 @@ const IssueRow = ({
   }
 
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.06)' }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--wcgw-fg),0.06)' }}>
       <div
         onClick={() => setExpanded((p) => !p)}
         role="button"
@@ -80,7 +80,7 @@ const IssueRow = ({
         <span style={{
           flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: tracked.status === 'resolved' ? 'rgba(var(--vc-fg,255,255,255),0.4)' : 'rgba(var(--vc-fg,255,255,255),0.95)',
+          color: tracked.status === 'resolved' ? 'rgba(var(--wcgw-fg),0.4)' : 'rgba(var(--wcgw-fg),0.95)',
           textDecoration: tracked.status === 'resolved' ? 'line-through' : 'none',
         }}>
           {mode === 'vibe' ? suggestion.title : issue.title}
@@ -91,15 +91,15 @@ const IssueRow = ({
       {expanded && (
         <div style={{ marginTop: 10, animation: 'vc-fade-in 0.15s ease' }}>
           <div style={{
-            fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.55)',
+            fontSize: 14, color: 'rgba(var(--wcgw-fg),0.55)',
             lineHeight: 1.55, marginBottom: 10, paddingLeft: 2,
           }}>
             {suggestion.explanation}
           </div>
 
           <div style={{
-            background: 'rgba(var(--vc-fg,255,255,255),0.02)',
-            border: '1px solid rgba(var(--vc-fg,255,255,255),0.06)',
+            background: 'rgba(var(--wcgw-fg),0.02)',
+            border: '1px solid rgba(var(--wcgw-fg),0.06)',
             borderRadius: 8, padding: '10px 12px', marginBottom: 10,
           }}>
             <div style={{
@@ -108,7 +108,7 @@ const IssueRow = ({
             }}>
               <span style={{
                 fontSize: 14, fontWeight: 500,
-                color: 'rgba(var(--vc-fg,255,255,255),0.35)',
+                color: 'rgba(var(--wcgw-fg),0.35)',
               }}>
                 {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
               </span>
@@ -135,9 +135,9 @@ const IssueRow = ({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '4px 10px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                  border: '1px solid color-mix(in srgb, var(--vc-sev-success, #4ade80) 22%, transparent)',
-                  background: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) 8%, transparent)',
-                  color: 'var(--vc-sev-success, #4ade80)', cursor: 'pointer', minHeight: 30,
+                  border: '1px solid color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)',
+                  background: 'color-mix(in srgb, var(--wcgw-sev-success) 8%, transparent)',
+                  color: 'var(--wcgw-sev-success)', cursor: 'pointer', minHeight: 30,
                   fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                 }}
               >
@@ -187,14 +187,14 @@ export const AgentPanel = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: 'rgba(var(--vc-fg,255,255,255),0.4)',
+            letterSpacing: '0.05em', color: 'rgba(var(--wcgw-fg),0.4)',
           }}>
             {mode === 'vibe' ? 'AI Fixes' : 'Agent Queue'}
           </span>
           {active.length > 0 && (
             <span style={{
-              fontSize: 14, fontWeight: 700, color: 'rgba(var(--vc-fg,255,255,255),0.9)',
-              background: 'rgba(var(--vc-fg,255,255,255),0.08)',
+              fontSize: 14, fontWeight: 700, color: 'rgba(var(--wcgw-fg),0.9)',
+              background: 'rgba(var(--wcgw-fg),0.08)',
               padding: '2px 7px', borderRadius: 6,
             }}>{active.length}</span>
           )}
@@ -212,7 +212,7 @@ export const AgentPanel = ({
 
       <div style={{
         display: 'flex', position: 'relative', marginBottom: 10,
-        boxShadow: 'inset 0 -1px 0 rgba(var(--vc-fg,255,255,255),0.07)',
+        boxShadow: 'inset 0 -1px 0 rgba(var(--wcgw-fg),0.07)',
       }}>
         {/* One underline that slides between the active tab's center */}
         <span aria-hidden="true" style={{
@@ -238,8 +238,8 @@ export const AgentPanel = ({
           display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0',
         }}>
           {activeTab === 'active' && (
-            <span data-vc-breathe style={{
-              width: 7, height: 7, borderRadius: '50%', background: 'var(--vc-sev-success, #4ade80)',
+            <span data-wcgw-breathe style={{
+              width: 7, height: 7, borderRadius: '50%', background: 'var(--wcgw-sev-success)',
               animation: 'vc-breathe 3s ease-in-out infinite',
             }} />
           )}
@@ -269,9 +269,9 @@ export const AgentPanel = ({
           style={{
             width: '100%', marginTop: 8, padding: '7px 0', borderRadius: 6,
             fontSize: 14, fontWeight: 500,
-            border: '1px solid rgba(var(--vc-fg,255,255,255),0.06)',
-            background: 'rgba(var(--vc-fg,255,255,255),0.02)',
-            color: 'rgba(var(--vc-fg,255,255,255),0.35)', cursor: 'pointer', minHeight: 36,
+            border: '1px solid rgba(var(--wcgw-fg),0.06)',
+            background: 'rgba(var(--wcgw-fg),0.02)',
+            color: 'rgba(var(--wcgw-fg),0.35)', cursor: 'pointer', minHeight: 36,
             fontFamily: 'inherit', outline: 'none', transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
           }}
         >

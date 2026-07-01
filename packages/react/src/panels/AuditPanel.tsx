@@ -51,7 +51,7 @@ const AuditRow = ({
   }
 
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--vc-fg,255,255,255),0.06)' }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid rgba(var(--wcgw-fg),0.06)' }}>
       <div
         onClick={() => setExpanded((p) => !p)}
         role="button"
@@ -64,7 +64,7 @@ const AuditRow = ({
         <span style={{
           flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.4,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: 'rgba(var(--vc-fg,255,255,255),0.95)',
+          color: 'rgba(var(--wcgw-fg),0.95)',
         }}>
           {issue.title}
         </span>
@@ -76,7 +76,7 @@ const AuditRow = ({
 
       {expanded && (
         <div style={{ marginTop: 10, animation: 'vc-fade-in 0.15s ease' }}>
-          <div style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.55)', lineHeight: 1.55, marginBottom: 10 }}>
+          <div style={{ fontSize: 14, color: 'rgba(var(--wcgw-fg),0.55)', lineHeight: 1.55, marginBottom: 10 }}>
             {suggestion.explanation}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -113,7 +113,7 @@ export const AuditPanel = ({
         <div style={{ minWidth: 0 }}>
           <div style={{
             fontSize: 14, fontWeight: 500, textTransform: 'uppercase',
-            letterSpacing: '0.05em', color: 'rgba(var(--vc-fg,255,255,255),0.5)',
+            letterSpacing: '0.05em', color: 'rgba(var(--wcgw-fg),0.5)',
           }}>{mode === 'vibe' ? vibeHeading : heading}</div>
           <div style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
             {passed} of {total} checks pass
@@ -133,8 +133,8 @@ export const AuditPanel = ({
 
       {findings.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
-          <span data-vc-breathe style={{
-            width: 7, height: 7, borderRadius: '50%', background: 'var(--vc-sev-success, #4ade80)',
+          <span data-wcgw-breathe style={{
+            width: 7, height: 7, borderRadius: '50%', background: 'var(--wcgw-sev-success)',
             animation: 'vc-breathe 3s ease-in-out infinite',
           }} />
           <span style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500 }}>

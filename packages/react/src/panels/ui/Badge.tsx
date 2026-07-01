@@ -5,10 +5,10 @@ import type { Severity } from '@wcgw/vibe-check-core'
 // so badge text stays legible in both themes, with a color-mix tint background
 // instead of a near-invisible fixed alpha.
 const SEV_VAR: Record<Severity, string> = {
-  info: 'var(--vc-sev-info, #60a5fa)',
-  warning: 'var(--vc-sev-warning, #facc15)',
-  error: 'var(--vc-sev-error, #fb923c)',
-  critical: 'var(--vc-sev-critical, #f87171)',
+  info: 'var(--wcgw-sev-info)',
+  warning: 'var(--wcgw-sev-warning)',
+  error: 'var(--wcgw-sev-error)',
+  critical: 'var(--wcgw-sev-critical)',
 }
 
 interface BadgeProps {
@@ -28,7 +28,7 @@ export const Badge = ({ severity }: BadgeProps) => {
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
     color: c,
-    backgroundColor: `color-mix(in srgb, ${c} var(--vc-badge-alpha, 14%), transparent)`,
+    backgroundColor: `color-mix(in srgb, ${c} var(--wcgw-badge-alpha), transparent)`,
     lineHeight: 1.4,
   }
 

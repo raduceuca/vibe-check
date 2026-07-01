@@ -194,8 +194,8 @@ const Marker = ({
         width: rect.width + 4,
         height: rect.height + 4,
         borderRadius: 4,
-        border: expanded ? '2px solid rgba(255,59,48,0.4)' : '2px solid rgba(255,59,48,0.2)',
-        background: expanded ? 'rgba(255,59,48,0.04)' : 'none',
+        border: expanded ? '2px solid rgba(var(--wcgw-marker-rgb),0.4)' : '2px solid rgba(var(--wcgw-marker-rgb),0.2)',
+        background: expanded ? 'rgba(var(--wcgw-marker-rgb),0.04)' : 'none',
         pointerEvents: 'none',
         transition: 'border-color 0.2s ease, background 0.2s ease',
         zIndex: T.zOverlay,
@@ -216,8 +216,8 @@ const Marker = ({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 6px',
           borderRadius: 11,
-          background: '#FF3B30',
-          boxShadow: '0 2px 8px rgba(255,59,48,0.45), 0 1px 2px rgba(0,0,0,0.3)',
+          background: 'var(--wcgw-marker)',
+          boxShadow: '0 2px 8px rgba(var(--wcgw-marker-rgb),0.45), 0 1px 2px rgba(0,0,0,0.3)',
           cursor: 'pointer',
           zIndex: T.zBadge + Math.min(index, 8),
           transition: 'transform 0.15s ease',
@@ -227,7 +227,7 @@ const Marker = ({
           pointerEvents: 'auto',
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--wcgw-marker-fg)', lineHeight: 1 }}>
           {issueCount}
         </span>
       </div>
@@ -242,10 +242,10 @@ const Marker = ({
             top: popoverTop,
             width: 290,
             zIndex: T.zPopover,
-            background: 'var(--vc-panel-bg, rgba(12,12,12,0.97))',
+            background: 'var(--wcgw-bg)',
             borderRadius: 12,
-            border: '1px solid rgba(var(--vc-fg,255,255,255),0.1)',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(var(--vc-fg,255,255,255),0.04)',
+            border: '1px solid rgba(var(--wcgw-fg),0.1)',
+            boxShadow: 'var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
             backdropFilter: 'blur(32px)',
             padding: '12px 14px',
             fontFamily: FONT,
@@ -257,13 +257,13 @@ const Marker = ({
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(var(--vc-fg,255,255,255),0.9)' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(var(--wcgw-fg),0.9)' }}>
               {issueCount} issue{issueCount > 1 ? 's' : ''} here
             </span>
             <button
               onClick={onToggle}
               style={{
-                background: 'none', border: 'none', color: 'rgba(var(--vc-fg,255,255,255),0.35)', cursor: 'pointer',
+                background: 'none', border: 'none', color: 'rgba(var(--wcgw-fg),0.35)', cursor: 'pointer',
                 fontSize: 18, padding: 8, minWidth: 32, minHeight: 32,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               }}
@@ -282,12 +282,12 @@ const Marker = ({
             return (
               <div key={t.issue.id} style={{
                 padding: '10px 0',
-                borderTop: i > 0 ? '1px solid rgba(var(--vc-fg,255,255,255),0.06)' : 'none',
+                borderTop: i > 0 ? '1px solid rgba(var(--wcgw-fg),0.06)' : 'none',
               }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(var(--vc-fg,255,255,255),0.8)', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(var(--wcgw-fg),0.8)', marginBottom: 4 }}>
                   {mode === 'vibe' ? suggestion.title : t.issue.title}
                 </div>
-                <div style={{ fontSize: 14, color: 'rgba(var(--vc-fg,255,255,255),0.4)', lineHeight: 1.5, marginBottom: 8 }}>
+                <div style={{ fontSize: 14, color: 'rgba(var(--wcgw-fg),0.4)', lineHeight: 1.5, marginBottom: 8 }}>
                   {suggestion.explanation.slice(0, 120)}{suggestion.explanation.length > 120 ? '...' : ''}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -298,9 +298,9 @@ const Marker = ({
                       style={{
                         display: 'flex', alignItems: 'center', gap: 4,
                         padding: '3px 8px', borderRadius: 6, fontSize: 14, fontWeight: 500,
-                        border: '1px solid color-mix(in srgb, var(--vc-sev-success, #4ade80) 22%, transparent)',
-                        background: 'color-mix(in srgb, var(--vc-sev-success, #4ade80) 8%, transparent)',
-                        color: 'var(--vc-sev-success, #4ade80)', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+                        border: '1px solid color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)',
+                        background: 'color-mix(in srgb, var(--wcgw-sev-success) 8%, transparent)',
+                        color: 'var(--wcgw-sev-success)', cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
                       }}
                     >
                       <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
@@ -449,8 +449,8 @@ export const AnnotationOverlay = ({
 
   return (
     <div
-      data-vc
-      data-vc-theme={theme}
+      data-wcgw
+      data-wcgw-theme={theme}
       style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%',

@@ -9,9 +9,9 @@ export const auditScore = (total: number, failed: number): number =>
   total > 0 ? Math.round((Math.max(0, total - Math.min(failed, total)) / total) * 100) : 100
 
 export const scoreColor = (score: number): string =>
-  score >= 80 ? 'var(--vc-sev-success, #4ade80)'
-    : score >= 60 ? 'var(--vc-sev-warning, #facc15)'
-      : 'var(--vc-sev-critical, #f87171)'
+  score >= 80 ? 'var(--wcgw-sev-success)'
+    : score >= 60 ? 'var(--wcgw-sev-warning)'
+      : 'var(--wcgw-sev-critical)'
 
 const colorFor = scoreColor
 
@@ -27,7 +27,7 @@ export const ScoreRing = ({ score, size = 60 }: { score: number; size?: number }
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-        <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--vc-fg,255,255,255),0.08)" strokeWidth={sw} />
+        <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--wcgw-fg),0.08)" strokeWidth={sw} />
         <circle
           cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
@@ -38,7 +38,7 @@ export const ScoreRing = ({ score, size = 60 }: { score: number; size?: number }
         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', lineHeight: 1,
       }}>
-        <span style={{ fontSize: Math.round(size * 0.32), fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: 'rgba(var(--vc-fg,255,255,255),0.95)' }}>
+        <span style={{ fontSize: Math.round(size * 0.32), fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: 'rgba(var(--wcgw-fg),0.95)' }}>
           {clamped}
         </span>
         <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color, marginTop: 2 }}>
