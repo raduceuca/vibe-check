@@ -97,6 +97,17 @@ export interface UnoptimizedImagesEvidence {
   // an image with several faults shows a single annotation rather than N
   // near-identical ones.
   readonly problems: readonly string[]
+  // How many images share this exact problem signature. The detector collapses
+  // repeat offenders (e.g. a grid of identically-broken thumbnails) into one
+  // issue carrying a count, rather than N near-identical rows. 1 (or omitted)
+  // means a single image.
+  readonly count?: number
+  // Intrinsic + rendered dimensions of the representative image, so the overlay
+  // can title by size ("2400×1200 image") when the URL has no filename.
+  readonly naturalWidth?: number
+  readonly naturalHeight?: number
+  readonly renderedWidth?: number
+  readonly renderedHeight?: number
 }
 export interface LargeImagesEvidence {
   readonly src: string

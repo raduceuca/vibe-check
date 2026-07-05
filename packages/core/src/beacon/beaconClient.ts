@@ -65,18 +65,12 @@ export class BeaconClient {
     this.lastAttemptAt = Date.now()
 
     try {
-      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        const blob = new Blob([payload], { type: 'application/json' })
-        const queued = navigator.sendBeacon(endpoint, blob)
-        if (queued) {
-          // sendBeacon only confirms the UA queued the payload (e.g. it can be
-          // rejected when over ~64KB); treat that as success but fall through
-          // to fetch when it refuses so large snapshots are not silently dropped.
-          this.lastOk = true
-          return
-        }
-      }
-
+      // Deliver via fetch so the outcome is *observable*: lastOk reflects a real
+      // server response (res.ok), not merely that the payload was accepted for
+      // sending. This is what keeps the connection indicator honest —
+      // navigator.sendBeacon returns true whenever the UA queues the blob, even
+      // when nothing is listening on the port, which made the status always green.
+      // fetch(keepalive) delivers reliably during unload in modern browsers too.
       if (typeof fetch !== 'undefined') {
         fetch(endpoint, {
           method: 'POST',
@@ -90,9 +84,20 @@ export class BeaconClient {
             // monitoring must not break the host app.
             this.lastOk = false
           })
-      } else {
-        this.lastOk = false
+        return
       }
+
+      // Legacy fallback (no fetch): sendBeacon can only confirm the UA queued the
+      // payload, never that it reached the server — so we cannot honestly claim
+      // success. Deliver best-effort and leave lastOk unknown (null) so the
+      // indicator shows "connecting", never a false "connected".
+      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        const blob = new Blob([payload], { type: 'application/json' })
+        navigator.sendBeacon(endpoint, blob)
+        return
+      }
+
+      this.lastOk = false
     } catch {
       // Silently ignore — monitoring must never break the host app
       this.lastOk = false

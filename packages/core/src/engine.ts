@@ -41,7 +41,22 @@ import { BeaconClient, type BeaconStatus } from './beacon/beaconClient.js'
 
 type SnapshotCallback = (snapshot: VibeSnapshot) => void
 
-export class VibeCheckEngine {
+// The public engine surface the React widget (VibeCheckProvider / useVibeCheck /
+// useDetectedIssues) consumes. Both the live VibeCheckEngine and the scripted
+// engine implement this, so a scripted demo is a drop-in replacement for the
+// real thing.
+export interface VibeEngine {
+  start(): void
+  stop(): void
+  getSnapshot(): VibeSnapshot
+  getIssues(): readonly VibeIssue[]
+  clearIssues(): void
+  onSnapshot(callback: SnapshotCallback): () => void
+  isRunning(): boolean
+  getBeaconStatus(): BeaconStatus | null
+}
+
+export class VibeCheckEngine implements VibeEngine {
   private readonly config: VibeCheckConfig
   private running = false
 
@@ -103,11 +118,24 @@ export class VibeCheckEngine {
     this.consoleCollector = new ConsoleCollector()
     this.consoleCollector.start()
 
+    // Cache DOM node count on a slower interval (every 2s) to avoid a
+    // querySelectorAll('*') per snapshot tick. Initialize BEFORE detectors start
+    // so domBloat's immediate check reads the real count via the shared sampler
+    // rather than triggering its own scan.
+    if (typeof document !== 'undefined') {
+      this.cachedDomNodeCount = document.querySelectorAll('*').length
+      this.domCountIntervalId = setInterval(() => {
+        this.cachedDomNodeCount = document.querySelectorAll('*').length
+      }, 2000)
+    }
+
     // Start enabled detectors
     const detectorConfig = this.config.detectors
 
     const detectorFactories: Array<[boolean, () => Detector]> = [
-      [detectorConfig.domBloat, createDomBloatDetector],
+      // domBloat reuses the engine's cached DOM node count instead of running a
+      // second full-DOM scan; only its periodic depth walk remains its own work.
+      [detectorConfig.domBloat, () => createDomBloatDetector(() => this.cachedDomNodeCount)],
       [detectorConfig.duplicateRequests, createDuplicateRequestsDetector],
       [detectorConfig.consoleSpam, createConsoleSpamDetector],
       [detectorConfig.memoryLeak, createMemoryLeakDetector],
@@ -137,14 +165,6 @@ export class VibeCheckEngine {
         intervalMs: this.config.beaconIntervalMs,
       })
       this.beaconClient.start(() => this.getSnapshot())
-    }
-
-    // Cache DOM node count on a slower interval (every 2s) to avoid querySelectorAll('*') perf hit
-    if (typeof document !== 'undefined') {
-      this.cachedDomNodeCount = document.querySelectorAll('*').length
-      this.domCountIntervalId = setInterval(() => {
-        this.cachedDomNodeCount = document.querySelectorAll('*').length
-      }, 2000)
     }
 
     // Periodically notify listeners (every 500ms)

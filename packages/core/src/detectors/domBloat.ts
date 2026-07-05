@@ -52,17 +52,25 @@ const heaviestSubtreeSelector = (): string | undefined => {
 
 // ── Detector ─────────────────────────────────────────────────────────────────
 
-export const createDomBloatDetector = (): Detector => {
+// The engine already samples `document.querySelectorAll('*').length` on its own
+// interval for the snapshot. When it passes that sampler in, this detector reuses
+// the cached count instead of running a second identical full-DOM scan, leaving
+// only the periodic depth walk as its own work. Standalone (no getter) it falls
+// back to scanning, so behavior is unchanged for direct consumers and tests.
+export const createDomBloatDetector = (getDomNodeCount?: () => number): Detector => {
   let issues: VibeIssue[] = []
   let nodeTimerId: ReturnType<typeof setInterval> | null = null
   let depthTimerId: ReturnType<typeof setInterval> | null = null
   let lastThreshold: 'none' | 'warn' | 'error' = 'none'
   let lastMaxDepth = 0
 
+  const readNodeCount = (): number =>
+    getDomNodeCount ? getDomNodeCount() : document.querySelectorAll('*').length
+
   const checkNodeCount = (): void => {
     if (typeof document === 'undefined') return
 
-    const nodeCount = document.querySelectorAll('*').length
+    const nodeCount = readNodeCount()
     let threshold: 'none' | 'warn' | 'error' = 'none'
 
     if (nodeCount >= ERROR_NODE_THRESHOLD) {

@@ -1,7 +1,40 @@
 # Changelog
 
-All notable changes across the `@wcgw/vibe-check`, `@wcgw/vibe-check-core`, and
-`@wcgw/vibe-check-mcp` packages. Versions are kept in lockstep.
+All notable changes across the `@wcgw/vibe-check`, `@wcgw/vibe-check-core`,
+`@wcgw/vibe-check-mcp`, and `@wcgw/vibe-check-protocol` packages. Versions are
+kept in lockstep.
+
+## 0.2.0
+
+The first release carrying the full current product. Everything the demo and
+landing page show — the SEO/AEO audits, the agent workflow, the prompts library,
+the annotation overlay, light theme, and the "Quiet Instrument" redesign —
+shipped after 0.1.3, so `npm install` on 0.1.x delivered a visibly older widget.
+This release closes that gap.
+
+### New
+
+- **`@wcgw/vibe-check-protocol`** — a new package holding the typed evidence
+  contract (`VibeSnapshot`, `VibeIssue`, `DetectorName`, …) shared across core
+  and mcp instead of each re-declaring the shape.
+- **SEO + AEO audits** with scoring, per-check findings, and image alt/size
+  checks with on-page flagging.
+- **Agent workflow, prompts library, and annotation overlay** surfaced in the
+  React widget; **light theme** and the compact **Monitor** view.
+
+### Fixed
+
+- **Honest connection status.** The beacon now delivers snapshots via `fetch`
+  and drives the indicator from a real server response (`res.ok`); a queued
+  `navigator.sendBeacon` no longer reports a false "connected" when nothing is
+  listening. `sendBeacon` remains only as a legacy, status-neutral fallback.
+- **No more storage thrash.** Marking a still-live issue sent/resolved no longer
+  mismatches the tracking counts, which had caused a permanent 2 Hz
+  `localStorage` write + full re-render for the rest of the session.
+- **Keyboard focus is visible** on every button and settings toggle (the focus
+  ring now wins over the pervasive inline `outline: none`).
+- **Audit labels no longer truncate.** The Monitor audits row uses a 2-column
+  grid and a shorter vibe label, so "answers"/"search" always fit at 320px.
 
 ## 0.1.3
 

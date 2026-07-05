@@ -33,6 +33,11 @@ export {
 
 // Engine
 export { VibeCheckEngine } from './engine.js'
+export type { VibeEngine } from './engine.js'
+
+// Scripted engine (deterministic snapshot/issue playback for demos)
+export { createScriptedEngine } from './scriptedEngine.js'
+export type { ScriptedScenario, ScriptedFrame } from './scriptedEngine.js'
 
 // Collectors
 export { FrameRateCollector } from './collectors/frameRate.js'

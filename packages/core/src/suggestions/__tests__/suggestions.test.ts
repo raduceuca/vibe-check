@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getSuggestion } from '../index.js'
+import { getSuggestion, getAgentPrompt } from '../index.js'
 import type { DetectorName, VibeIssue } from '../../types.js'
 
 const makeIssue = (detector: DetectorName, evidence: Record<string, unknown> = {}): VibeIssue => ({
@@ -59,5 +59,71 @@ describe('getSuggestion — no evidence-key drift', () => {
     expect(s.explanation).toContain('320')
     // The old bug rendered "blocked main thread for ?ms".
     expect(s.explanation).not.toContain('?ms')
+  })
+})
+
+describe('SEO/AEO vibe voice (no raw jargon in vibe mode)', () => {
+  it('rewrites og-title-missing into plain language', () => {
+    const s = getSuggestion(makeIssue('seo', { check: 'og-title-missing' }), 'vibe')
+    expect(s.title).toBe("Shared links don't get their own title")
+    expect(s.explanation).toContain('platforms fall back to the tab title')
+  })
+
+  it('rewrites canonical-missing into plain language', () => {
+    const s = getSuggestion(makeIssue('seo', { check: 'canonical-missing' }), 'vibe')
+    expect(s.title).toBe('Google may see this page as duplicates')
+  })
+
+  it('rewrites structured-data-missing and mentions JSON-LD', () => {
+    const s = getSuggestion(makeIssue('aeo', { check: 'structured-data-missing' }), 'vibe')
+    expect(s.title.toLowerCase()).toContain('guess')
+    expect(s.explanation).toContain('JSON-LD')
+  })
+
+  it('falls back to the issue title for an unknown seo check', () => {
+    const issue = makeIssue('seo', { check: 'some-future-check' })
+    const s = getSuggestion(issue, 'vibe')
+    expect(s.title).toBe(issue.title)
+  })
+})
+
+describe('image titles never surface a bare numeric path', () => {
+  it('unoptimized-images with an extensionless URL uses host + dimensions', () => {
+    const evidence = { src: 'https://picsum.photos/2400/1200', problems: ['missing-dimensions'], naturalWidth: 2400, naturalHeight: 1200 }
+    const vibe = getSuggestion(makeIssue('unoptimized-images', evidence), 'vibe')
+    const tech = getSuggestion(makeIssue('unoptimized-images', evidence), 'technical')
+    expect(vibe.title).not.toContain('2400/1200')
+    expect(tech.title).not.toContain('2400/1200')
+    expect(vibe.title).toContain('picsum.photos')
+    expect(vibe.title).toContain('2400×1200')
+  })
+
+  it('large-images with an extensionless URL uses dimensions, not "1200"', () => {
+    const evidence = { src: 'https://picsum.photos/2400/1200', transferSizeKB: 900, naturalWidth: 2400, naturalHeight: 1200, renderedWidth: 400, renderedHeight: 200 }
+    const s = getSuggestion(makeIssue('large-images', evidence), 'vibe')
+    expect(s.title).toContain('2400×1200 image')
+    expect(s.title).toContain('900')
+    expect(s.title).not.toMatch(/^1200/)
+  })
+
+  it('keeps a real filename when the URL has one', () => {
+    const evidence = { src: '/img/hero.png', problems: ['missing-dimensions'] }
+    const s = getSuggestion(makeIssue('unoptimized-images', evidence), 'vibe')
+    expect(s.title.toLowerCase()).toContain('hero.png')
+  })
+})
+
+describe('copy-all header is category-neutral', () => {
+  const seoIssue = makeIssue('seo', { check: 'og-title-missing' })
+
+  it('does not label the batch a set of performance issues', () => {
+    const out = getAgentPrompt([seoIssue], 'technical')
+    expect(out).not.toContain('# Performance Issues Detected by Vibe Check')
+    expect(out.toLowerCase()).toContain('search visibility')
+  })
+
+  it('vibe header is neutral too', () => {
+    const out = getAgentPrompt([seoIssue], 'vibe')
+    expect(out).not.toContain('Performance Problems Found')
   })
 })

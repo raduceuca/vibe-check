@@ -396,6 +396,50 @@ describe('unoptimizedImages detector', () => {
     detector.stop()
   })
 
+  it('collapses repeat images with the same problem signature into one ×N issue', () => {
+    const img1 = createMockImage({ src: 'https://example.com/a.jpg', topOffset: 200 })
+    const img2 = createMockImage({ src: 'https://example.com/b.jpg', topOffset: 200 })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img1, img2] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const issues = detector.getIssues()
+    // Both images have only ['missing-dimensions'] — one grouped issue, count 2.
+    expect(issues.length).toBe(1)
+    expect(issues[0].evidence['count']).toBe(2)
+    expect(issues[0].title).toContain('×2')
+
+    detector.stop()
+  })
+
+  it('titles an extensionless URL by dimensions, never a bare numeric path', () => {
+    const img = createMockImage({
+      src: 'https://picsum.photos/2400/1200',
+      topOffset: 200,
+      naturalWidth: 2400,
+      naturalHeight: 1200,
+      renderedWidth: 100,
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const issues = detector.getIssues()
+    expect(issues.length).toBe(1)
+    expect(issues[0].title).toContain('2400×1200 image')
+    expect(issues[0].title).not.toContain('2400/1200')
+
+    detector.stop()
+  })
+
   it('should disconnect observer on stop()', () => {
     vi.spyOn(document, 'querySelectorAll').mockReturnValue(
       [] as unknown as NodeListOf<Element>,

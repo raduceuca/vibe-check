@@ -50,17 +50,91 @@ const AEO_FIXES: Record<string, string> = {
 }
 const aeoFix = (check: string): string => AEO_FIXES[check] ?? 'Review this AI-readiness issue.'
 
-const getImageName = (evidence: { readonly src: string }): string => {
-  const src = evidence.src
-  if (!src) return 'unknown image'
-  // Extract readable filename from URL
-  const path = src.split('?')[0].split('#')[0]
-  const segments = path.split('/')
-  const last = segments[segments.length - 1]
-  // If it looks like a filename, use it; otherwise use last 2 path segments
-  if (last && last.includes('.')) return last
-  if (segments.length >= 2) return segments.slice(-2).join('/')
-  return last || src.slice(0, 60)
+// Plain-language vibe-mode copy for each check, so vibe users (the default mode)
+// read "Shared links don't get their own title" instead of "Missing og:title".
+// Any check without an entry falls back to the detector's technical title/desc.
+interface VibeCopy {
+  readonly title: string
+  readonly explanation: string
+}
+
+const SEO_VIBE: Record<string, VibeCopy> = {
+  'title-missing': { title: 'Your page has no name', explanation: 'Search results and browser tabs will show the URL instead of a real title.' },
+  'title-too-long': { title: 'Your page title gets cut off', explanation: 'Google trims long titles, so the end of yours is hidden in search results.' },
+  'title-default': { title: 'Your page still has a placeholder title', explanation: 'Every search result and browser tab shows the framework default instead of a real title.' },
+  'meta-description-missing': { title: 'No summary for search results', explanation: 'Google writes its own snippet from your page text — usually a worse pitch than one you write.' },
+  'meta-description-too-long': { title: 'Your search summary gets cut off', explanation: 'Search engines trim long descriptions, so the end is hidden.' },
+  'og-image-missing': { title: 'Shared links show a blank preview', explanation: 'With no preview image, links to this page look empty on Slack, X, and iMessage.' },
+  'og-title-missing': { title: "Shared links don't get their own title", explanation: 'When someone shares this page, platforms fall back to the tab title.' },
+  'og-description-missing': { title: 'Shared links have no description', explanation: 'Links to this page show no descriptive text under the title.' },
+  'canonical-missing': { title: 'Google may see this page as duplicates', explanation: 'Without a canonical link, the same page at different URLs can split its search ranking.' },
+  'h1-missing': { title: 'Your page has no main heading', explanation: 'The main heading is the strongest signal to search engines about what the page is about.' },
+  'h1-multiple': { title: 'Your page has several competing headings', explanation: 'Multiple main headings scatter the topic signal — keep one and make the rest sub-headings.' },
+  'image-alt-missing': { title: 'Some images have no description', explanation: "Search engines and screen readers can't tell what these images show." },
+  'slug-unfriendly': { title: 'Your page address is messy', explanation: 'IDs, underscores, or capital letters in the URL are harder to read and share.' },
+  'sitemap-missing': { title: 'Search engines have no map of your site', explanation: 'Without a sitemap they have to discover every page on their own, which slows indexing.' },
+  'robots-missing': { title: 'No crawler instructions file', explanation: 'A robots.txt tells search engines what to index and where your sitemap is.' },
+  'noindex': { title: 'This page is hidden from search', explanation: 'A setting tells search engines to leave this page out of results entirely.' },
+  'title-too-short': { title: 'Your page title is too short', explanation: 'A longer, descriptive title ranks better and tells people what the page is about.' },
+  'og-url-missing': { title: 'Shares may credit the wrong address', explanation: 'og:url tells platforms the canonical address to credit shares to, even with tracking params.' },
+  'twitter-card-missing': { title: 'Links on X show a plain URL', explanation: 'Without a Twitter/X card, shared links show no rich preview.' },
+  'generic-link-text': { title: 'Some links just say "click here"', explanation: 'Descriptive link text tells search engines and screen readers where each link goes.' },
+}
+const seoVibe = (check: string): VibeCopy | undefined => SEO_VIBE[check]
+
+const AEO_VIBE: Record<string, VibeCopy> = {
+  'structured-data-missing': { title: 'AI tools have to guess what your page is about', explanation: 'Add a machine-readable summary (JSON-LD) so answer engines can read your facts instead of guessing.' },
+  'structured-data-invalid': { title: 'Your machine-readable summary is broken', explanation: 'The JSON-LD is malformed, so answer engines skip it. Validate it and fix the schema.' },
+  'no-main-landmark': { title: "Assistants can't find your main content", explanation: 'A <main> landmark tells readers and assistants where the primary content is.' },
+  'no-author-metadata': { title: 'No author or date on your page', explanation: 'Answer engines weigh authorship and freshness when deciding which sources to trust and cite.' },
+  'llms-txt-missing': { title: 'No cheat-sheet for AI assistants (llms.txt)', explanation: 'An llms.txt hands LLMs a clean summary of your site so they read it accurately.' },
+  'content-requires-js': { title: "Your page looks empty to anything that doesn't run JavaScript", explanation: 'Crawlers and agents that skip JavaScript see a blank page. Consider server-rendering or a fallback.' },
+  'markdown-negotiation-missing': { title: 'No plain-text version for agents', explanation: 'Offering a markdown version lets agents read your content without parsing the page.' },
+  'ai-crawlers-blocked': { title: "You're blocking AI assistants", explanation: "Your robots.txt disallows AI crawlers, so assistants can't read or cite this page." },
+  'mcp-discovery-missing': { title: "Agents can't discover your tools", explanation: 'Sites that want agents to take actions can advertise an MCP interface. Optional for content sites.' },
+}
+const aeoVibe = (check: string): VibeCopy | undefined => AEO_VIBE[check]
+
+const capitalizeFirst = (s: string): string => (s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1))
+
+// A URL's last path segment is a filename only when it has a short extension
+// (hero.png, logo.svg). CDN/placeholder URLs like picsum.photos/2400/1200 have
+// no filename — return null so callers fall back to host + dimensions instead of
+// surfacing "2400/1200" as if it were a name.
+const imageFilename = (src: string): string | null => {
+  if (!src) return null
+  const last = src.split('?')[0].split('#')[0].split('/').pop() ?? ''
+  return /\.[a-z0-9]{2,5}$/i.test(last) ? last : null
+}
+
+// Hostname of an absolute image URL (e.g. "picsum.photos"), or null when the src
+// is relative/opaque.
+const imageHost = (src: string): string | null => {
+  if (!src) return null
+  try {
+    const base = typeof location !== 'undefined' ? location.href : 'http://localhost'
+    return new URL(src, base).hostname || null
+  } catch {
+    return null
+  }
+}
+
+// A never-gibberish label for an image: a real filename when present, else a
+// "W×H image from host" / "image from host" / "W×H image" description assembled
+// from whatever is known. Used for both issue titles and AI prompts.
+const imageLabel = (
+  src: string,
+  dims?: { readonly w?: number | string; readonly h?: number | string },
+): string => {
+  const file = imageFilename(src)
+  if (file) return file
+  const host = imageHost(src)
+  const hasDims = dims != null && dims.w != null && dims.h != null && dims.w !== '?' && dims.h !== '?'
+  const size = hasDims ? `${dims!.w}×${dims!.h}` : ''
+  if (host && size) return `${size} image from ${host}`
+  if (host) return `image from ${host}`
+  if (size) return `${size} image`
+  return src ? src.slice(0, 60) : 'image'
 }
 
 // ── Dual-mode templates ─────────────────────────────────────────────────────
@@ -188,11 +262,15 @@ Evidence: ${JSON.stringify(e)}`,
   },
 
   'unoptimized-images': {
-    technical: (e) => ({
-      title: `Unoptimized: ${getImageName(e)}`,
-      explanation: `Image \`${getImageName(e)}\` ${(Array.isArray(e.problems) ? e.problems : []).length > 0 ? `has ${e.problems.length} issue${e.problems.length > 1 ? 's' : ''}: ${e.problems.join(', ')}` : 'needs optimization'}.`,
-      prompt: `Unoptimized image detected: \`${e.src}\`
-Problems: ${(Array.isArray(e.problems) ? e.problems : []).join(', ') || 'needs optimization'}
+    technical: (e) => {
+      const label = imageLabel(e.src, { w: e.naturalWidth, h: e.naturalHeight })
+      const problems = Array.isArray(e.problems) ? e.problems : []
+      const count = typeof e.count === 'number' && e.count > 1 ? e.count : 1
+      return {
+        title: `Unoptimized image: ${label}${count > 1 ? ` (×${count})` : ''}`,
+        explanation: `${capitalizeFirst(label)} ${problems.length > 0 ? `has ${problems.length} issue${problems.length > 1 ? 's' : ''}: ${problems.join(', ')}` : 'needs optimization'}${count > 1 ? ` — and ${count - 1} more like it` : ''}.`,
+        prompt: `Unoptimized image detected: \`${e.src}\`${count > 1 ? ` (and ${count - 1} more with the same problems)` : ''}
+Problems: ${problems.join(', ') || 'needs optimization'}
 
 Fix:
 1. Add explicit width and height attributes to prevent layout shifts
@@ -202,15 +280,17 @@ Fix:
 5. Ensure image dimensions match display size (2x max for retina)
 
 Evidence: ${JSON.stringify(e)}`,
-    }),
+      }
+    },
     vibe: (e) => {
-      const name = getImageName(e)
+      const label = imageLabel(e.src, { w: e.naturalWidth, h: e.naturalHeight })
       const list = Array.isArray(e.problems) ? e.problems : []
       const fixes = list.length > 0 ? list.map(humanizeImageProblem).join(', ') : 'be optimized'
+      const count = typeof e.count === 'number' && e.count > 1 ? e.count : 1
       return {
-        title: `${name} needs optimization`,
-        explanation: `"${name}" isn't set up properly — it needs you to ${fixes}. That can make the page jump around as it loads or weigh more than it should.`,
-        prompt: `I have an image "${name}" (${e.src}) that needs optimization${list.length > 0 ? ` (${list.join(', ')})` : ''}. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
+        title: `${capitalizeFirst(label)} needs optimization${count > 1 ? ` (×${count})` : ''}`,
+        explanation: `${count > 1 ? `${count} images like this one aren't` : `"${label}" isn't`} set up properly — ${count > 1 ? 'they need' : 'it needs'} you to ${fixes}. That can make the page jump around as it loads or weigh more than it should.`,
+        prompt: `I have an image "${label}" (${e.src})${count > 1 ? ` — and ${count - 1} more with the same problems` : ''} that needs optimization${list.length > 0 ? ` (${list.join(', ')})` : ''}. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
       }
     },
   },
@@ -231,16 +311,16 @@ Optimize:
 Evidence: ${JSON.stringify(e)}`,
     }),
     vibe: (e) => {
-      const name = getImageName(e)
       const sizeKB = e['transferSizeKB'] ?? '?'
       const natW = e['naturalWidth'] ?? '?'
       const natH = e['naturalHeight'] ?? '?'
       const renW = e['renderedWidth'] ?? '?'
       const renH = e['renderedHeight'] ?? '?'
+      const label = imageLabel(e['src'] ?? '', { w: natW, h: natH })
       return {
-        title: `${name} is ${sizeKB}KB`,
-        explanation: `"${name}" is ${sizeKB}KB (${natW}×${natH} pixels displayed at ${renW}×${renH}). That's way too heavy — it makes your page load slowly.`,
-        prompt: `I have an image "${name}" (${e['src'] ?? 'unknown'}) that's ${sizeKB}KB. It's ${natW}×${natH} pixels but displayed at only ${renW}×${renH}. Can you compress it, resize it to what's actually displayed, and convert it to a modern format?`,
+        title: `${capitalizeFirst(label)} is ${sizeKB}KB`,
+        explanation: `"${label}" is ${sizeKB}KB (${natW}×${natH} pixels displayed at ${renW}×${renH}). That's way too heavy — it makes your page load slowly.`,
+        prompt: `I have an image "${label}" (${e['src'] ?? 'unknown'}) that's ${sizeKB}KB. It's ${natW}×${natH} pixels but displayed at only ${renW}×${renH}. Can you compress it, resize it to what's actually displayed, and convert it to a modern format?`,
       }
     },
   },
@@ -354,11 +434,15 @@ Fix: ${seoFix(e.check)}
 
 Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (e, issue) => ({
-      title: issue.title,
-      explanation: issue.description,
-      prompt: `My page has a discoverability problem — ${issue.title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${seoFix(e.check)}`,
-    }),
+    vibe: (e, issue) => {
+      const copy = seoVibe(e.check)
+      const title = copy?.title ?? issue.title
+      return {
+        title,
+        explanation: copy?.explanation ?? issue.description,
+        prompt: `My page has a discoverability problem — ${title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${seoFix(e.check)}`,
+      }
+    },
   },
 
   'aeo': {
@@ -373,11 +457,15 @@ Fix: ${aeoFix(e.check)}
 
 Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (e, issue) => ({
-      title: issue.title,
-      explanation: issue.description,
-      prompt: `My page isn't ready for AI assistants — ${issue.title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${aeoFix(e.check)}`,
-    }),
+    vibe: (e, issue) => {
+      const copy = aeoVibe(e.check)
+      const title = copy?.title ?? issue.title
+      return {
+        title,
+        explanation: copy?.explanation ?? issue.description,
+        prompt: `My page isn't ready for AI assistants — ${title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${aeoFix(e.check)}`,
+      }
+    },
   },
 }
 
@@ -396,7 +484,7 @@ export const getSuggestion = (issue: VibeIssue, mode: SuggestionMode = 'technica
     return {
       title: issue.title,
       explanation: issue.description,
-      prompt: `Fix this performance issue: ${issue.title}\n\n${issue.description}\n\nEvidence: ${JSON.stringify(issue.evidence)}`,
+      prompt: `Fix this issue: ${issue.title}\n\n${issue.description}\n\nEvidence: ${JSON.stringify(issue.evidence)}`,
     }
   }
 
@@ -407,8 +495,8 @@ export const getAgentPrompt = (issues: readonly VibeIssue[], mode: SuggestionMod
   if (issues.length === 0) return ''
 
   const header = mode === 'technical'
-    ? '# Performance Issues Detected by Vibe Check\n\nFix the following performance issues in priority order:\n'
-    : '# Performance Problems Found\n\nMy page has some performance problems. Please fix them:\n'
+    ? '# Issues detected by vibe check\n\nFix the following in priority order (performance, search visibility, and AI readiness):\n'
+    : "# Issues found on your page\n\nHere's what to fix, most important first:\n"
 
   const issuePrompts = issues.map((issue, i) => {
     const suggestion = getSuggestion(issue, mode)
