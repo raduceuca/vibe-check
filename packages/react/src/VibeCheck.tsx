@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from 'react'
-import type { VibeIssue, BeaconStatus } from '@wcgw/vibe-check-core'
+import { useState, useCallback, useMemo, useEffect, useRef, memo, type CSSProperties } from 'react'
+import type { VibeIssue, BeaconStatus, VibeEngine } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
 import { usePreferences } from './hooks/usePreferences.js'
@@ -10,6 +10,7 @@ import { T } from './tokens.js'
 import { useAnimations } from './theme.js'
 import type { PanelType, Position, ViewTab } from './panels/types.js'
 import { getHealth, healthKey, sevVar, sevGlow } from './panels/monitor/severity.js'
+import { surfaceStyle } from './panels/ui/surface.js'
 import { CollapsedPill } from './panels/CollapsedPill.js'
 import { MonitorView } from './panels/monitor/MonitorView.js'
 import { BottomNav } from './panels/nav/BottomNav.js'
@@ -25,6 +26,15 @@ export interface VibeCheckProps {
   readonly panels?: readonly PanelType[]
   readonly beaconUrl?: string
   readonly onIssue?: (issue: VibeIssue) => void
+  // Drive a provided engine (e.g. createScriptedEngine(...)) instead of a live
+  // one — for deterministic scripted demos. Omit for normal behaviour.
+  readonly engine?: VibeEngine | null
+  // Start collapsed (as a floating pill). Lets a wrapper (PerfToggle) make
+  // first-run discoverable without opening the full panel.
+  readonly startCollapsed?: boolean
+  // Distinct localStorage bucket for preferences — set per instance so multiple
+  // embeds on one page don't collide.
+  readonly storageKey?: string
 }
 
 const POS: Record<Position, CSSProperties> = {
@@ -37,20 +47,43 @@ const DEFAULT_PANELS: readonly PanelType[] = ['fps', 'vitals', 'memory', 'consol
 // The widget shell: owns engine + preferences + issue state, and routes between
 // the collapsed pill and the expanded panel's views. Each view is its own
 // component; presentational pieces live under panels/ (ui, monitor, nav).
-export const VibeCheck = ({
+export const VibeCheck = memo(({
   enabled = true, position = 'bottom-right',
   panels = DEFAULT_PANELS,
   beaconUrl, onIssue,
+  engine: providedEngine = null,
+  startCollapsed = false,
+  storageKey,
 }: VibeCheckProps) => {
   useAnimations()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(startCollapsed)
   const [activeView, setActiveView] = useState<ViewTab>('monitor')
   const config = useMemo(() => beaconUrl ? { beaconUrl } : undefined, [beaconUrl])
-  const { engine, snapshot } = useVibeCheck(config, enabled)
-  const { prefs, updatePrefs, toggleMode } = usePreferences()
+  const { engine, snapshot } = useVibeCheck(config, enabled, providedEngine)
+  const { prefs, updatePrefs, toggleMode } = usePreferences(storageKey)
   const { copiedId, copy } = useClipboard()
   const { tracked, markSent, markSentBatch, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
   const mode = prefs.mode
+
+  // ── Focus management ───────────────────────────────────────────────────────
+  // On a real toggle, move focus to the counterpart control (panel header on
+  // expand, pill on collapse) so a keyboard user isn't dropped to <body>.
+  const pillRef = useRef<HTMLDivElement>(null)
+  const panelHeaderRef = useRef<HTMLDivElement>(null)
+  const didMountRef = useRef(false)
+  const prevCollapsedRef = useRef(collapsed)
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      prevCollapsedRef.current = collapsed
+      return
+    }
+    if (prevCollapsedRef.current !== collapsed) {
+      if (collapsed) pillRef.current?.focus()
+      else panelHeaderRef.current?.focus()
+      prevCollapsedRef.current = collapsed
+    }
+  }, [collapsed])
   // Honest performance lifeline — accrues even while collapsed.
   const fpsHistory = useFpsHistory(snapshot.frameRate.fps, snapshot.timestamp, prefs.keepHistory)
 
@@ -93,6 +126,11 @@ export const VibeCheck = ({
   const activeCount = tracked.filter((t) => t.status === 'new').length
   const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
   const aeoCount = tracked.filter((t) => t.issue.detector === 'aeo' && t.status === 'new').length
+  // Stable identity so React.memo(BottomNav) skips re-render on pure FPS ticks.
+  const navCounts = useMemo(
+    () => ({ agent: activeCount, seo: seoCount, aeo: aeoCount }),
+    [activeCount, seoCount, aeoCount],
+  )
 
   if (!enabled) return null
   const pos = POS[position]
@@ -115,7 +153,7 @@ export const VibeCheck = ({
     return (
       <>
         {annotationOverlay}
-        <CollapsedPill snapshot={snapshot} activeCount={activeCount} onToggle={toggle} theme={prefs.theme} pos={pos} />
+        <CollapsedPill snapshot={snapshot} activeCount={activeCount} onToggle={toggle} theme={prefs.theme} mode={mode} pos={pos} headerRef={pillRef} />
       </>
     )
   }
@@ -124,17 +162,19 @@ export const VibeCheck = ({
   return (
     <VibeCheckProvider value={engine}>
       {annotationOverlay}
-      <div data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={prefs.theme} style={{
-        position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: T.font, fontSize: 14,
-        color: T.text, overflow: 'hidden',
-        background: T.bg,
-        borderRadius: T.radiusXl,
-        boxShadow: `var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.08)`,
-        backdropFilter: 'blur(32px)',
-        animation: 'vc-fade-in 0.2s cubic-bezier(0.4,0,0.2,1)',
-        display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
-        ...pos,
-      }}>
+      <div
+        data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={prefs.theme}
+        role="complementary" aria-label="Vibe check performance monitor"
+        onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setCollapsed(true) } }}
+        style={{
+          ...surfaceStyle,
+          position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: T.font, fontSize: 14,
+          color: T.text, overflow: 'hidden',
+          borderRadius: T.radiusXl,
+          animation: `vc-fade-in ${T.durationNormal} ${T.ease}`,
+          display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)',
+          ...pos,
+        }}>
 
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div style={{
@@ -143,7 +183,7 @@ export const VibeCheck = ({
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"
+            <div ref={panelHeaderRef} onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"
               aria-label="Collapse vibe check panel" aria-expanded={true}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
@@ -174,7 +214,7 @@ export const VibeCheck = ({
           )}
 
           {activeView === 'agent' && (
-            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+            <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <AgentPanel
                 tracked={tracked}
                 mode={mode}
@@ -189,7 +229,7 @@ export const VibeCheck = ({
           )}
 
           {activeView === 'seo' && (
-            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+            <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <AuditPanel
                 tracked={tracked}
                 detector="seo"
@@ -208,7 +248,7 @@ export const VibeCheck = ({
           )}
 
           {activeView === 'aeo' && (
-            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+            <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <AuditPanel
                 tracked={tracked}
                 detector="aeo"
@@ -227,21 +267,21 @@ export const VibeCheck = ({
           )}
 
           {activeView === 'prompts' && (
-            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+            <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <PromptsPanel mode={mode} copiedId={copiedId} onCopy={copy} />
             </div>
           )}
 
           {activeView === 'settings' && (
-            <div style={{ animation: 'vc-fade-in 0.18s ease' }}>
+            <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} onToggleMode={toggleMode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
             </div>
           )}
         </div>
 
         {/* ── Bottom navigation ───────────────────────────────────────── */}
-        <BottomNav activeView={activeView} onSelect={setActiveView} counts={{ agent: activeCount, seo: seoCount, aeo: aeoCount }} />
+        <BottomNav activeView={activeView} onSelect={setActiveView} mode={mode} counts={navCounts} />
       </div>
     </VibeCheckProvider>
   )
-}
+})

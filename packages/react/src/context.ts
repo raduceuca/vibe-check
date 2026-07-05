@@ -1,9 +1,11 @@
 import { createContext, useContext } from 'react'
-import type { VibeCheckEngine } from '@wcgw/vibe-check-core'
+import type { VibeEngine } from '@wcgw/vibe-check-core'
 
-const VibeCheckContext = createContext<VibeCheckEngine | null>(null)
+// VibeEngine (not the concrete VibeCheckEngine) so a scripted/mock engine that
+// implements the same surface can be provided for demos.
+const VibeCheckContext = createContext<VibeEngine | null>(null)
 
 export const VibeCheckProvider = VibeCheckContext.Provider
 
-export const useVibeCheckEngine = (): VibeCheckEngine | null =>
+export const useVibeCheckEngine = (): VibeEngine | null =>
   useContext(VibeCheckContext)

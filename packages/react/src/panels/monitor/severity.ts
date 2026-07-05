@@ -21,7 +21,7 @@ export const getHealth = (s: VibeSnapshot) => {
 // solely because a canvas draw call needs a literal colour string.
 export const SEV_HEX = {
   dark: { success: '#4ade80', warning: '#facc15', error: '#fb923c', critical: '#f87171', info: '#60a5fa' },
-  light: { success: '#15803d', warning: '#b45309', error: '#c2410c', critical: '#b91c1c', info: '#1d4ed8' },
+  light: { success: '#15803d', warning: '#a16207', error: '#c2410c', critical: '#b91c1c', info: '#1d4ed8' },
 } as const
 export type SevKey = keyof (typeof SEV_HEX)['dark']
 // Canvas-only: literal hex for the lifeline draw call.

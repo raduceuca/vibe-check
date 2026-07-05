@@ -20,10 +20,3 @@ export const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 
 export const DIVIDER: CSSProperties = { borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 4 }
 // Finer, tighter separation for related sub-groups (e.g. FPS -> its metrics).
 export const FINE: CSSProperties = { borderTop: `1px solid ${T.borderSubtle}`, paddingTop: 11, marginTop: 11 }
-
-export const QUIET_LINK: CSSProperties = {
-  fontSize: 14, fontWeight: 500, color: T.textSecondary,
-  background: 'transparent', border: 'none', cursor: 'pointer',
-  fontFamily: 'inherit', outline: 'none', padding: '4px 2px', minHeight: 30,
-  transition: 'color 0.2s ease, scale 0.12s ease',
-}

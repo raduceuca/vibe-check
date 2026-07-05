@@ -1,9 +1,7 @@
-import type { CSSProperties } from 'react'
 import type { Severity } from '@wcgw/vibe-check-core'
 
 // Severity → theme-tuned CSS variable (bright on dark, dark+saturated on light)
-// so badge text stays legible in both themes, with a color-mix tint background
-// instead of a near-invisible fixed alpha.
+// so the indicator stays legible in both themes.
 const SEV_VAR: Record<Severity, string> = {
   info: 'var(--wcgw-sev-info)',
   warning: 'var(--wcgw-sev-warning)',
@@ -11,48 +9,17 @@ const SEV_VAR: Record<Severity, string> = {
   critical: 'var(--wcgw-sev-critical)',
 }
 
-interface BadgeProps {
+interface SeverityDotProps {
   readonly severity: Severity
 }
 
-export const Badge = ({ severity }: BadgeProps) => {
-  const c = SEV_VAR[severity]
-  const style: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '2px 7px',
-    borderRadius: 'var(--wcgw-radius-xs)',
-    fontSize: 13,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-    color: c,
-    backgroundColor: `color-mix(in srgb, ${c} var(--wcgw-badge-alpha), transparent)`,
-    lineHeight: 1.4,
-  }
-
-  const dotStyle: CSSProperties = {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
-    backgroundColor: c,
-  }
-
-  return (
-    <span style={style}>
-      <span style={dotStyle} />
-      {severity}
-    </span>
-  )
-}
-
-// Collapsed severity indicator — a colour-coded dot for dense one-line rows where
-// a full badge would dominate. The label is exposed to assistive tech + on hover.
-export const SeverityDot = ({ severity }: BadgeProps) => (
+// Collapsed severity indicator — a colour-coded dot for dense one-line rows.
+// role="img" is required for the aria-label to be announced (a bare <span> is a
+// generic role that prohibits accessible names, so most SRs drop it).
+export const SeverityDot = ({ severity }: SeverityDotProps) => (
   <span
-    aria-label={severity}
+    role="img"
+    aria-label={`severity: ${severity}`}
     title={severity}
     style={{
       width: 9,

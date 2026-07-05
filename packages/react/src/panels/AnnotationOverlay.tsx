@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
-import { getSuggestion } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
+import { getSuggestionCached } from './suggestionCache.js'
 import { CopyButton } from './ui/CopyButton.js'
 import { Button } from './ui/Button.js'
+import { CloseButton } from './ui/CloseButton.js'
+import { surfaceStyle } from './ui/surface.js'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -154,8 +156,6 @@ const buildGroups = (
 
 // ── Marker badge ────────────────────────────────────────────────────────────
 
-const FONT = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif'
-
 const Marker = ({
   group, index, mode, copiedId, onCopy, onMarkSent, onMarkResolved, expanded, onToggle,
 }: {
@@ -198,39 +198,46 @@ const Marker = ({
         border: expanded ? '2px solid rgba(var(--wcgw-marker-rgb),0.4)' : '2px solid rgba(var(--wcgw-marker-rgb),0.2)',
         background: expanded ? 'rgba(var(--wcgw-marker-rgb),0.04)' : 'none',
         pointerEvents: 'none',
-        transition: 'border-color 0.2s ease, background 0.2s ease',
+        transition: `border-color ${T.durationNormal} ${T.ease}, background ${T.durationNormal} ${T.ease}`,
         zIndex: T.zOverlay,
       }} />
 
-      {/* Red badge — iOS notification style */}
+      {/* Red badge — iOS notification style. The 22px pill is the visual; the
+          clickable element is a 44px transparent square centered on it, so the
+          hit target meets the touch-size minimum without enlarging the badge. */}
       <div
         onClick={(e) => { e.stopPropagation(); onToggle() }}
         role="button"
         tabIndex={0}
-        aria-label={`${issueCount} performance issue${issueCount > 1 ? 's' : ''}: ${primary.issue.title}`}
+        aria-label={`${issueCount} ${mode === 'vibe' ? (issueCount > 1 ? 'problems' : 'problem') : (issueCount > 1 ? 'issues' : 'issue')}: ${primary.issue.title}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         style={{
           position: 'absolute',
-          left: badgeX,
-          top: badgeY,
+          left: badgeX - 11,
+          top: badgeY - 11,
+          width: 44, height: 44,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: T.zBadge + Math.min(index, 8),
+          userSelect: 'none',
+          pointerEvents: 'auto',
+        }}
+      >
+        <div aria-hidden="true" style={{
           minWidth: 22, height: 22,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 6px',
           borderRadius: T.radiusPill,
           background: 'var(--wcgw-marker)',
           boxShadow: '0 2px 8px rgba(var(--wcgw-marker-rgb),0.45), 0 1px 2px rgba(0,0,0,0.3)',
-          cursor: 'pointer',
-          zIndex: T.zBadge + Math.min(index, 8),
-          transition: 'transform 0.15s ease',
+          transition: `transform ${T.durationFast} ${T.ease}`,
           transform: expanded ? 'scale(1.15)' : 'scale(1)',
-          fontFamily: FONT,
-          userSelect: 'none',
-          pointerEvents: 'auto',
-        }}
-      >
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--wcgw-marker-fg)', lineHeight: 1 }}>
-          {issueCount}
-        </span>
+          fontFamily: T.font,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--wcgw-marker-fg)', lineHeight: 1 }}>
+            {issueCount}
+          </span>
+        </div>
       </div>
 
       {/* Expanded popover */}
@@ -238,19 +245,17 @@ const Marker = ({
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
+            ...surfaceStyle,
             position: 'absolute',
             left: popoverLeft,
             top: popoverTop,
             width: 290,
             zIndex: T.zPopover,
-            background: 'var(--wcgw-bg)',
             borderRadius: T.radiusLg,
-            border: '1px solid rgba(var(--wcgw-fg),0.1)',
-            boxShadow: 'var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
-            backdropFilter: 'blur(32px)',
+            border: `1px solid ${T.border}`,
             padding: '12px 14px',
-            fontFamily: FONT,
-            animation: 'vc-fade-in 0.15s ease',
+            fontFamily: T.font,
+            animation: `vc-fade-in ${T.durationFast} ${T.ease}`,
             maxHeight: 320,
             overflowY: 'auto',
             pointerEvents: 'auto',
@@ -258,23 +263,15 @@ const Marker = ({
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(var(--wcgw-fg),0.9)' }}>
-              {issueCount} issue{issueCount > 1 ? 's' : ''} here
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
+              {issueCount} {mode === 'vibe' ? (issueCount > 1 ? 'problems' : 'problem') : (issueCount > 1 ? 'issues' : 'issue')} here
             </span>
-            <button
-              onClick={onToggle}
-              style={{
-                background: 'none', border: 'none', color: 'rgba(var(--wcgw-fg),0.35)', cursor: 'pointer',
-                fontSize: 18, padding: 8, minWidth: 32, minHeight: 32,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-              }}
-              aria-label="Close"
-            >{'\u2715'}</button>
+            <CloseButton onClick={onToggle} />
           </div>
 
           {/* Issue list */}
           {group.issues.map((t, i) => {
-            const suggestion = getSuggestion(t.issue, mode)
+            const suggestion = getSuggestionCached(t.issue, mode)
             const handleCopy = async () => {
               const success = await onCopy(suggestion.prompt, t.issue.id)
               if (success && t.status === 'new') onMarkSent(t.issue.id)
@@ -283,13 +280,13 @@ const Marker = ({
             return (
               <div key={t.issue.id} style={{
                 padding: '10px 0',
-                borderTop: i > 0 ? '1px solid rgba(var(--wcgw-fg),0.06)' : 'none',
+                borderTop: i > 0 ? `1px solid ${T.borderSubtle}` : 'none',
               }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(var(--wcgw-fg),0.8)', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: T.text, marginBottom: 4 }}>
                   {mode === 'vibe' ? suggestion.title : t.issue.title}
                 </div>
-                <div style={{ fontSize: 14, color: 'rgba(var(--wcgw-fg),0.4)', lineHeight: 1.5, marginBottom: 8 }}>
-                  {suggestion.explanation.slice(0, 120)}{suggestion.explanation.length > 120 ? '...' : ''}
+                <div style={{ fontSize: 14, color: T.textTertiary, lineHeight: 1.5, marginBottom: 8 }}>
+                  {suggestion.explanation.slice(0, 120)}{suggestion.explanation.length > 120 ? '\u2026' : ''}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <CopyButton copied={copiedId === t.issue.id} onClick={handleCopy} size="sm" label={mode === 'vibe' ? 'copy for AI' : 'copy prompt'} />
@@ -319,7 +316,7 @@ const Marker = ({
 
 // ── Main Overlay ────────────────────────────────────────────────────────────
 
-export const AnnotationOverlay = ({
+export const AnnotationOverlay = memo(({
   tracked, visible, mode, theme, copiedId, onCopy, onMarkSent, onMarkResolved,
 }: AnnotationOverlayProps) => {
   const [groups, setGroups] = useState<readonly AnnotationGroup[]>([])
@@ -473,4 +470,4 @@ export const AnnotationOverlay = ({
       ))}
     </div>
   )
-}
+})

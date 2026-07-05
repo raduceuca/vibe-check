@@ -8,7 +8,9 @@ import { useEffect, useLayoutEffect } from 'react'
 
 const STYLE_ID = 'vibe-check-styles'
 
-const ANIMATIONS_CSS = `
+// Exported (not re-exported from the package entry) so a unit test can assert the
+// canvas-only SEV_HEX literals stay in sync with the --wcgw-sev-* declarations.
+export const ANIMATIONS_CSS = `
 @keyframes vc-breathe { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
 @keyframes vc-fade-in { from { opacity: 0; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
 @keyframes vc-ring-in { from { stroke-dashoffset: var(--wcgw-circ); } }
@@ -23,13 +25,18 @@ const ANIMATIONS_CSS = `
 [data-wcgw] {
   --wcgw-font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
   --wcgw-font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
-  --wcgw-text-xs: 11px; --wcgw-text-sm: 12px; --wcgw-text-base: 14px; --wcgw-text-lg: 16px; --wcgw-text-xl: 20px; --wcgw-text-display: 34px;
+  /* Two sizes only — 14px body + 34px hero. Hierarchy comes from weight/case/
+     colour, never from more sizes (see typography.ts). */
+  --wcgw-text-base: 14px; --wcgw-text-display: 34px;
   --wcgw-radius-xs: 4px; --wcgw-radius-sm: 6px; --wcgw-radius-md: 8px; --wcgw-radius-lg: 12px; --wcgw-radius-xl: 16px; --wcgw-radius-pill: 999px;
   --wcgw-ease: cubic-bezier(0.4,0,0.2,1); --wcgw-duration-fast: 0.15s; --wcgw-duration-normal: 0.2s; --wcgw-duration-slow: 0.4s;
+  /* Spacing scale — a 4px grid so gaps/margins snap to tokens instead of eyeballed px. */
+  --wcgw-space-1: 4px; --wcgw-space-2: 8px; --wcgw-space-3: 12px; --wcgw-space-4: 16px; --wcgw-space-5: 20px; --wcgw-space-6: 24px;
   --wcgw-text: rgba(var(--wcgw-fg),0.96);
   --wcgw-text-secondary: rgba(var(--wcgw-fg),0.72);
-  --wcgw-text-tertiary: rgba(var(--wcgw-fg),0.56);
-  --wcgw-text-muted: rgba(var(--wcgw-fg),0.42);
+  /* text-tertiary / text-muted are set per-theme below: the same alpha yields
+     very different contrast on dark vs light, so light needs a heavier ladder to
+     clear WCAG AA for 14px body copy. */
   --wcgw-surface: rgba(var(--wcgw-fg),0.03);
   --wcgw-surface-sunken: rgba(var(--wcgw-fg),0.02);
   --wcgw-surface-hover: rgba(var(--wcgw-fg),0.06);
@@ -46,6 +53,8 @@ const ANIMATIONS_CSS = `
 }
 [data-wcgw-theme="dark"] {
   --wcgw-fg: 255,255,255;
+  --wcgw-text-tertiary: rgba(var(--wcgw-fg),0.56);
+  --wcgw-text-muted: rgba(var(--wcgw-fg),0.46);
   --wcgw-bg: rgba(12,12,12,0.97);
   --wcgw-elevated: rgba(20,20,20,0.98);
   --wcgw-shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
@@ -56,7 +65,9 @@ const ANIMATIONS_CSS = `
 }
 [data-wcgw-theme="light"] {
   --wcgw-fg: 28,28,30;
-  --wcgw-bg: rgba(252,251,248,0.98);
+  --wcgw-text-tertiary: rgba(var(--wcgw-fg),0.66);
+  --wcgw-text-muted: rgba(var(--wcgw-fg),0.55);
+  --wcgw-bg: rgba(252,252,252,0.98);
   --wcgw-elevated: rgba(255,255,255,0.99);
   --wcgw-shadow-sm: 0 2px 8px rgba(20,20,22,0.08);
   --wcgw-shadow-md: 0 8px 28px rgba(20,20,22,0.13);
@@ -67,12 +78,23 @@ const ANIMATIONS_CSS = `
 [data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
 [data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
 [data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
-[data-wcgw] button:hover { filter: brightness(1.12); }
+/* Background-based hover (not a filter): most buttons are transparent, so a
+   brightness filter did nothing visible while still forcing filter compositing
+   on hover. A faint rgba overlay matches [data-wcgw-tab]:hover and never repaints
+   via the filter pipeline. */
+[data-wcgw] button:hover { background-color: rgba(var(--wcgw-fg),0.04); }
 [data-wcgw-pill] { transition: scale 0.12s ease, background 0.15s ease; }
 /* Tactile press feedback (scale 0.96) on interactive controls. */
 [data-wcgw] button:active, [data-wcgw-pill]:active { scale: 0.96; }
 [data-wcgw] [role="button"]:focus-visible, [data-wcgw] [role="switch"]:focus-visible, [data-wcgw] button:focus-visible {
-  outline: 2px solid rgba(var(--wcgw-fg),0.5); outline-offset: 2px; border-radius: 4px;
+  outline: 2px solid var(--wcgw-focus-ring) !important; outline-offset: 2px; border-radius: 4px;
+}
+/* Controls set inline outline:none pervasively, which beats a non-!important
+   author rule — so the focus ring must be !important to win. Settings toggles
+   render a visually-hidden <input> immediately before their track <div>; project
+   the ring onto the track so keyboard focus is visible on the switches too. */
+[data-wcgw] input:focus-visible + div {
+  outline: 2px solid var(--wcgw-focus-ring); outline-offset: 2px; border-radius: var(--wcgw-radius-pill);
 }
 @media (prefers-reduced-motion: reduce) {
   [data-wcgw-breathe], [data-wcgw] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

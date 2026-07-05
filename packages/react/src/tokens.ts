@@ -45,8 +45,19 @@ export const T = {
   zPopover: 2147483640,
   zPanel: 2147483645,
 
+  // Motion — one ease + three duration steps. Components compose transitions
+  // from these instead of copy-pasting `cubic-bezier(0.4,0,0.2,1)` and ad-hoc
+  // durations, so timing tunes in one place.
+  ease: 'var(--wcgw-ease)',
+  durationFast: 'var(--wcgw-duration-fast)',
+  durationNormal: 'var(--wcgw-duration-normal)',
+  durationSlow: 'var(--wcgw-duration-slow)',
+
   // Font
   font: 'var(--wcgw-font-sans)',
   fontMono: 'var(--wcgw-font-mono)',
   fontSize: 14,
+
+  // Spacing — a 4px grid (--wcgw-space-1..6 = 4/8/12/16/20/24).
+  space: (n: 1 | 2 | 3 | 4 | 5 | 6): string => `var(--wcgw-space-${n})`,
 } as const

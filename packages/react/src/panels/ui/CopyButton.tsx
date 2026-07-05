@@ -7,23 +7,30 @@ interface CopyButtonProps {
   readonly label?: string
 }
 
-const baseStyle = (size: 'sm' | 'md', copied: boolean): CSSProperties => ({
+const baseStyle = (copied: boolean): CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: 4,
-  padding: size === 'sm' ? '5px 9px' : '6px 12px',
-  minHeight: size === 'sm' ? 28 : 32,
+  padding: '6px 12px',
+  minHeight: 40,
   borderRadius: 'var(--wcgw-radius-sm)',
   fontSize: 14,
   fontWeight: 500,
   border: `1px solid ${copied ? 'color-mix(in srgb, var(--wcgw-sev-success) 22%, transparent)' : 'var(--wcgw-border)'}`,
   cursor: 'pointer',
-  transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+  transition: 'background var(--wcgw-duration-normal) var(--wcgw-ease), border-color var(--wcgw-duration-normal) var(--wcgw-ease), color var(--wcgw-duration-normal) var(--wcgw-ease)',
   color: copied ? 'var(--wcgw-sev-success)' : 'var(--wcgw-text-secondary)',
   background: copied ? 'color-mix(in srgb, var(--wcgw-sev-success) 8%, transparent)' : 'var(--wcgw-surface)',
-  outline: 'none',
   fontFamily: 'inherit',
 })
+
+// Visually-hidden live region: SR users hear the copy succeeded (the visual flip
+// to "copied" is silent to them). WCAG 4.1.3 Status Messages.
+const SR_STATUS: CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
+}
 
 const ClipboardSVG = ({ size }: { size: number }) => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,19 +52,29 @@ const CheckSVG = ({ size }: { size: number }) => (
 
 export const CopyButton = ({ copied, onClick, size = 'sm', label }: CopyButtonProps) => {
   const iconSize = size === 'sm' ? 12 : 14
+  // One string for title + aria-label (they used to disagree). Copied state
+  // reads "Copied" without an exclamation, matching the lowercase visible label.
+  const describe = copied ? 'Copied' : 'Copy prompt for your AI agent'
+  // "copy all" buttons announce the batch; single copies announce one prompt.
+  const isBatch = /(^|\s)all(\s|$)/i.test(label ?? '')
 
   return (
-    <button
-      style={baseStyle(size, copied)}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      aria-label={copied ? 'Copied!' : (label ?? 'Copy to clipboard')}
-      title={copied ? 'Copied!' : (label ?? 'Copy for your AI agent')}
-    >
-      {copied ? <CheckSVG size={iconSize} /> : <ClipboardSVG size={iconSize} />}
-      {label ? label : (copied ? 'copied' : 'copy')}
-    </button>
+    <>
+      <button
+        style={baseStyle(copied)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClick()
+        }}
+        aria-label={describe}
+        title={describe}
+      >
+        {copied ? <CheckSVG size={iconSize} /> : <ClipboardSVG size={iconSize} />}
+        {label ? label : (copied ? 'copied' : 'copy')}
+      </button>
+      <span role="status" aria-live="polite" style={SR_STATUS}>
+        {copied ? (isBatch ? 'All prompts copied' : 'Prompt copied') : ''}
+      </span>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import { T } from '../../tokens.js'
 
-// The one button in the widget. Hover (brightness) and press (scale 0.96) come
+// The one button in the widget. Hover (background) and press (scale 0.96) come
 // from the global [data-wcgw] button rules, so variants only own border/bg/text.
 type ButtonVariant = 'ghost' | 'success' | 'danger'
 type ButtonSize = 'sm' | 'md'
@@ -18,8 +18,8 @@ const VARIANT: Record<ButtonVariant, CSSProperties> = {
 }
 
 const SIZE: Record<ButtonSize, CSSProperties> = {
-  sm: { padding: '4px 10px', minHeight: 30 },
-  md: { padding: '7px 12px', minHeight: 36 },
+  sm: { padding: '6px 10px', minHeight: 40 },
+  md: { padding: '9px 12px', minHeight: 40 },
 }
 
 interface ButtonProps {
@@ -51,9 +51,8 @@ export const Button = ({
       fontWeight: 500,
       fontFamily: 'inherit',
       cursor: 'pointer',
-      outline: 'none',
       width: fullWidth ? '100%' : undefined,
-      transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+      transition: `background ${T.durationNormal} ${T.ease}, border-color ${T.durationNormal} ${T.ease}, color ${T.durationNormal} ${T.ease}`,
       ...SIZE[size],
       ...VARIANT[variant],
     }}

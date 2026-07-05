@@ -1,13 +1,16 @@
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
+import { memo } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
-import { getSuggestion, getAgentPrompt } from '@wcgw/vibe-check-core'
+import { getAgentPrompt } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
+import { getSuggestionCached } from './suggestionCache.js'
 import { CopyButton } from './ui/CopyButton.js'
 import { Row } from './ui/Row.js'
 import { Button } from './ui/Button.js'
 import { SectionHeader } from './ui/SectionHeader.js'
 import { EmptyState } from './ui/EmptyState.js'
+import { Tabs, type TabItem } from './ui/Tabs.js'
 
 interface AgentPanelProps {
   readonly tracked: readonly TrackedIssue[]
@@ -21,26 +24,6 @@ interface AgentPanelProps {
 }
 
 type TabKey = 'active' | 'sent' | 'resolved'
-
-// Borderless segmented control — text only, a single underline slides between
-// tabs on a faint track. Matches the bottom-nav language; no boxy active fill.
-const segTabStyle = (active: boolean): CSSProperties => ({
-  flex: 1,
-  padding: '8px 0 10px',
-  minHeight: 40,
-  fontSize: 14,
-  fontWeight: active ? 600 : 500,
-  textAlign: 'center',
-  color: active ? T.text : T.textTertiary,
-  background: 'transparent',
-  border: 'none',
-  cursor: 'pointer',
-  transition: 'color 0.2s ease',
-  fontFamily: 'inherit',
-  outline: 'none',
-})
-
-const TAB_INDEX: Record<TabKey, number> = { active: 0, sent: 1, resolved: 2 }
 
 const IssueRow = ({
   tracked,
@@ -58,7 +41,7 @@ const IssueRow = ({
   readonly onMarkResolved: (issueId: string) => void
 }) => {
   const { issue } = tracked
-  const suggestion = getSuggestion(issue, mode)
+  const suggestion = getSuggestionCached(issue, mode)
   const isResolved = tracked.status === 'resolved'
 
   const handleCopyAndMark = async () => {
@@ -91,7 +74,7 @@ const IssueRow = ({
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', marginBottom: 8,
         }}>
-          <span style={{ fontSize: 14, fontWeight: 500, color: T.textMuted }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: T.textTertiary }}>
             {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
           </span>
           <CopyButton
@@ -106,7 +89,7 @@ const IssueRow = ({
           fontFamily: T.fontMono,
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
         }}>
-          {suggestion.prompt.slice(0, 300)}{suggestion.prompt.length > 300 ? '...' : ''}
+          {suggestion.prompt.slice(0, 300)}{suggestion.prompt.length > 300 ? '…' : ''}
         </div>
       </div>
 
@@ -130,7 +113,7 @@ const IssueRow = ({
   )
 }
 
-export const AgentPanel = ({
+export const AgentPanel = memo(({
   tracked, mode, copiedId, onCopy, onMarkSent, onMarkSentBatch, onMarkResolved, onClearResolved,
 }: AgentPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>('active')
@@ -141,6 +124,12 @@ export const AgentPanel = ({
 
   const tabIssues: Record<TabKey, readonly TrackedIssue[]> = { active, sent, resolved }
   const currentIssues = tabIssues[activeTab]
+
+  const tabItems: readonly TabItem[] = [
+    { key: 'active', content: mode === 'vibe' ? `to fix (${active.length})` : `active (${active.length})` },
+    { key: 'sent', content: `sent (${sent.length})` },
+    { key: 'resolved', content: mode === 'vibe' ? `fixed (${resolved.length})` : `resolved (${resolved.length})` },
+  ]
 
   const handleCopyAll = async () => {
     const issues = currentIssues.map((t) => t.issue)
@@ -170,36 +159,25 @@ export const AgentPanel = ({
         {mode === 'vibe' ? 'AI Fixes' : 'Agent Queue'}
       </SectionHeader>
 
-      <div style={{
-        display: 'flex', position: 'relative', marginBottom: 10,
-        boxShadow: 'inset 0 -1px 0 rgba(var(--wcgw-fg),0.07)',
-      }}>
-        {/* One underline that slides between the active tab's center */}
-        <span aria-hidden="true" style={{
-          position: 'absolute', bottom: 0,
-          left: `calc((${TAB_INDEX[activeTab]} + 0.5) * (100% / 3))`,
-          transform: 'translateX(-50%)',
-          width: 24, height: 2, borderRadius: T.radiusPill, background: T.text,
-          transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
-        }} />
-        <button style={segTabStyle(activeTab === 'active')} onClick={() => setActiveTab('active')}>
-          {mode === 'vibe' ? `to fix (${active.length})` : `active (${active.length})`}
-        </button>
-        <button style={segTabStyle(activeTab === 'sent')} onClick={() => setActiveTab('sent')}>
-          sent ({sent.length})
-        </button>
-        <button style={segTabStyle(activeTab === 'resolved')} onClick={() => setActiveTab('resolved')}>
-          {mode === 'vibe' ? `fixed (${resolved.length})` : `resolved (${resolved.length})`}
-        </button>
-      </div>
+      <Tabs
+        items={tabItems}
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k as TabKey)}
+        variant="underline"
+        edge="bottom"
+        hairline
+        ariaLabel="Issue queues"
+        tabStyle={{ padding: '8px 0 10px', minHeight: 40 }}
+        containerStyle={{ marginBottom: 10 }}
+      />
 
       {currentIssues.length === 0 ? (
         <EmptyState
           showDot={activeTab === 'active'}
           label={activeTab === 'active'
-            ? (mode === 'vibe' ? 'All good! No issues found' : 'No active issues')
+            ? (mode === 'vibe' ? 'All good! No problems found' : 'No active issues')
             : activeTab === 'sent'
-              ? (mode === 'vibe' ? 'No prompts sent yet' : 'No issues in sent queue')
+              ? (mode === 'vibe' ? 'No prompts sent yet' : 'Nothing sent yet')
               : (mode === 'vibe' ? 'Nothing fixed yet' : 'No resolved issues')}
         />
       ) : (
@@ -222,4 +200,4 @@ export const AgentPanel = ({
       )}
     </div>
   )
-}
+})

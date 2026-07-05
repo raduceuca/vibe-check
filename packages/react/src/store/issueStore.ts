@@ -116,41 +116,44 @@ export const createIssueStore = (): IssueStore => {
     },
 
     sync(liveIssues: readonly VibeIssue[]): void {
-      // Cheap early-out: if the live keys exactly match the currently-tracked
-      // 'new' keys (and every live key maps to an already-known tracked item),
-      // nothing observable has changed. The engine emits a fresh issues array
-      // every 500ms even when contents are identical — without this guard,
-      // every tick would rebuild the store and re-notify every subscriber.
+      // Cheap early-out. The engine emits a fresh issues array every 500ms even
+      // when nothing changed, so a full rebuild here would writeToStorage +
+      // notify() (re-rendering every subscriber) twice a second. The store only
+      // needs to rebuild when the observable set changes:
+      //   (a) a genuinely new live key appears (not cleared, not already tracked), or
+      //   (b) a tracked 'new' issue is no longer live (so it must be pruned).
+      // A live issue already tracked under ANY status — including sent-to-agent
+      // and resolved — is not a change. That is what stops "copy prompt" (which
+      // marks an issue sent while it stays live) from mismatching a 'new'-only
+      // count and thrashing localStorage for the rest of the session. A pure
+      // lastSeen refresh is unobservable and deliberately triggers no write.
       const clearedSet = new Set(state.clearedIds)
+      const liveKeys = new Set<string>()
+      for (const live of liveIssues) {
+        const key = issueKey(live)
+        if (!clearedSet.has(key)) liveKeys.add(key)
+      }
+      const trackedKeys = new Set<string>()
+      for (const tracked of state.issues) trackedKeys.add(issueKey(tracked.issue))
+
+      let hasNewKey = false
+      for (const key of liveKeys) {
+        if (!trackedKeys.has(key)) { hasNewKey = true; break }
+      }
+      let hasDroppedNew = false
+      if (!hasNewKey) {
+        for (const tracked of state.issues) {
+          if (tracked.status === 'new' && !liveKeys.has(issueKey(tracked.issue))) {
+            hasDroppedNew = true
+            break
+          }
+        }
+      }
+      if (!hasNewKey && !hasDroppedNew) return
+
       const existingByKey = new Map<string, TrackedIssue>()
       for (const tracked of state.issues) {
         existingByKey.set(issueKey(tracked.issue), tracked)
-      }
-
-      let changed = false
-      let liveMatchCount = 0
-      for (const live of liveIssues) {
-        const key = issueKey(live)
-        if (clearedSet.has(key)) continue
-        const existing = existingByKey.get(key)
-        if (!existing) {
-          changed = true
-          break
-        }
-        liveMatchCount += 1
-      }
-
-      if (!changed) {
-        // Count currently tracked 'new' issues whose key is still live.
-        const liveKeySet = new Set<string>()
-        for (const live of liveIssues) liveKeySet.add(issueKey(live))
-        let trackedNewCount = 0
-        for (const tracked of state.issues) {
-          if (tracked.status === 'new' && liveKeySet.has(issueKey(tracked.issue))) {
-            trackedNewCount += 1
-          }
-        }
-        if (trackedNewCount === liveMatchCount) return
       }
 
       const now = Date.now()

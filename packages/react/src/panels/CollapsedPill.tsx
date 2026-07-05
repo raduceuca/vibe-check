@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react'
-import type { VibeSnapshot } from '@wcgw/vibe-check-core'
+import { memo, type CSSProperties, type Ref } from 'react'
+import type { VibeSnapshot, SuggestionMode } from '@wcgw/vibe-check-core'
 import { T } from '../tokens.js'
 import { MiniRing } from './monitor/MiniRing.js'
 import { getHealth, healthKey, sevVar, sevGlow, fpsKey } from './monitor/severity.js'
@@ -14,20 +14,26 @@ interface CollapsedPillProps {
   readonly activeCount: number
   readonly onToggle: () => void
   readonly theme: 'dark' | 'light'
+  readonly mode: SuggestionMode
   readonly pos: CSSProperties
+  // Focus target so the panel can restore focus to the pill on collapse/Escape.
+  readonly headerRef?: Ref<HTMLDivElement>
 }
 
 // The floating pill shown when the panel is collapsed — health dot, FPS ring,
 // memory, and an issue count. Self-contained: derives its own health/accent.
-export const CollapsedPill = ({ snapshot, activeCount, onToggle, theme, pos }: CollapsedPillProps) => {
+export const CollapsedPill = memo(({ snapshot, activeCount, onToggle, theme, mode, pos, headerRef }: CollapsedPillProps) => {
   const h = getHealth(snapshot)
   const hKey = healthKey(snapshot)
   const hColor = sevVar(hKey)
+  const noun = mode === 'vibe'
+    ? (activeCount === 1 ? 'problem' : 'problems')
+    : (activeCount === 1 ? 'issue' : 'issues')
 
   return (
     <div style={{ position: 'fixed', zIndex: T.zPanel, ...pos }} data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={theme}>
-      <div onClick={onToggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-wcgw-pill
-        aria-label={`Expand vibe check — ${Math.round(snapshot.frameRate.fps)} fps, ${activeCount} issues`} aria-expanded={false}
+      <div ref={headerRef} onClick={onToggle} role="button" tabIndex={0} data-testid="vibe-check-header" data-wcgw-pill
+        aria-label={`Expand vibe check — ${Math.round(snapshot.frameRate.fps)} fps, ${activeCount} ${noun}`} aria-expanded={false}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
@@ -39,8 +45,7 @@ export const CollapsedPill = ({ snapshot, activeCount, onToggle, theme, pos }: C
           borderRadius: T.radiusPill, cursor: 'pointer', userSelect: 'none',
           border: `1px solid ${T.border}`,
           boxShadow: `var(--wcgw-shadow-md), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)`,
-          backdropFilter: 'blur(24px)',
-          animation: 'vc-fade-in 0.25s cubic-bezier(0.4,0,0.2,1)',
+          animation: `vc-fade-in ${T.durationNormal} ${T.ease}`,
         }}>
         {/* Overall health */}
         <span data-wcgw-breathe aria-hidden="true" style={{
@@ -72,4 +77,4 @@ export const CollapsedPill = ({ snapshot, activeCount, onToggle, theme, pos }: C
       </div>
     </div>
   )
-}
+})

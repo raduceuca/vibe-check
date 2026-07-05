@@ -1,18 +1,12 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { T } from '../../tokens.js'
+import { T_LABEL } from './typography.js'
 
-// The single uppercase section label used across every panel — replaces the
-// three prior variants (tokens.sectionHeaderStyle, VibeCheck's KICKER, and the
-// inline copies). Optional count pill and a right-aligned action slot.
-// Exported so bespoke headers (e.g. the audit score header) can reuse the exact
-// label treatment without the flex wrapper.
-export const sectionLabelStyle: CSSProperties = {
-  fontSize: 14,
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: T.textTertiary,
-}
+// The single uppercase section label used across every panel. Aliases T_LABEL
+// (the one uppercase-label treatment, 0.04em tracking) so Monitor's KICKER and
+// every other tab's section headers can no longer track differently. Exported so
+// bespoke headers (e.g. the audit score header) can reuse the exact treatment.
+export const sectionLabelStyle: CSSProperties = T_LABEL
 
 interface SectionHeaderProps {
   readonly children: ReactNode

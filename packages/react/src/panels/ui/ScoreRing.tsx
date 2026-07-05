@@ -1,5 +1,7 @@
 // Circular audit score — a 0-100 pass rate with a letter grade, coloured by band
 // (green/amber/red via the theme-tuned severity variables).
+import { T } from '../../tokens.js'
+import { TEXT_PX } from './typography.js'
 
 export const gradeFor = (score: number): string =>
   score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F'
@@ -27,21 +29,23 @@ export const ScoreRing = ({ score, size = 60 }: { score: number; size?: number }
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-        <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--wcgw-fg),0.08)" strokeWidth={sw} />
+        <circle cx={mid} cy={mid} r={r} fill="none" stroke={T.border} strokeWidth={sw} />
         <circle
           cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.5s cubic-bezier(0.4,0,0.2,1), stroke 0.3s ease' }}
+          style={{ transition: `stroke-dashoffset ${T.durationSlow} ${T.ease}, stroke ${T.durationNormal} ${T.ease}` }}
         />
       </svg>
+      {/* Numeral + grade on one line, both at TEXT_PX — hierarchy is weight/colour,
+          not a third size (2-size type rule). The arc carries the visual weight. */}
       <div style={{
-        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+        position: 'absolute', inset: 0, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', gap: 3, lineHeight: 1,
       }}>
-        <span style={{ fontSize: Math.round(size * 0.32), fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: 'rgba(var(--wcgw-fg),0.95)' }}>
+        <span style={{ fontSize: TEXT_PX, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: T.text }}>
           {clamped}
         </span>
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color, marginTop: 2 }}>
+        <span style={{ fontSize: TEXT_PX, fontWeight: 600, color }}>
           {gradeFor(clamped)}
         </span>
       </div>

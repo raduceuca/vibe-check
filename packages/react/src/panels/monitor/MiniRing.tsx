@@ -8,7 +8,7 @@ export const MiniRing = ({ value, max, color }: { value: number; max: number; co
       <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(var(--wcgw-fg),0.08)" strokeWidth={sw} />
       <circle cx={mid} cy={mid} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 3px color-mix(in srgb, ${color} 31%, transparent))`, transition: 'stroke-dashoffset 0.3s ease' }}
+        style={{ filter: `drop-shadow(0 0 3px color-mix(in srgb, ${color} 31%, transparent))`, transition: 'stroke-dashoffset var(--wcgw-duration-normal) var(--wcgw-ease)' }}
       />
     </svg>
   )

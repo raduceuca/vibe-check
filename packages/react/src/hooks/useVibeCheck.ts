@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react'
 import {
   VibeCheckEngine,
+  type VibeEngine,
   type VibeCheckConfig,
   type VibeSnapshot,
   EMPTY_FRAME_RATE_STATS,
@@ -23,7 +24,7 @@ const EMPTY_SNAPSHOT: VibeSnapshot = {
 }
 
 interface UseVibeCheckResult {
-  readonly engine: VibeCheckEngine | null
+  readonly engine: VibeEngine | null
   readonly snapshot: VibeSnapshot
 }
 
@@ -59,9 +60,13 @@ const shallowConfigEqual = (
 
 export const useVibeCheck = (
   config?: Partial<VibeCheckConfig>,
-  enabled = true
+  enabled = true,
+  // An engine to drive instead of constructing a live one — e.g. a
+  // createScriptedEngine(...) for a deterministic demo. Backward-compatible:
+  // omit it for the normal live-collector behaviour.
+  injectedEngine?: VibeEngine | null,
 ): UseVibeCheckResult => {
-  const engineRef = useRef<VibeCheckEngine | null>(null)
+  const engineRef = useRef<VibeEngine | null>(null)
   const [snapshot, setSnapshot] = useState<VibeSnapshot>(EMPTY_SNAPSHOT)
 
   // Keep a stable reference to the config until it meaningfully changes.
@@ -84,7 +89,7 @@ export const useVibeCheck = (
       return
     }
 
-    const engine = new VibeCheckEngine(stableConfig ?? {})
+    const engine: VibeEngine = injectedEngine ?? new VibeCheckEngine(stableConfig ?? {})
     engineRef.current = engine
 
     const unsubscribe = engine.onSnapshot((s) => {
@@ -96,9 +101,9 @@ export const useVibeCheck = (
     return () => {
       unsubscribe()
       engine.stop()
-      engineRef.current = null
+      if (engineRef.current === engine) engineRef.current = null
     }
-  }, [enabled, stableConfig])
+  }, [enabled, stableConfig, injectedEngine])
 
   return { engine: engineRef.current, snapshot }
 }

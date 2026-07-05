@@ -1,7 +1,9 @@
+import { memo } from 'react'
 import type { SuggestionMode, DetectorName } from '@wcgw/vibe-check-core'
-import { getSuggestion, SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
+import { SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
+import { getSuggestionCached } from './suggestionCache.js'
 import { ScoreRing } from './ui/ScoreRing.js'
 import { CopyButton } from './ui/CopyButton.js'
 import { Row } from './ui/Row.js'
@@ -41,7 +43,7 @@ const AuditRow = ({
   readonly onMarkSent: (issueId: string) => void
 }) => {
   const { issue } = tracked
-  const suggestion = getSuggestion(issue, mode)
+  const suggestion = getSuggestionCached(issue, mode)
   const detail = typeof issue.evidence['detail'] === 'string' ? (issue.evidence['detail'] as string) : ''
 
   const handleCopy = async () => {
@@ -53,13 +55,18 @@ const AuditRow = ({
     <Row
       severity={issue.severity}
       title={issue.title}
-      trailing={detail ? (
-        <span style={{ fontSize: 12, color: T.textTertiary, fontFamily: T.fontMono, flexShrink: 0, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>
-      ) : undefined}
     >
       <div style={{ fontSize: 14, color: T.textTertiary, lineHeight: 1.55, marginBottom: 10 }}>
         {suggestion.explanation}
       </div>
+      {/* The evidence detail lives here (14px mono) instead of a truncating
+          trailing meta — the row title already truncates, so an inline meta was
+          a second ellipsis on one line. */}
+      {detail && (
+        <div style={{ fontSize: 14, color: T.textMuted, fontFamily: T.fontMono, lineHeight: 1.5, marginBottom: 10, wordBreak: 'break-word' }}>
+          {detail}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <CopyButton
           copied={copiedId === issue.id}
@@ -71,7 +78,7 @@ const AuditRow = ({
   )
 }
 
-export const AuditPanel = ({
+export const AuditPanel = memo(({
   tracked, detector, heading, vibeHeading, subtitle, vibeSubtitle,
   emptyLabel, vibeEmptyLabel, mode, copiedId, onCopy, onMarkSent,
 }: AuditPanelProps) => {
@@ -92,10 +99,10 @@ export const AuditPanel = ({
         <div style={{ minWidth: 0 }}>
           <div style={sectionLabelStyle}>{mode === 'vibe' ? vibeHeading : heading}</div>
           <div style={{ fontSize: 14, color: T.textSecondary, fontWeight: 500, marginTop: 4 }}>
-            {passed} of {total} checks pass
+            {passed} of {total} checks {passed === 1 ? 'passes' : 'pass'}
           </div>
           {failed > 0 && (
-            <div style={{ fontSize: 13, color: T.textTertiary, marginTop: 2 }}>
+            <div style={{ fontSize: 14, color: T.textTertiary, marginTop: 2 }}>
               {failed} {mode === 'vibe' ? (failed === 1 ? 'thing to fix' : 'things to fix') : failed === 1 ? 'issue below' : 'issues below'}
             </div>
           )}
@@ -103,7 +110,7 @@ export const AuditPanel = ({
       </div>
 
       {/* Plain-language description of what this audit checks */}
-      <p style={{ fontSize: 13.5, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 14px' }}>
+      <p style={{ fontSize: 14, color: T.textTertiary, lineHeight: 1.5, margin: '0 0 14px' }}>
         {mode === 'vibe' ? vibeSubtitle : subtitle}
       </p>
 
@@ -121,4 +128,4 @@ export const AuditPanel = ({
       )}
     </div>
   )
-}
+})

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { memo, type CSSProperties } from 'react'
 import type { SuggestionMode, BeaconStatus } from '@wcgw/vibe-check-core'
 import { T } from '../tokens.js'
 import { Button } from './ui/Button.js'
@@ -67,11 +67,11 @@ const infoRowStyle: CSSProperties = {
   fontSize: 14,
 }
 
-export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
+export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
   const connection = deriveConnectionState(beaconUrl, beaconStatus)
   const statusLabel: Record<ConnectionState, string> = {
     inactive: mode === 'vibe' ? 'not connected' : 'inactive',
-    pending: mode === 'vibe' ? 'connecting…' : 'no data yet',
+    pending: mode === 'vibe' ? 'waiting for data' : 'no data yet',
     active: mode === 'vibe' ? 'connected' : 'active',
   }
   const statusColor: Record<ConnectionState, string> = {
@@ -140,8 +140,8 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
           lineHeight: 1.5,
         }}>
           {mode === 'vibe'
-            ? 'Copy prompts manually until MCP is set up. Your AI agent will get issues automatically once connected.'
-            : 'Use clipboard prompts while MCP transport is unavailable. Configure beaconUrl to enable live sync.'}
+            ? 'Not linked to your AI tools yet — use the copy buttons for now. To link them, run `npx @wcgw/vibe-check-mcp` and add it to your AI tool’s MCP settings.'
+            : 'No beaconUrl configured. Pass beaconUrl to <VibeCheck> and run @wcgw/vibe-check-mcp to stream snapshots.'}
         </div>
       )}
       {connection === 'pending' && (
@@ -161,7 +161,7 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
         {mode === 'vibe' ? 'Data' : 'Storage'}
       </div>
       <Button variant="danger" fullWidth onClick={onClearAll}>
-        {mode === 'vibe' ? 'Clear all issues & start fresh' : 'Clear all tracked issues'}
+        {mode === 'vibe' ? 'clear all problems & start fresh' : 'clear all tracked issues'}
       </Button>
 
       <div style={sectionTitle}>About</div>
@@ -180,4 +180,4 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, onToggleMode, beaconUrl, 
       </div>
     </div>
   )
-}
+})

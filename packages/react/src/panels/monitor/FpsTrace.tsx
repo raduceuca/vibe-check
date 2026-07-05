@@ -1,22 +1,13 @@
-import { useState, useEffect, type CSSProperties } from 'react'
-import { T } from '../../tokens.js'
+import { useState, useEffect } from 'react'
 
 // ── Lifeline timescale ───────────────────────────────────────────────────────
+// (The timescale pills themselves render via the shared Tabs pill variant.)
 export const WINDOW_OPTIONS = [
   { secs: 30, label: 'live' },
   { secs: 300, label: '5m' },
   { secs: 900, label: '15m' },
   { secs: 3600, label: '1h' },
 ] as const
-
-export const winBtnStyle = (active: boolean): CSSProperties => ({
-  fontSize: 14, fontWeight: active ? 600 : 500,
-  color: active ? T.text : T.textTertiary,
-  background: active ? 'rgba(var(--wcgw-fg),0.07)' : 'transparent',
-  border: 'none', borderRadius: T.radiusSm, padding: '3px 8px', minHeight: 26,
-  cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
-  transition: 'color 0.15s ease, background 0.15s ease',
-})
 
 // Liveline renders to a <canvas>; jsdom (tests) and SSR have none, so we fall
 // back to the lightweight SVG trace there.

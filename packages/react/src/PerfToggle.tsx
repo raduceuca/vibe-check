@@ -29,10 +29,15 @@ const matchesShortcut = (
   event.key.toLowerCase() === parsed.key
 
 export const PerfToggle = ({
-  shortcut = 'ctrl+shift+p',
+  // alt+shift+v — an uncontested combo. The previous ctrl+shift+p collides with
+  // the private-window shortcut in Firefox/Edge (unblockable in Firefox), so the
+  // documented toggle didn't work there.
+  shortcut = 'alt+shift+v',
   vibeCheckProps,
 }: PerfToggleProps) => {
-  const [visible, setVisible] = useState(false)
+  // Visible on first run so users see the tool is working; it starts as the
+  // collapsed pill (below), and the shortcut hides/shows it.
+  const [visible, setVisible] = useState(true)
 
   const parsed = parseShortcut(shortcut)
 
@@ -55,5 +60,5 @@ export const PerfToggle = ({
 
   if (!visible) return null
 
-  return <VibeCheck {...vibeCheckProps} enabled />
+  return <VibeCheck startCollapsed {...vibeCheckProps} enabled />
 }

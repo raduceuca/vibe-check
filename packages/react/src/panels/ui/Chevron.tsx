@@ -6,7 +6,7 @@ export const Chevron = ({ open }: { open: boolean }) => {
     flexShrink: 0,
     color: 'rgba(var(--wcgw-fg),0.5)',
     transform: open ? 'rotate(180deg)' : 'none',
-    transition: 'transform 0.18s ease',
+    transition: 'transform var(--wcgw-duration-fast) var(--wcgw-ease)',
   }
   return (
     <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={style}>
