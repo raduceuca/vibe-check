@@ -7,7 +7,7 @@ import { Node, Arrow, Label, DiagramSvg, DiagramFigure } from './primitives'
 
 export const EngineLifecycle = () => (
   <DiagramFigure
-    maxWidth={480}
+    maxWidth={700}
     caption="start() enters the loop; every 500ms the engine collects, builds a snapshot, and notifies subscribers; stop() tears it down in reverse."
   >
     <DiagramSvg

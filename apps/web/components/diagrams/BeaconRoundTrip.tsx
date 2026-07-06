@@ -7,7 +7,7 @@ import { Node, Arrow, Label, DiagramSvg, DiagramFigure } from './primitives'
 
 export const BeaconRoundTrip = () => (
   <DiagramFigure
-    maxWidth={600}
+    maxWidth={760}
     caption="One store, two sides. The browser writes snapshots in over HTTP; the agent reads issues out through the MCP tools. VibeStore is the shared middle."
   >
     <DiagramSvg

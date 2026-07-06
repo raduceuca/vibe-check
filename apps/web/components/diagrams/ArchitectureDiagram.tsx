@@ -9,7 +9,7 @@ const DIVIDER = 300
 
 export const ArchitectureDiagram = () => (
   <DiagramFigure
-    maxWidth={580}
+    maxWidth={760}
     caption="Four packages, one seam. core → react → your app on the browser side; mcp stands alone on the agent side. They share only the protocol contract and one HTTP POST — never a runtime import."
   >
     <DiagramSvg

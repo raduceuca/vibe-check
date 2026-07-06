@@ -28,7 +28,7 @@ const CHIP_XS = [16, 158, 300, 442]
 
 export const IssueLifecycle = () => (
   <DiagramFigure
-    maxWidth={584}
+    maxWidth={760}
     caption="Every issue has a state and a severity. It travels detected → acknowledged → resolved; acknowledging or resolving drops it from the active list."
   >
     <DiagramSvg

@@ -28,7 +28,7 @@ const ISS_W = 104
 
 export const CollectorFlow = () => (
   <DiagramFigure
-    maxWidth={700}
+    maxWidth={800}
     caption="Six collectors fan in to one immutable snapshot every 500ms; the snapshot fans out to the detectors, which emit the issues your agent reads."
   >
     <DiagramSvg

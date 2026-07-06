@@ -135,7 +135,7 @@ const Narrow = () => {
 
 export const PipelineDiagram = () => (
   <DiagramFigure
-    maxWidth={640}
+    maxWidth={900}
     caption="The loop that was missing from vibe coding: the browser measures, the beacon ships it, your agent reads the evidence — and proposes the fix."
   >
     <div className="vc-dg-wide">
