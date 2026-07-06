@@ -913,8 +913,9 @@ html {
 }
 .vc-fix-related a {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
   border: 1px solid var(--vc-line);
   border-radius: 10px;
   background: var(--vc-panel);
@@ -925,6 +926,19 @@ html {
 .vc-fix-related a:hover {
   border-color: var(--vc-line-strong);
   background: var(--vc-panel-2);
+}
+.vc-fix-related-art {
+  flex: none;
+  display: block;
+  width: 42px;
+  height: 42px;
+  color: var(--vc-ink);
+}
+.vc-fix-related-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 .vc-fix-related-t {
   color: var(--vc-ink);
@@ -1105,8 +1119,9 @@ html {
 }
 .vc-fix-card {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 13px;
   height: 100%;
   border: 1px solid var(--vc-line);
   border-radius: 11px;
@@ -1118,6 +1133,22 @@ html {
 .vc-fix-card:hover {
   border-color: var(--vc-line-strong);
   background: var(--vc-panel-2);
+}
+/* Detector glyph, top-left of each fix card — mirrors the landing .vc-art
+   treatment (single-tone, currentColor === --vc-ink, decorative). */
+.vc-fix-card-art {
+  flex: none;
+  display: block;
+  width: 52px;
+  height: 52px;
+  color: var(--vc-ink);
+}
+.vc-fix-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 .vc-fix-card-top {
   display: flex;
@@ -1589,13 +1620,13 @@ html {
 .vc-art {
   flex: none;
   display: block;
-  width: 46px;
-  height: 46px;
+  width: 64px;
+  height: 64px;
   color: var(--vc-ink);
 }
 @media (max-width: 720px) {
   .vc-art {
-    width: 42px;
-    height: 42px;
+    width: 56px;
+    height: 56px;
   }
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { CategoryMeta } from '@/lib/problems'
 import { problemsInCategory } from '@/lib/problems'
+import { ISSUE_ART } from '@/components/issueArt'
 import { SeverityTag } from './SeverityTag'
 
 // A category landing page (/fix/performance, /fix/seo, …): intro copy plus every
@@ -32,17 +33,27 @@ export const CategoryView = ({ category }: { category: CategoryMeta }) => {
       </header>
 
       <ul className="vc-fix-cards">
-        {problems.map((p) => (
-          <li key={p.slug}>
-            <Link href={`/fix/${p.slug}`} className="vc-fix-card">
-              <span className="vc-fix-card-top">
-                <span className="vc-fix-card-t">{p.h1}</span>
-                <SeverityTag severity={p.severity} />
-              </span>
-              <span className="vc-fix-card-d">{p.metaDescription}</span>
-            </Link>
-          </li>
-        ))}
+        {problems.map((p) => {
+          const Art = ISSUE_ART[p.detector]
+          return (
+            <li key={p.slug}>
+              <Link href={`/fix/${p.slug}`} className="vc-fix-card">
+                {Art ? (
+                  <span className="vc-fix-card-art" aria-hidden="true">
+                    <Art />
+                  </span>
+                ) : null}
+                <span className="vc-fix-card-body">
+                  <span className="vc-fix-card-top">
+                    <span className="vc-fix-card-t">{p.h1}</span>
+                    <SeverityTag severity={p.severity} />
+                  </span>
+                  <span className="vc-fix-card-d">{p.metaDescription}</span>
+                </span>
+              </Link>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

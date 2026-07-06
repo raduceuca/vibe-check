@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Framework, Problem } from '@/lib/problems/types'
 import { CATEGORY_LABELS, FRAMEWORK_LABELS } from '@/lib/problems/types'
 import { frameworksFor, getCategoryMeta, resolveRelated } from '@/lib/problems'
+import { ISSUE_ART } from '@/components/issueArt'
 import { CodeBlockList } from './CodeBlockView'
 import { SeverityTag } from './SeverityTag'
 
@@ -221,14 +222,24 @@ export const ProblemArticle = ({
             Related problems
           </h2>
           <ul className="vc-fix-related">
-            {related.map((r) => (
-              <li key={r.slug}>
-                <Link href={`/fix/${r.slug}`}>
-                  <span className="vc-fix-related-t">{r.h1}</span>
-                  <span className="vc-fix-related-d">{CATEGORY_LABELS[r.category]}</span>
-                </Link>
-              </li>
-            ))}
+            {related.map((r) => {
+              const Art = ISSUE_ART[r.detector]
+              return (
+                <li key={r.slug}>
+                  <Link href={`/fix/${r.slug}`}>
+                    {Art ? (
+                      <span className="vc-fix-related-art" aria-hidden="true">
+                        <Art />
+                      </span>
+                    ) : null}
+                    <span className="vc-fix-related-body">
+                      <span className="vc-fix-related-t">{r.h1}</span>
+                      <span className="vc-fix-related-d">{CATEGORY_LABELS[r.category]}</span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </section>
       ) : null}

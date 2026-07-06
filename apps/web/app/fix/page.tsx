@@ -7,6 +7,7 @@ import {
   problemsInCategory,
 } from '@/lib/problems'
 import { SeverityTag } from '@/components/fix/SeverityTag'
+import { ISSUE_ART } from '@/components/issueArt'
 import { absoluteUrl } from '@/lib/site'
 
 const TITLE = 'Fix guides — every problem VibeCheck catches'
@@ -54,17 +55,27 @@ const FixHubPage = () => (
           </div>
           <p className="vc-fix-p">{c.intro}</p>
           <ul className="vc-fix-cards">
-            {problems.map((p) => (
-              <li key={p.slug}>
-                <Link href={`/fix/${p.slug}`} className="vc-fix-card">
-                  <span className="vc-fix-card-top">
-                    <span className="vc-fix-card-t">{p.h1}</span>
-                    <SeverityTag severity={p.severity} />
-                  </span>
-                  <span className="vc-fix-card-d">{p.metaDescription}</span>
-                </Link>
-              </li>
-            ))}
+            {problems.map((p) => {
+              const Art = ISSUE_ART[p.detector]
+              return (
+                <li key={p.slug}>
+                  <Link href={`/fix/${p.slug}`} className="vc-fix-card">
+                    {Art ? (
+                      <span className="vc-fix-card-art" aria-hidden="true">
+                        <Art />
+                      </span>
+                    ) : null}
+                    <span className="vc-fix-card-body">
+                      <span className="vc-fix-card-top">
+                        <span className="vc-fix-card-t">{p.h1}</span>
+                        <SeverityTag severity={p.severity} />
+                      </span>
+                      <span className="vc-fix-card-d">{p.metaDescription}</span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )

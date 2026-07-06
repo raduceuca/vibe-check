@@ -1,4 +1,4 @@
-import { ISSUE_ART } from './issueArt'
+import { ISSUE_ART } from '@/components/issueArt'
 
 type Sev = 'error' | 'warning'
 
