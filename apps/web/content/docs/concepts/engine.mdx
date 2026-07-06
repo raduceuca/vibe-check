@@ -3,10 +3,14 @@ title: The Engine
 description: VibeCheckEngine orchestrates collectors, detectors, and the beacon.
 ---
 
+import { EngineLifecycle } from '@/components/diagrams'
+
 `VibeCheckEngine` is the one object you start. It owns the six collectors and
 the enabled detectors, assembles a `VibeSnapshot` on demand, notifies
 subscribers every 500ms, and — if you give it a `beaconUrl` — ships snapshots to
 the MCP server.
+
+<EngineLifecycle />
 
 ## Lifecycle
 

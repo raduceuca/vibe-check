@@ -3,10 +3,14 @@ title: Collectors
 description: The six browser measurements VibeCheck records, and the Collector interface.
 ---
 
+import { CollectorFlow } from '@/components/diagrams'
+
 Collectors are the measurement layer. Each one watches a single browser signal —
 frame rate, long frames, memory, web vitals, resources, or console volume — and
 exposes its current reading as a plain stats object. The engine reads all six
 every snapshot tick; the detectors analyze what they produce.
+
+<CollectorFlow />
 
 ## The `Collector<T>` interface
 

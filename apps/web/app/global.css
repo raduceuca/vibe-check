@@ -1130,3 +1130,57 @@ html {
     display: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Diagram kit (components/diagrams) — appended, self-contained block.
+   The SVG diagrams paint every neutral with `currentColor`, so they follow the
+   host text colour automatically in BOTH the landing (.vc-landing) and the
+   Fumadocs docs pages, light and dark, with no hardcoded neutrals. Only the
+   fault / ok / amber accents must flip per theme, so they are declared here on
+   the `.vc-dg` figure scope. Each references the matching --vc-* token when it
+   exists (e.g. on the landing) and falls back to the exact same value for docs
+   pages, which don't expose --vc-*. Selectors mirror the .vc-landing blocks
+   above (OS media + next-themes .dark/.light class + [data-theme]).
+   ════════════════════════════════════════════════════════════════════════════ */
+.vc-dg {
+  --vc-dg-sig: var(--vc-sig, #c0362c);
+  --vc-dg-amber: var(--vc-amber, #a16207);
+  --vc-dg-ok: var(--vc-ok, #15803d);
+}
+@media (prefers-color-scheme: dark) {
+  .vc-dg {
+    --vc-dg-sig: var(--vc-sig, #f2555a);
+    --vc-dg-amber: var(--vc-amber, #e0a53a);
+    --vc-dg-ok: var(--vc-ok, #4ade80);
+  }
+}
+:root.dark .vc-dg,
+:root[data-theme='dark'] .vc-dg {
+  --vc-dg-sig: var(--vc-sig, #f2555a);
+  --vc-dg-amber: var(--vc-amber, #e0a53a);
+  --vc-dg-ok: var(--vc-ok, #4ade80);
+}
+:root.light .vc-dg,
+:root[data-theme='light'] .vc-dg {
+  --vc-dg-sig: var(--vc-sig, #c0362c);
+  --vc-dg-amber: var(--vc-amber, #a16207);
+  --vc-dg-ok: var(--vc-ok, #15803d);
+}
+
+/* PipelineDiagram ships two layouts from one stage list: a two-row serpentine
+   for wide viewports and a vertical stack for narrow ones, so node text never
+   scales down to an illegible size. */
+.vc-dg-wide {
+  display: block;
+}
+.vc-dg-narrow {
+  display: none;
+}
+@media (max-width: 719px) {
+  .vc-dg-wide {
+    display: none;
+  }
+  .vc-dg-narrow {
+    display: block;
+  }
+}

@@ -5,6 +5,7 @@ import { BreakThisPage } from '@/components/landing/BreakThisPage'
 import { DetectorsGrid } from '@/components/landing/DetectorsGrid'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteHeader } from '@/components/site/SiteHeader'
+import { PipelineDiagram } from '@/components/diagrams'
 
 const LandingPage = () => (
   <div className="vc-landing">
@@ -101,14 +102,7 @@ const LandingPage = () => (
           your agent reads it — then proposes the diff. The loop that was missing
           from vibe coding:
         </p>
-        <pre className="vc-pre">
-{`browser (collectors)
-  → VibeCheckEngine
-    → beacon  POST /api/snapshot
-      → MCP server  (localhost:4200)
-        → your agent reads get_detected_issues
-          → proposes the fix`}
-        </pre>
+        <PipelineDiagram />
         <p className="vc-p" style={{ color: 'var(--vc-ink-3)', fontSize: 14 }}>
           Ask your agent: <span className="vc-code">What is VibeCheck detecting
           right now, and how do I fix it?</span>

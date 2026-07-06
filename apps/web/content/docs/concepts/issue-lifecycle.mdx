@@ -3,9 +3,13 @@ title: Issue lifecycle
 description: Severity levels and the detected → acknowledged → resolved flow.
 ---
 
+import { IssueLifecycle } from '@/components/diagrams'
+
 Every problem VibeCheck finds is a `VibeIssue`. It's born when a detector's
 threshold trips, travels to the MCP store over the beacon, and moves through a
 three-state lifecycle as your agent works on it.
+
+<IssueLifecycle />
 
 ## The issue shape
 

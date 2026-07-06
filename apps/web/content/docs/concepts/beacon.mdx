@@ -3,10 +3,14 @@ title: The Beacon
 description: How snapshots leave the browser and reach the MCP server.
 ---
 
+import { BeaconRoundTrip } from '@/components/diagrams'
+
 The beacon is the one network hop in VibeCheck. When the engine has a
 `beaconUrl`, its `BeaconClient` serializes the current `VibeSnapshot` to JSON and
 POSTs it to `<beaconUrl>/api/snapshot` on an interval. That's the whole
 browser→agent bridge.
+
+<BeaconRoundTrip />
 
 ## Turning it on
 

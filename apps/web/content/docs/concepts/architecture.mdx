@@ -3,21 +3,18 @@ title: Architecture
 description: How core, react, mcp, and the protocol package fit into one pipeline.
 ---
 
+import { PipelineDiagram, ArchitectureDiagram } from '@/components/diagrams'
+
 VibeCheck is a short, one-directional pipeline. Metrics are measured in the
 browser, turned into issues, POSTed to a local server, and read back by your
 coding agent. Four packages divide that work along a single seam: the browser
 side and the agent side never share a runtime, only a wire contract.
 
+<ArchitectureDiagram />
+
 ## The pipeline
 
-```text
-Browser (core collectors)
-  → VibeCheckEngine        collectors + detectors, one snapshot every 500ms
-    → BeaconClient         POST /api/snapshot every 2s
-      → MCP server         HTTP receiver on localhost:4200
-        → VibeStore        immutable store: last snapshot + 100-issue history
-          → MCP tools      your AI agent reads
-```
+<PipelineDiagram />
 
 ## The packages
 

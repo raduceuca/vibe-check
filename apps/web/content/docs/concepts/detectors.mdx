@@ -3,9 +3,13 @@ title: Detectors & audits
 description: The analyzers that turn snapshots into issues.
 ---
 
+import { CollectorFlow } from '@/components/diagrams'
+
 Where collectors measure, detectors judge. Each detector watches for one class
 of problem — a bloated DOM, a growing heap, a duplicated request — and emits a
 `VibeIssue` when a threshold trips. Thirteen ship enabled by default.
+
+<CollectorFlow />
 
 ## The `Detector` interface
 
