@@ -117,6 +117,23 @@ html {
   margin: 0 auto;
   padding: clamp(22px, 5vw, 56px) clamp(16px, 5vw, 44px) 0;
 }
+/* The live widget panel is fixed bottom-right; centered content would run under
+   it and become unreadable. On wide screens, while the widget is mounted-and-
+   expanded (the landing default), shift content left and reserve a right gutter
+   for the panel. When it's collapsed to a pill (or absent), re-center. The
+   WidgetLayoutSync client reflects the widget state onto :root[data-vc-widget].
+   Default is the expanded layout so there is no shift as the widget mounts. */
+@media (min-width: 1100px) {
+  .vc-landing .vc-wrap {
+    margin-left: clamp(24px, 6vw, 80px);
+    margin-right: 420px;
+  }
+  :root[data-vc-widget="collapsed"] .vc-landing .vc-wrap,
+  :root[data-vc-widget="off"] .vc-landing .vc-wrap {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
 .vc-mono {
   font-family: var(--vc-mono);
   font-variant-numeric: tabular-nums;
@@ -1167,6 +1184,371 @@ html {
   --vc-dg-ok: var(--vc-ok, #15803d);
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   Interactive landing upgrades — Quiet Instrument tokens only.
+   1. AgentRoundTrip  (.vc-term*)   — scripted MCP terminal
+   2. DetectorsGrid fire  (.vc-card[data-fire]) — hover/focus emit demo
+   3. AuditThisPage  (.vc-audit*, .vc-check*)   — real SEO/AEO audit of this page
+   The ONLY accents are a caught fault (--vc-sig / --vc-amber) or a resolved /
+   passing state (--vc-ok). Everything else is pure neutral ink.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · Scripted agent round-trip terminal ─────────────────────────────────── */
+.vc-term {
+  border: 1px solid var(--vc-line);
+  border-radius: 12px;
+  background: var(--vc-panel);
+  overflow: hidden;
+  margin: 4px 0 6px;
+}
+.vc-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--vc-line-2);
+  background: var(--vc-panel-2);
+}
+.vc-term-dots {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.vc-term-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vc-line-strong);
+}
+.vc-term-title {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--vc-ink-3);
+}
+.vc-term-play {
+  margin-left: auto;
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vc-ink-2);
+  background: var(--vc-bg);
+  border: 1px solid var(--vc-line);
+  border-radius: 7px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex: none;
+}
+.vc-term-play:hover:not(:disabled) {
+  color: var(--vc-ink);
+  border-color: var(--vc-line-strong);
+}
+.vc-term-play:disabled {
+  color: var(--vc-ink-4);
+  cursor: default;
+}
+.vc-term-body {
+  font-family: var(--vc-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--vc-ink-2);
+  padding: 14px 16px;
+  overflow-x: auto;
+  /* Every row is always in the DOM (revealed by opacity), so the box height is
+     fixed from first paint — the terminal never shifts layout as it types. */
+}
+.vc-term-row {
+  white-space: pre;
+  min-height: 1.7em;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.vc-term-row[data-shown='true'] {
+  opacity: 1;
+}
+.vc-term-pre {
+  color: var(--vc-ink-4);
+}
+.vc-term-row[data-kind='sys'] {
+  color: var(--vc-ink-4);
+  font-style: italic;
+}
+.vc-term-row[data-kind='issue'] {
+  color: var(--vc-sig);
+}
+.vc-term-row[data-kind='cmd'] {
+  color: var(--vc-ink);
+}
+.vc-term-row[data-kind='out'] {
+  color: var(--vc-ink-3);
+}
+.vc-term-row[data-kind='diff-meta'],
+.vc-term-row[data-kind='diff-hunk'] {
+  color: var(--vc-ink-4);
+}
+.vc-term-row[data-kind='diff-ctx'] {
+  color: var(--vc-ink-3);
+}
+.vc-term-row[data-kind='diff-add'] {
+  color: var(--vc-ok);
+}
+.vc-term-row[data-kind='diff-del'] {
+  color: var(--vc-sig);
+}
+.vc-term-row[data-kind='ok'] {
+  color: var(--vc-ok);
+}
+.vc-term-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  background: currentColor;
+  margin-left: 1px;
+  animation: vc-term-blink 1s step-end infinite;
+}
+@keyframes vc-term-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ── 2 · Detector cards that "fire" on hover / focus ─────────────────────────
+   Non-destructive: hovering a card does NOT degrade the page (that is what the
+   §02 "Break this page" buttons are for). It only re-emits the card's own signal
+   — the issue string fades/slides in and the dot pulses its severity — so the
+   grid feels alive and each card demonstrates the shape of its own alert. */
+.vc-card[data-fire] {
+  --vc-fire: var(--vc-sig);
+  position: relative;
+  cursor: default;
+  transition: border-color 0.18s, background 0.18s;
+  outline: none;
+}
+.vc-card[data-fire][data-sev='warning'] {
+  --vc-fire: var(--vc-amber);
+}
+.vc-card[data-fire] .vc-kd {
+  background: var(--vc-fire);
+}
+.vc-card[data-fire] .vc-emit {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.22s ease, transform 0.22s ease, color 0.22s ease,
+    border-color 0.22s ease, background 0.22s ease;
+}
+.vc-card[data-fire]:hover,
+.vc-card[data-fire]:focus-visible,
+.vc-card[data-fire]:focus-within {
+  border-color: color-mix(in srgb, var(--vc-fire) 42%, transparent);
+  background: var(--vc-panel-2);
+}
+.vc-card[data-fire]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-fire) 55%, transparent);
+  outline-offset: 2px;
+}
+.vc-card[data-fire]:hover .vc-emit,
+.vc-card[data-fire]:focus-visible .vc-emit,
+.vc-card[data-fire]:focus-within .vc-emit {
+  opacity: 1;
+  transform: translateY(0);
+  color: var(--vc-fire);
+  border-color: color-mix(in srgb, var(--vc-fire) 30%, var(--vc-line-2));
+  background: color-mix(in srgb, var(--vc-fire) 7%, var(--vc-bg));
+}
+.vc-card[data-fire]:hover .vc-kd,
+.vc-card[data-fire]:focus-visible .vc-kd,
+.vc-card[data-fire]:focus-within .vc-kd {
+  animation: vc-fire-pulse 0.55s ease-out;
+}
+@keyframes vc-fire-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--vc-fire) 55%, transparent);
+  }
+  55% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--vc-fire) 0%, transparent);
+  }
+}
+/* Reduced motion: no slide, no pulse — the issue string is simply always shown. */
+@media (prefers-reduced-motion: reduce) {
+  .vc-card[data-fire] .vc-emit {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── 3 · Run-the-audit-on-this-page ─────────────────────────────────────────── */
+.vc-audit-run {
+  font-family: var(--vc-mono);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--vc-ink);
+  background: var(--vc-panel);
+  border: 1px solid var(--vc-line-strong);
+  border-radius: 9px;
+  padding: 11px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.vc-audit-run:hover:not(:disabled) {
+  background: var(--vc-panel-2);
+}
+.vc-audit-run:disabled {
+  color: var(--vc-ink-3);
+  cursor: default;
+}
+.vc-audit-run .vc-audit-run-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--vc-ok);
+  flex: none;
+}
+.vc-audit-run[data-running='true'] .vc-audit-run-dot {
+  border-radius: 50%;
+  background: var(--vc-amber);
+  animation: vc-pulse 1s ease-in-out infinite;
+}
+.vc-audit-status {
+  margin-top: 12px;
+  font-family: var(--vc-mono);
+  font-size: 12px;
+  color: var(--vc-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vc-audit-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+@media (max-width: 720px) {
+  .vc-audit-cols {
+    grid-template-columns: 1fr;
+  }
+}
+.vc-audit-col {
+  border: 1px solid var(--vc-line);
+  border-radius: 12px;
+  background: var(--vc-panel);
+  padding: 15px 16px;
+}
+.vc-audit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.vc-audit-name {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vc-ink-3);
+}
+.vc-audit-sub {
+  margin-left: auto;
+  font-family: var(--vc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--vc-ink-4);
+}
+.vc-audit-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 2px 0 10px;
+}
+.vc-audit-score-num {
+  font-family: var(--vc-mono);
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--vc-ink);
+  line-height: 1;
+}
+.vc-audit-score-tot {
+  font-family: var(--vc-mono);
+  font-size: 14px;
+  color: var(--vc-ink-4);
+}
+.vc-audit-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--vc-panel-2);
+  border: 1px solid var(--vc-line-2);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.vc-audit-bar-fill {
+  height: 100%;
+  background: var(--vc-ok);
+  transition: width 0.5s ease;
+}
+.vc-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vc-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 7px 0;
+  border-top: 1px solid var(--vc-line-2);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.vc-check:first-child {
+  border-top: none;
+}
+.vc-check-mark {
+  font-family: var(--vc-mono);
+  font-size: 12px;
+  width: 14px;
+  flex: none;
+  text-align: center;
+  line-height: 1.5;
+}
+.vc-check[data-pass='true'] .vc-check-mark {
+  color: var(--vc-ok);
+}
+.vc-check[data-pass='false'] .vc-check-mark {
+  color: var(--vc-sig);
+}
+.vc-check[data-pass='false'][data-sev='warning'] .vc-check-mark,
+.vc-check[data-pass='false'][data-sev='info'] .vc-check-mark {
+  color: var(--vc-amber);
+}
+.vc-check-label {
+  color: var(--vc-ink-3);
+}
+.vc-check[data-pass='false'] .vc-check-label {
+  color: var(--vc-ink);
+}
+.vc-audit-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--vc-ink-3);
+  max-width: 68ch;
+}
+
 /* PipelineDiagram ships two layouts from one stage list: a two-row serpentine
    for wide viewports and a vertical stack for narrow ones, so node text never
    scales down to an illegible size. */
@@ -1182,5 +1564,38 @@ html {
   }
   .vc-dg-narrow {
     display: block;
+  }
+}
+
+/* ── Detector-card illustrations (issueArt) ──────────────────────────────────
+   Each "What it catches" card gets a tiny per-detector glyph left of its mono
+   name (see components/landing/issueArt/*). Layout only — this block does NOT
+   touch .vc-k / .vc-v / .vc-emit or the .vc-card[data-fire] hover/focus behaviour
+   above. The glyph's neutral ink follows the card text (currentColor === --vc-ink
+   set here); its single accent is driven by the card's own --vc-fire (already red
+   at data-sev=error / amber at warning), so it harmonises with the severity dot
+   + hover and stays theme-aware. The head owns the 6px rhythm the name row used
+   to carry, so vertical spacing is unchanged. */
+.vc-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.vc-card-head .vc-k {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.vc-art {
+  flex: none;
+  display: block;
+  width: 46px;
+  height: 46px;
+  color: var(--vc-ink);
+}
+@media (max-width: 720px) {
+  .vc-art {
+    width: 42px;
+    height: 42px;
   }
 }

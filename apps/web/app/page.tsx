@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { VibeWidget } from '@/components/vibe/VibeWidget'
+import { WidgetLayoutSync } from '@/components/vibe/WidgetLayoutSync'
 import { InstallCommand } from '@/components/landing/InstallCommand'
 import { BreakThisPage } from '@/components/landing/BreakThisPage'
 import { DetectorsGrid } from '@/components/landing/DetectorsGrid'
+import { AuditThisPage } from '@/components/landing/AuditThisPage'
+import { AgentRoundTrip } from '@/components/landing/AgentRoundTrip'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteHeader } from '@/components/site/SiteHeader'
 import { PipelineDiagram } from '@/components/diagrams'
@@ -12,6 +15,10 @@ const LandingPage = () => (
     <SiteHeader active="/" />
     {/* The real widget, mounted live, measuring THIS page. Calm green at rest. */}
     <VibeWidget position="bottom-right" />
+    {/* Reflects the widget's expanded/collapsed state onto :root so the layout
+        shifts left (readable) while the panel is open, and re-centers when it's
+        collapsed or off. */}
+    <WidgetLayoutSync />
 
     <main className="vc-wrap">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -89,9 +96,18 @@ const LandingPage = () => (
         <p className="vc-p">
           A restrained set of detectors and audits. One line each, plus the kind
           of issue string it emits into the widget&rsquo;s Problems list — and
-          into your agent.
+          into your agent. Hover or tab through a card to watch it fire.
         </p>
         <DetectorsGrid />
+
+        <h3 className="vc-h3">Grade this very page</h3>
+        <p className="vc-p">
+          Two of those detectors — <span className="vc-code">seo</span> and{' '}
+          <span className="vc-code">aeo</span> — run as pass/fail audits. Point
+          them at the page you&rsquo;re on and see the honest score, misses and
+          all:
+        </p>
+        <AuditThisPage />
       </section>
 
       {/* ── 04 · The round-trip ──────────────────────────────────────────── */}
@@ -103,7 +119,12 @@ const LandingPage = () => (
           from vibe coding:
         </p>
         <PipelineDiagram />
-        <p className="vc-p" style={{ color: 'var(--vc-ink-3)', fontSize: 14 }}>
+        <p className="vc-p" style={{ marginTop: 18 }}>
+          Here is that loop as your agent sees it — a caught issue read over MCP,
+          a proposed diff, and the issue resolved. Play it:
+        </p>
+        <AgentRoundTrip />
+        <p className="vc-p" style={{ color: 'var(--vc-ink-3)', fontSize: 14, marginTop: 12 }}>
           Ask your agent: <span className="vc-code">What is VibeCheck detecting
           right now, and how do I fix it?</span>
         </p>
