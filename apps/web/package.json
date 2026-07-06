@@ -1,0 +1,35 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "postinstall": "fumadocs-mdx",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wcgw/vibe-check": "workspace:*",
+    "@wcgw/vibe-check-core": "workspace:*",
+    "fumadocs-core": "16.10.7",
+    "fumadocs-mdx": "15.0.13",
+    "fumadocs-ui": "16.10.7",
+    "next": "16.2.10",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/mdast": "^4.0.4",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^24.12.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "mdast-util-directive": "^3.1.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.3.2",
+    "typescript": "~5.9.3"
+  }
+}

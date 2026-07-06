@@ -1,0 +1,37 @@
+import type { ReactNode } from 'react'
+import type { Metadata, Viewport } from 'next'
+import { RootProvider } from 'fumadocs-ui/provider/next'
+import { SITE_URL } from '@/lib/site'
+import './global.css'
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'VibeCheck — your agent shipped it, this caught what it broke',
+    template: '%s · VibeCheck',
+  },
+  description:
+    'A quiet performance instrument for the AI-built frontend. It runs in the corner, catches jank, leaks, DOM bloat, layout shift and failing audits — and hands the evidence straight to your coding agent.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
+const RootLayout = ({ children }: { children: ReactNode }) => (
+  <html lang="en" suppressHydrationWarning>
+    <body
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        margin: 0,
+      }}
+    >
+      <RootProvider search={{ enabled: false }}>{children}</RootProvider>
+    </body>
+  </html>
+)
+
+export default RootLayout
