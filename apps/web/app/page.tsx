@@ -188,6 +188,13 @@ const LandingPage = () => (
           all:
         </p>
         <AuditThisPage />
+        <p className="vc-p" style={{ marginTop: 14 }}>
+          Not on this page?{' '}
+          <Link className="vc-link" href="/scan">
+            Scan any URL →
+          </Link>{' '}
+          and get the same scorecard for your own site.
+        </p>
       </section>
 
       {/* ── 04 · The round-trip ──────────────────────────────────────────── */}

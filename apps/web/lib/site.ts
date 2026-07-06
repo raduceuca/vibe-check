@@ -24,6 +24,7 @@ export interface NavLink {
 export const NAV_LINKS: readonly NavLink[] = [
   { label: 'Home', href: '/' },
   { label: 'Fix guides', href: '/fix' },
+  { label: 'Scan', href: '/scan' },
   { label: 'Docs', href: '/docs' },
   { label: 'GitHub', href: GITHUB_URL, external: true },
 ]
