@@ -80,6 +80,8 @@ export const AgentRoundTrip = () => {
   const [phase, setPhase] = useState<Phase>('idle')
   const timer = useRef<number | null>(null)
   const reduced = useRef(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const started = useRef(false)
 
   const clearTimer = useCallback(() => {
     if (timer.current !== null) {
@@ -143,10 +145,35 @@ export const AgentRoundTrip = () => {
     timer.current = window.setTimeout(() => advance(INTRO_COUNT), 320)
   }, [advance, clearTimer])
 
+  // Auto-play by default once the panel scrolls into view — the round-trip runs
+  // on its own, not only on click. Fires once; reduced-motion (already revealed)
+  // and an unsupported IntersectionObserver both skip straight past.
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el || started.current || reduced.current) return
+    if (typeof IntersectionObserver === 'undefined') {
+      started.current = true
+      play()
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !started.current) {
+          started.current = true
+          play()
+          io.disconnect()
+        }
+      },
+      { threshold: 0.4 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [play])
+
   const label = phase === 'playing' ? 'Playing…' : phase === 'done' ? 'Replay' : 'Send to your agent'
 
   return (
-    <div className="vc-term" role="group" aria-label="Scripted VibeCheck to agent round-trip over MCP">
+    <div ref={rootRef} className="vc-term" role="group" aria-label="Scripted VibeCheck to agent round-trip over MCP">
       <div className="vc-term-bar">
         <span className="vc-term-dots" aria-hidden="true">
           <span className="vc-term-dot" />
