@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 import { RootProvider } from 'fumadocs-ui/provider/next'
-import { SITE_URL } from '@/lib/site'
+import { SITE_URL, GITHUB_URL } from '@/lib/site'
 import './global.css'
 
 export const metadata: Metadata = {
@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   },
   description:
     'A quiet performance instrument for the AI-built frontend. It runs in the corner, catches jank, leaks, DOM bloat, layout shift and failing audits — and hands the evidence straight to your coding agent.',
+  // Authorship / freshness signals for answer engines (dogfoods aeo's
+  // author-metadata check site-wide → renders <meta name="author">).
+  authors: [{ name: 'Radu Ceuca', url: GITHUB_URL }],
+  creator: 'Radu Ceuca',
+  publisher: 'VibeCheck',
   openGraph: {
     type: 'website',
     siteName: 'VibeCheck',

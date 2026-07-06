@@ -1,4 +1,6 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+import { SITE_URL, SITE_NAME, GITHUB_URL } from '@/lib/site'
 import { VibeWidget } from '@/components/vibe/VibeWidget'
 import { WidgetLayoutSync } from '@/components/vibe/WidgetLayoutSync'
 import { InstallCommand } from '@/components/landing/InstallCommand'
@@ -10,8 +12,83 @@ import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteHeader } from '@/components/site/SiteHeader'
 import { PipelineDiagram } from '@/components/diagrams'
 
+// A tight landing pitch, kept ≤ 160 chars so VibeCheck's own seo audit passes
+// its meta-description-too-long check on this very page. Shared with the JSON-LD
+// so the prose and structured data stay in sync.
+const LANDING_DESCRIPTION =
+  'A quiet performance instrument for the AI-built frontend. It catches jank, leaks, DOM bloat and layout shift, then hands the evidence to your coding agent.'
+
+// Freshness signals for answer engines. Constants (not `new Date()`) so the
+// statically prerendered HTML is deterministic across builds.
+const DATE_PUBLISHED = '2025-11-01'
+const DATE_MODIFIED = '2026-07-06'
+
+export const metadata: Metadata = {
+  description: LANDING_DESCRIPTION,
+  // Canonical for the landing — satisfies seo's canonical-missing check and
+  // stops trailing-slash / query-param duplicates fragmenting rank.
+  alternates: { canonical: '/' },
+}
+
+// schema.org graph so answer engines (and VibeCheck's own aeo audit) can read
+// the app's identity, price, authorship and freshness without scraping prose.
+const AUTHOR_ID = `${GITHUB_URL}#author`
+const ORG_ID = `${SITE_URL}#org`
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}#app`,
+      name: SITE_NAME,
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Web',
+      url: SITE_URL,
+      description: LANDING_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      isAccessibleForFree: true,
+      license: 'https://opensource.org/licenses/MIT',
+      author: { '@id': AUTHOR_ID },
+      creator: { '@id': AUTHOR_ID },
+      publisher: { '@id': ORG_ID },
+      datePublished: DATE_PUBLISHED,
+      dateModified: DATE_MODIFIED,
+      sameAs: [GITHUB_URL],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      description: LANDING_DESCRIPTION,
+      publisher: { '@id': ORG_ID },
+    },
+    {
+      '@type': 'Person',
+      '@id': AUTHOR_ID,
+      name: 'Radu Ceuca',
+      url: GITHUB_URL,
+    },
+    {
+      '@type': 'Organization',
+      '@id': ORG_ID,
+      name: SITE_NAME,
+      url: SITE_URL,
+      sameAs: [GITHUB_URL],
+    },
+  ],
+}
+
 const LandingPage = () => (
   <div className="vc-landing">
+    {/* schema.org structured data — read by answer engines and by VibeCheck's
+        own aeo audit (structured-data-missing / -invalid). */}
+    <script
+      type="application/ld+json"
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <SiteHeader active="/" />
     {/* The real widget, mounted live, measuring THIS page. Calm green at rest. */}
     <VibeWidget position="bottom-right" />
