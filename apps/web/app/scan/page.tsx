@@ -8,9 +8,9 @@ import { absoluteUrl } from '@/lib/site'
 // deliberately excluded from the markdown (.md) route — no `text/markdown`
 // alternate is advertised.
 
-const TITLE = 'Scan your site — SEO & AEO scorecard'
+const TITLE = 'Scan your site — free SEO & AEO scorecard'
 const DESCRIPTION =
-  'Score your site the way VibeCheck does — paste a URL and run the same SEO and answer-engine (AEO) checks, with a fix guide for every miss.'
+  'Can the answer engines read your site? Paste a URL for a free scorecard — the same 19 SEO + 9 AEO checks VibeCheck runs, with a fix for every miss.'
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -40,13 +40,13 @@ const ScanPage = () => (
           <span>SEO / AEO scanner</span>
         </div>
         <h1 className="vc-hero-head">
-          Score your site{' '}
-          <span className="vc-hero-sig">the way VibeCheck does.</span>
+          Can the answer engines{' '}
+          <span className="vc-hero-sig">read your site?</span>
         </h1>
         <p className="vc-lede">
-          Paste a URL. We fetch the served HTML and run the same SEO and
-          answer-engine (AEO) checks the widget ships — then link every miss to
-          its fix guide.
+          Most sites are half-broken for Google and invisible to ChatGPT and
+          Perplexity. Paste a URL — we run the same <b>19 SEO + 9 AEO</b> checks
+          the widget ships, and hand you a fix for every miss. No install.
         </p>
       </header>
 

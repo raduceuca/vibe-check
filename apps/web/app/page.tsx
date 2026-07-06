@@ -189,11 +189,11 @@ const LandingPage = () => (
         </p>
         <AuditThisPage />
         <p className="vc-p" style={{ marginTop: 14 }}>
-          Not on this page?{' '}
+          Got a site of your own?{' '}
           <Link className="vc-link" href="/scan">
             Scan any URL →
           </Link>{' '}
-          and get the same scorecard for your own site.
+          and see what Google and the answer engines actually get.
         </p>
       </section>
 
