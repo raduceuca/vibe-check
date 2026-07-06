@@ -26,8 +26,10 @@ const DATE_MODIFIED = '2026-07-06'
 export const metadata: Metadata = {
   description: LANDING_DESCRIPTION,
   // Canonical for the landing — satisfies seo's canonical-missing check and
-  // stops trailing-slash / query-param duplicates fragmenting rank.
-  alternates: { canonical: '/' },
+  // stops trailing-slash / query-param duplicates fragmenting rank. The markdown
+  // alternate advertises the agent-readable view (dogfoods aeo's
+  // markdown-negotiation check).
+  alternates: { canonical: '/', types: { 'text/markdown': '/index.md' } },
 }
 
 // schema.org graph so answer engines (and VibeCheck's own aeo audit) can read

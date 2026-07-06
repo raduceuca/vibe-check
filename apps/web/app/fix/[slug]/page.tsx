@@ -7,10 +7,10 @@ import {
   getProblem,
   isCategory,
 } from '@/lib/problems'
-import { buildJsonLd } from '@/lib/problems/jsonld'
+import { buildCategoryJsonLd, buildJsonLd } from '@/lib/problems/jsonld'
 import { ProblemArticle } from '@/components/fix/ProblemArticle'
 import { CategoryView } from '@/components/fix/CategoryView'
-import { JsonLd } from '@/components/fix/JsonLd'
+import { JsonLd } from '@/components/JsonLd'
 import { absoluteUrl } from '@/lib/site'
 
 // One route for both problem pages (/fix/<slug>) and the four category landing
@@ -39,7 +39,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
     return {
       title: { absolute: title },
       description,
-      alternates: { canonical: `/fix/${slug}` },
+      alternates: { canonical: `/fix/${slug}`, types: { 'text/markdown': `/fix/${slug}.md` } },
       openGraph: { title, description, url, type: 'website' },
       twitter: { card: 'summary_large_image', title, description },
     }
@@ -51,7 +51,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
   return {
     title: { absolute: problem.title },
     description: problem.metaDescription,
-    alternates: { canonical: `/fix/${slug}` },
+    alternates: { canonical: `/fix/${slug}`, types: { 'text/markdown': `/fix/${slug}.md` } },
     openGraph: {
       title: problem.title,
       description: problem.metaDescription,
@@ -66,7 +66,13 @@ const Page = async ({ params }: Props) => {
   const { slug } = await params
 
   if (isCategory(slug)) {
-    return <CategoryView category={getCategoryMeta(slug)} />
+    const category = getCategoryMeta(slug)
+    return (
+      <>
+        <JsonLd data={buildCategoryJsonLd(category)} />
+        <CategoryView category={category} />
+      </>
+    )
   }
 
   const problem = getProblem(slug)

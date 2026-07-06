@@ -1,6 +1,14 @@
 import type { Problem } from './types'
 import { CATEGORY_LABELS, FRAMEWORK_LABELS } from './types'
 import { SITE_NAME, SITE_URL, absoluteUrl } from '../site'
+import {
+  ORG_ID,
+  WEBSITE_ID,
+  organizationNode,
+  websiteNode,
+  type Json as SchemaJson,
+} from '../schema'
+import { ALL_PROBLEMS, problemsInCategory, type CategoryMeta } from './index'
 
 // ── JSON-LD builders ─────────────────────────────────────────────────────────
 // Emits schema.org structured data for every /fix page. TechArticle describes
@@ -88,6 +96,80 @@ const faqPage = (problem: Problem): Json | null => {
     })),
   }
 }
+
+// ── Collection pages (/fix hub + /fix/<category>) ────────────────────────────
+// CollectionPage + ItemList (the problems) + BreadcrumbList, so answer engines
+// read the fix hub and each category as a structured index of guides.
+
+const itemList = (problems: readonly Problem[]): SchemaJson => ({
+  '@type': 'ItemList',
+  numberOfItems: problems.length,
+  itemListElement: problems.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    url: absoluteUrl(`/fix/${p.slug}`),
+    name: p.h1,
+  })),
+})
+
+const collectionCrumb = (category?: CategoryMeta): SchemaJson => {
+  const items: SchemaJson[] = [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'Fix guides', item: absoluteUrl('/fix') },
+  ]
+  if (category) {
+    items.push({
+      '@type': 'ListItem',
+      position: 3,
+      name: category.label,
+      item: absoluteUrl(`/fix/${category.key}`),
+    })
+  }
+  return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items }
+}
+
+const collectionPage = (
+  url: string,
+  name: string,
+  description: string,
+  problems: readonly Problem[],
+): SchemaJson => ({
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': url,
+  url,
+  name,
+  description,
+  isPartOf: { '@id': WEBSITE_ID },
+  publisher: { '@id': ORG_ID },
+  mainEntity: itemList(problems),
+})
+
+// JSON-LD for the /fix hub (every problem across all categories).
+export const buildFixHubJsonLd = (): readonly SchemaJson[] => [
+  collectionCrumb(),
+  collectionPage(
+    absoluteUrl('/fix'),
+    'Fix guides — every problem VibeCheck catches',
+    'Field guides for every performance, SEO, AI-readiness and web-essentials problem VibeCheck detects in AI-built frontends — with the exact fix and code.',
+    ALL_PROBLEMS,
+  ),
+  websiteNode,
+  organizationNode,
+]
+
+// JSON-LD for a /fix/<category> landing page.
+export const buildCategoryJsonLd = (category: CategoryMeta): readonly SchemaJson[] => [
+  collectionCrumb(category),
+  collectionPage(
+    absoluteUrl(`/fix/${category.key}`),
+    `${category.label} — fix guides`,
+    category.intro,
+    problemsInCategory(category.key),
+  ),
+  websiteNode,
+  organizationNode,
+]
 
 // The full array of JSON-LD objects for a problem page (canonical or framework
 // variant). Rendered into a single <script type="application/ld+json">.

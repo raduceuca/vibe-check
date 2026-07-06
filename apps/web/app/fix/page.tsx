@@ -8,6 +8,8 @@ import {
 } from '@/lib/problems'
 import { SeverityTag } from '@/components/fix/SeverityTag'
 import { ISSUE_ART } from '@/components/issueArt'
+import { JsonLd } from '@/components/JsonLd'
+import { buildFixHubJsonLd } from '@/lib/problems/jsonld'
 import { absoluteUrl } from '@/lib/site'
 
 const TITLE = 'Fix guides — every problem VibeCheck catches'
@@ -17,7 +19,7 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
-  alternates: { canonical: '/fix' },
+  alternates: { canonical: '/fix', types: { 'text/markdown': '/fix.md' } },
   openGraph: { title: TITLE, description: DESCRIPTION, url: absoluteUrl('/fix'), type: 'website' },
   twitter: { card: 'summary', title: TITLE, description: DESCRIPTION },
 }
@@ -26,6 +28,7 @@ const variantCount = ALL_PROBLEMS.reduce((n, p) => n + frameworksFor(p).length, 
 
 const FixHubPage = () => (
   <div className="vc-fix-hub">
+    <JsonLd data={buildFixHubJsonLd()} />
     <header className="vc-fix-hub-head">
       <div className="vc-fix-eyebrow">
         <span className="vc-mono">Fix guides</span>

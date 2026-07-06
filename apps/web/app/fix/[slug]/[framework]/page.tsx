@@ -5,7 +5,7 @@ import { FRAMEWORK_LABELS } from '@/lib/problems/types'
 import { getFrameworkParams, getProblem } from '@/lib/problems'
 import { buildJsonLd } from '@/lib/problems/jsonld'
 import { ProblemArticle } from '@/components/fix/ProblemArticle'
-import { JsonLd } from '@/components/fix/JsonLd'
+import { JsonLd } from '@/components/JsonLd'
 import { absoluteUrl } from '@/lib/site'
 
 // Framework variants: /fix/<slug>/<framework>. Only generated for the (problem,
@@ -36,7 +36,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, types: { 'text/markdown': `${path}.md` } },
     openGraph: { title, description, url, type: 'article' },
     twitter: { card: 'summary_large_image', title, description },
   }
