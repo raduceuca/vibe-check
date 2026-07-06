@@ -204,6 +204,15 @@ export const seoSocialProblems: readonly Problem[] = [
           },
         ],
       },
+      vanilla: {
+        note: 'Add the og:title tag to each page’s <head>. It can differ from the <title>, so write it for the share card.',
+        code: [
+          {
+            lang: 'html',
+            code: `<meta property="og:title" content="Invoicing that pays you faster" />`,
+          },
+        ],
+      },
     },
     faq: [
       {
@@ -213,6 +222,10 @@ export const seoSocialProblems: readonly Problem[] = [
       {
         q: 'How long can og:title be?',
         a: 'Keep it under ~60 characters. Cards truncate long titles, and a short punchy headline performs better.',
+      },
+      {
+        q: 'Should og:title include my brand name?',
+        a: 'On a share card, usually not. The card already shows the domain, so a bare “Invoicing that pays you faster” reads cleaner than “… | Acme”. Keep the brand suffix in your <title>, where the search result benefits from it.',
       },
     ],
     related: ['missing-og-image', 'missing-og-description', 'missing-twitter-card', 'missing-page-title'],
@@ -240,9 +253,9 @@ export const seoSocialProblems: readonly Problem[] = [
       threshold: 'no <meta property="og:description">',
     },
     rootCauses: [
-      'og:image/og:title were set but the description was left out',
-      'The head is unmanaged',
-      'Reused the meta description was assumed automatic (it is not for OG)',
+      'og:image and og:title were set, but the description was left out',
+      'The <head> is unmanaged, so no og:* tags are emitted',
+      'Assumed og:description falls back to <meta name="description"> — it does not, reliably',
     ],
     fix: {
       summary:
@@ -300,6 +313,15 @@ export const seoSocialProblems: readonly Problem[] = [
           },
         ],
       },
+      vanilla: {
+        note: 'Add the og:description tag to each page’s <head>. Keep it in sync with your meta description, but write it for the card, not the search result.',
+        code: [
+          {
+            lang: 'html',
+            code: `<meta property="og:description" content="Send branded invoices in a minute and get paid faster." />`,
+          },
+        ],
+      },
     },
     faq: [
       {
@@ -309,6 +331,14 @@ export const seoSocialProblems: readonly Problem[] = [
       {
         q: 'How long should og:description be?',
         a: 'Keep it under ~110 characters so it displays in full on most cards; longer text gets truncated.',
+      },
+      {
+        q: 'Should og:description differ from my meta description?',
+        a: 'It can. The meta description is written to earn a click in a search result; og:description supports a share headline that already has an image and a title. Reuse the meta description if it fits, but tightening it for the card usually reads better.',
+      },
+      {
+        q: 'The description does not update when I re-share — why?',
+        a: 'Platforms cache unfurls. Force a re-scrape with the platform’s share debugger (for example the Facebook Sharing Debugger) after you change the tag.',
       },
     ],
     related: ['missing-og-title', 'missing-og-image', 'missing-meta-description', 'missing-twitter-card'],
@@ -336,9 +366,10 @@ export const seoSocialProblems: readonly Problem[] = [
       threshold: 'no <meta property="og:url">',
     },
     rootCauses: [
-      'og:* tags were partially implemented',
-      'No canonical URL strategy exists',
-      'The head is unmanaged',
+      'og:* tags were partially implemented — image and title landed, url did not',
+      'No canonical URL strategy exists, so there is no clean URL to point at',
+      'The <head> is unmanaged, so no og:* tags are emitted',
+      'The page is reachable at several URLs (params, trailing slash) with none declared canonical',
     ],
     fix: {
       summary:
@@ -377,14 +408,36 @@ export const seoSocialProblems: readonly Problem[] = [
           },
         ],
       },
+      vue: {
+        note: 'Add the og:url entry to useHead, building the absolute URL from the current route.',
+        code: [
+          {
+            lang: 'ts',
+            code: `useHead({ meta: [{ property: 'og:url', content: 'https://acme.com/pricing' }] })`,
+          },
+        ],
+      },
       svelte: {
-        note: 'Emit it in <svelte:head>, matching your canonical link.',
+        note: 'Emit it in <svelte:head>, matching your canonical link and building the URL from $page.url.',
         code: [
           {
             lang: 'svelte',
-            code: `<svelte:head>
-  <meta property="og:url" content="https://acme.com/pricing" />
+            code: `<script>
+  import { page } from '$app/stores'
+</script>
+
+<svelte:head>
+  <meta property="og:url" content={\`https://acme.com\${$page.url.pathname}\`} />
 </svelte:head>`,
+          },
+        ],
+      },
+      vanilla: {
+        note: 'Add the og:url tag to each page’s <head> with the clean, absolute canonical URL — no tracking params.',
+        code: [
+          {
+            lang: 'html',
+            code: `<meta property="og:url" content="https://acme.com/pricing" />`,
           },
         ],
       },
@@ -397,6 +450,14 @@ export const seoSocialProblems: readonly Problem[] = [
       {
         q: 'Should og:url include tracking parameters?',
         a: 'No. Strip utm_* and other params so shares consolidate onto the clean URL.',
+      },
+      {
+        q: 'What happens if og:url points at the wrong page?',
+        a: 'Platforms credit the share — and its engagement — to whatever og:url says, and echo that URL in the card. A stale or wrong value sends clicks to the wrong page, so build it from the current route, not a hardcoded string.',
+      },
+      {
+        q: 'Do I need og:url if I already set a canonical link?',
+        a: 'They serve different consumers: <link rel="canonical"> is for search engines, og:url is for social platforms. Set both, and keep them identical.',
       },
     ],
     related: ['missing-canonical-url', 'missing-og-image', 'missing-og-title', 'unfriendly-url-slug'],
@@ -486,6 +547,16 @@ export const seoSocialProblems: readonly Problem[] = [
           },
         ],
       },
+      vanilla: {
+        note: 'Add the twitter:card tag to each page’s <head>. X reuses your og:image/title/description, so the card type is usually all you need.',
+        code: [
+          {
+            lang: 'html',
+            code: `<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@acme" />`,
+          },
+        ],
+      },
     },
     faq: [
       {
@@ -495,6 +566,14 @@ export const seoSocialProblems: readonly Problem[] = [
       {
         q: 'What card types exist?',
         a: 'The common ones are “summary” (small square thumbnail) and “summary_large_image” (full-width image). Use the latter for most content pages.',
+      },
+      {
+        q: 'What are twitter:site and twitter:creator for?',
+        a: 'They attribute the card to X handles — twitter:site to the publishing account, twitter:creator to the author. They are optional and don’t change the layout, but they add the “@handle” byline on the card.',
+      },
+      {
+        q: 'My og:image is 1200×630 — does it work as a Twitter card?',
+        a: 'Yes. summary_large_image uses the same 1200×630 (1.91:1) image as Open Graph, so one image covers both. X reads og:image when no separate twitter:image is set.',
       },
     ],
     related: ['missing-og-image', 'missing-og-title', 'missing-og-description', 'missing-meta-description'],

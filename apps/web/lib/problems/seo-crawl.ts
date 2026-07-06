@@ -196,6 +196,25 @@ export default function robots(): MetadataRoute.Robots {
           },
         ],
       },
+      react: {
+        note: 'A Vite SPA has no server, so a robots.txt is just a static file. Drop it in public/ and Vite copies it to the build root, served at /robots.txt as text/plain.',
+        code: [
+          {
+            lang: 'bash',
+            code: `public/robots.txt   # served at /robots.txt`,
+          },
+        ],
+      },
+      vue: {
+        note: 'In Nuxt, place robots.txt in the public/ directory, or use the @nuxtjs/robots module to generate it from config. A plain Vite + Vue app is the same as React — a static file in public/.',
+        docsUrl: 'https://nuxt.com/modules/robots',
+        code: [
+          {
+            lang: 'bash',
+            code: `public/robots.txt   # served at /robots.txt`,
+          },
+        ],
+      },
       svelte: {
         note: 'Serve robots.txt from a SvelteKit endpoint (or place a static file in static/).',
         code: [
@@ -231,6 +250,14 @@ export default function robots(): MetadataRoute.Robots {
       {
         q: 'Can robots.txt block AI crawlers?',
         a: 'Yes — you can disallow specific AI user-agents. If you want to be cited by AI answer engines, do the opposite and allow them; VibeCheck’s AEO audit checks for that.',
+      },
+      {
+        q: 'Why does VibeCheck flag robots.txt as missing when the file exists?',
+        a: 'The probe treats /robots.txt as missing unless it responds 2xx with a text/plain content type. An SPA dev server that returns index.html for unknown paths reads as “not a real robots.txt” — serve it as plain text to clear the check.',
+      },
+      {
+        q: 'Should I disallow anything by default?',
+        a: 'No. Start with “Allow: /” and only disallow paths you genuinely want kept out of the index — a staging area, internal search results, or duplicate print views. Over-broad Disallow rules are a common way to accidentally de-index a whole site.',
       },
     ],
     related: ['missing-sitemap', 'ai-crawlers-blocked', 'accidental-noindex', 'missing-mcp-discovery'],

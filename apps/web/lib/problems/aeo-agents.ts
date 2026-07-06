@@ -195,6 +195,10 @@ export const aeoAgentProblems: readonly Problem[] = [
         q: 'Why send Vary: Accept?',
         a: 'So shared caches and CDNs store the HTML and markdown responses separately per Accept header, instead of serving one to a client that asked for the other.',
       },
+      {
+        q: 'How is this different from llms.txt?',
+        a: 'llms.txt is one static index of your key content for LLMs; markdown negotiation serves a clean markdown version of any URL on request. They complement each other — llms.txt points agents at the content, negotiation delivers it without the DOM noise.',
+      },
     ],
     related: ['missing-llms-txt', 'content-requires-javascript', 'missing-structured-data', 'missing-mcp-discovery'],
   },
@@ -375,6 +379,10 @@ Disallow: /admin/`,
       {
         q: 'What is MCP?',
         a: 'The Model Context Protocol is an open standard for exposing tools and data to AI agents in a structured way. Advertising an MCP server lets assistants discover and use your actions rather than reverse-engineering your UI.',
+      },
+      {
+        q: 'How is an MCP server different from a REST API?',
+        a: 'A REST API is a set of endpoints a developer wires up by hand; an MCP server describes those same actions as self-documenting tools an agent can discover and call without a bespoke integration. If you already have an API, an MCP server is usually a thin wrapper that makes it agent-usable.',
       },
     ],
     related: ['missing-llms-txt', 'ai-crawlers-blocked', 'missing-markdown-negotiation', 'missing-structured-data'],

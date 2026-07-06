@@ -12,6 +12,20 @@ export const metadata: Metadata = {
   },
   description:
     'A quiet performance instrument for the AI-built frontend. It runs in the corner, catches jank, leaks, DOM bloat, layout shift and failing audits — and hands the evidence straight to your coding agent.',
+  openGraph: {
+    type: 'website',
+    siteName: 'VibeCheck',
+    url: SITE_URL,
+    title: 'VibeCheck — your agent shipped it, this caught what it broke',
+    description:
+      'A quiet performance instrument for the AI-built frontend — it catches what your coding agent broke and hands the evidence straight to it.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VibeCheck — your agent shipped it, this caught what it broke',
+    description:
+      'A quiet performance instrument for the AI-built frontend — it catches what your coding agent broke and hands the evidence straight to it.',
+  },
 }
 
 export const viewport: Viewport = {

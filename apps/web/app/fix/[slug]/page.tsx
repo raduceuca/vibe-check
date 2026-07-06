@@ -41,7 +41,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
       description,
       alternates: { canonical: `/fix/${slug}` },
       openGraph: { title, description, url, type: 'website' },
-      twitter: { card: 'summary', title, description },
+      twitter: { card: 'summary_large_image', title, description },
     }
   }
 
@@ -58,7 +58,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
       url,
       type: 'article',
     },
-    twitter: { card: 'summary', title: problem.title, description: problem.metaDescription },
+    twitter: { card: 'summary_large_image', title: problem.title, description: problem.metaDescription },
   }
 }
 

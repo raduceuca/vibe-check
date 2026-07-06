@@ -211,6 +211,24 @@ const jsonLd = JSON.stringify({
           },
         ],
       },
+      nextjs: {
+        note: 'Render the JSON-LD from a Server Component with JSON.stringify. It runs server-side, so the escaped block ships in the initial HTML where crawlers read it — no client hydration needed.',
+        docsUrl: 'https://nextjs.org/docs/app/guides/json-ld',
+        code: [
+          {
+            lang: 'tsx',
+            code: `export default function Page() {
+  const jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline }
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  )
+}`,
+          },
+        ],
+      },
       vanilla: {
         note: 'If you template JSON-LD server-side, serialize with your language’s JSON encoder, not string interpolation, so quotes and Unicode are escaped.',
         code: [
@@ -229,6 +247,10 @@ const jsonLd = JSON.stringify({
       {
         q: 'Why does string interpolation cause invalid JSON-LD?',
         a: 'A title with a quote, apostrophe, or newline breaks the surrounding JSON when interpolated raw. JSON.stringify escapes those characters correctly, which is why building an object and stringifying it is the safe pattern.',
+      },
+      {
+        q: 'Can I put several types in one JSON-LD block?',
+        a: 'Yes — use an @graph array to declare multiple entities (for example an Organization and a WebSite) in a single script. Keep each node’s @type and required fields valid: one malformed node invalidates the whole block.',
       },
     ],
     related: ['missing-structured-data', 'missing-author-metadata', 'missing-llms-txt'],
