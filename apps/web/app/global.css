@@ -1676,6 +1676,134 @@ html {
   color: var(--vc-ink-2);
 }
 
+/* ── /scan shared history: Recently scanned + Leaderboard ─────────────────────
+   Two read-only feeds under the scanner (components/scan/ScanBoards). Same
+   Quiet-Instrument language: mono, pure neutrals, fault-red only for a badly
+   broken score. Every row links to a fresh scan of that host. */
+.vc-boards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 42px;
+}
+@media (max-width: 720px) {
+  .vc-boards {
+    grid-template-columns: 1fr;
+  }
+}
+.vc-board {
+  border: 1px solid var(--vc-line);
+  border-radius: 12px;
+  background: var(--vc-panel);
+  padding: 15px 16px;
+}
+.vc-board-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--vc-line-2);
+}
+.vc-board-title {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vc-ink-3);
+}
+.vc-board-sub {
+  margin-left: auto;
+  font-family: var(--vc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--vc-ink-4);
+}
+.vc-board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vc-board-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--vc-line-2);
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+.vc-board-list li:first-child .vc-board-row {
+  border-top: none;
+}
+.vc-board-row:hover {
+  opacity: 0.72;
+}
+.vc-board-rank {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--vc-ink-4);
+  width: 1.4em;
+  flex: none;
+  text-align: right;
+}
+.vc-board-host {
+  font-family: var(--vc-mono);
+  font-size: 12.5px;
+  color: var(--vc-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.vc-board-scores {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  color: var(--vc-ink-3);
+  white-space: nowrap;
+  flex: none;
+}
+.vc-board-sep {
+  margin: 0 6px;
+  color: var(--vc-ink-4);
+}
+.vc-board-time {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  color: var(--vc-ink-4);
+  white-space: nowrap;
+  flex: none;
+  min-width: 5.5em;
+  text-align: right;
+}
+.vc-board-pct {
+  font-family: var(--vc-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  flex: none;
+  white-space: nowrap;
+}
+.vc-board-pct[data-tone='ok'] {
+  color: var(--vc-ink);
+}
+.vc-board-pct[data-tone='warn'] {
+  color: var(--vc-amber);
+}
+.vc-board-pct[data-tone='bad'] {
+  color: var(--vc-sig);
+}
+/* On the narrowest cards drop the leaderboard's trailing per-audit scores so
+   rank · host · score never crowd. Recently-scanned (no pct) keeps its scores. */
+@media (max-width: 460px) {
+  .vc-board-pct ~ .vc-board-scores {
+    display: none;
+  }
+}
+
 /* PipelineDiagram ships two layouts from one stage list: a two-row serpentine
    for wide viewports and a vertical stack for narrow ones, so node text never
    scales down to an illegible size. */

@@ -34,3 +34,13 @@ export interface ScanResult {
   readonly seo: ScanCategoryResult
   readonly aeo: ScanCategoryResult
 }
+
+// One row from the scan-worker leaderboard / recent feeds. Hostname-only by
+// design — the worker never returns a full url, path, or query string.
+export interface ScanBoardEntry {
+  readonly host: string
+  readonly seo: { readonly passed: number; readonly total: number }
+  readonly aeo: { readonly passed: number; readonly total: number }
+  readonly score: number
+  readonly at: number
+}

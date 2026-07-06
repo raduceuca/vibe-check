@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/site/SiteHeader'
 import { ScanForm } from '@/components/scan/ScanForm'
+import { ScanBoards } from '@/components/scan/ScanBoards'
 import { absoluteUrl } from '@/lib/site'
 
 // The public scanner: paste a URL, get the same SEO + AEO scorecard VibeCheck
@@ -51,6 +52,7 @@ const ScanPage = () => (
       </header>
 
       <ScanForm />
+      <ScanBoards />
     </main>
   </div>
 )

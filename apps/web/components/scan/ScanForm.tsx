@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import type { ScanCheck, ScanCategoryResult, ScanResult, Severity } from '@/lib/scan/types'
 
@@ -73,41 +73,60 @@ export const ScanForm = () => {
   const [result, setResult] = useState<ScanResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const onSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      const value = url.trim()
-      if (value.length === 0 || phase === 'running') return
+  // Shared runner for both the form submit and the ?url= auto-run.
+  const execute = useCallback(async (raw: string) => {
+    const value = raw.trim()
+    if (value.length === 0) return
 
-      setPhase('running')
-      setError(null)
-      setResult(null)
+    setUrl(value)
+    setPhase('running')
+    setError(null)
+    setResult(null)
 
-      try {
-        const response = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ url: value }),
-        })
-        const data: unknown = await response.json()
-        if (!response.ok) {
-          const message =
-            typeof data === 'object' && data !== null && typeof (data as { error?: unknown }).error === 'string'
-              ? (data as { error: string }).error
-              : 'Something went wrong. Try another URL.'
-          setError(message)
-          setPhase('error')
-          return
-        }
-        setResult(data as ScanResult)
-        setPhase('done')
-      } catch {
-        setError("Couldn't reach the scanner. Check your connection and try again.")
+    try {
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: value }),
+      })
+      const data: unknown = await response.json()
+      if (!response.ok) {
+        const message =
+          typeof data === 'object' && data !== null && typeof (data as { error?: unknown }).error === 'string'
+            ? (data as { error: string }).error
+            : 'Something went wrong. Try another URL.'
+        setError(message)
         setPhase('error')
+        return
       }
+      setResult(data as ScanResult)
+      setPhase('done')
+      // Tell the boards a scan was just recorded so they refresh in place.
+      window.dispatchEvent(new Event('vc-scan-recorded'))
+    } catch {
+      setError("Couldn't reach the scanner. Check your connection and try again.")
+      setPhase('error')
+    }
+  }, [])
+
+  const onSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      if (phase === 'running') return
+      void execute(url)
     },
-    [url, phase],
+    [execute, url, phase],
   )
+
+  // Prefill (and auto-run once) from ?url=, so the board's "rescan" links land
+  // on a live result. Read from location directly — no Suspense boundary needed.
+  const didAutoRun = useRef(false)
+  useEffect(() => {
+    if (didAutoRun.current) return
+    didAutoRun.current = true
+    const param = new URLSearchParams(window.location.search).get('url')
+    if (param && param.trim().length > 0) void execute(param)
+  }, [execute])
 
   return (
     <div className="vc-scan">

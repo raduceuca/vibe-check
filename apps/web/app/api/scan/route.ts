@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { runScan } from '@/lib/scan/runScan'
+import { recordScan } from '@/lib/scan/record'
 import { ScanError } from '@/lib/scan/ssrf'
 
 // ── POST /api/scan ───────────────────────────────────────────────────────────
@@ -38,6 +39,10 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   try {
     const result = await runScan(url)
+    // Record the successful scan on the shared leaderboard (best-effort, never
+    // throws, secret-guarded server-to-server). Only fires when the scan-worker
+    // env is configured; a recording failure cannot affect this response.
+    await recordScan(result)
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof ScanError) {

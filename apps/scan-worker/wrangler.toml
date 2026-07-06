@@ -1,0 +1,23 @@
+name = "vibe-check-scan"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Production origin allowed to read the leaderboard/recent feeds (CORS).
+# localhost:3200 (Next dev) is always allowed in addition to this.
+ALLOWED_ORIGIN = "https://vibecheck.example"
+# NOTE: SCAN_SECRET is a *secret*, never put it here.
+#   - local dev  → set it in `.dev.vars` (gitignored)
+#   - production → `wrangler secret put SCAN_SECRET`
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vibe-check-scan"
+# Placeholder id — `--local` ignores it (uses a local sqlite file keyed by name).
+# Before deploying, run:  wrangler d1 create vibe-check-scan
+# then paste the printed database_id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[dev]
+port = 8787
