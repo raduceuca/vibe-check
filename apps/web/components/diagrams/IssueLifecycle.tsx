@@ -37,11 +37,14 @@ export const IssueLifecycle = () => (
       title="The issue state machine and severity ladder"
       desc="An issue moves through three states: detected, then acknowledged via the acknowledge_issue tool, then resolved via the resolve_issue tool. Its severity climbs a four-step ladder — info, warning, error, critical — from a neutral tone up to the full fault accent."
     >
-      {/* State machine: detected → acknowledged → resolved */}
+      {/* State machine: detected → acknowledged → resolved. Boxes are narrowed
+          (w 110) so the two transition labels get a roomy 111px arrow gap each,
+          while box 1's left edge (16) and box 3's right edge (568) stay aligned
+          with the severity ladder below. */}
       <Node
         x={16}
         y={30}
-        w={120}
+        w={110}
         h={60}
         kicker="State 1"
         label="detected"
@@ -49,30 +52,30 @@ export const IssueLifecycle = () => (
         accent="sig"
       />
       <Node
-        x={232}
+        x={237}
         y={30}
-        w={120}
+        w={110}
         h={60}
         kicker="State 2"
         label="acknowledged"
         detail="seen, muted"
       />
       <Node
-        x={448}
+        x={458}
         y={30}
-        w={120}
+        w={110}
         h={60}
         kicker="State 3"
         label="resolved"
         detail="fixed"
         accent="ok"
       />
-      <Arrow x1={136} y1={60} x2={232} y2={60} />
-      <Label x={184} y={52}>
+      <Arrow x1={126} y1={60} x2={237} y2={60} />
+      <Label x={181} y={51}>
         acknowledge_issue
       </Label>
-      <Arrow x1={352} y1={60} x2={448} y2={60} />
-      <Label x={400} y={52}>
+      <Arrow x1={347} y1={60} x2={458} y2={60} />
+      <Label x={403} y={51}>
         resolve_issue
       </Label>
 

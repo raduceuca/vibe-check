@@ -62,9 +62,14 @@ export const Node = ({
   const fillOpacity = accent ? 0.05 : NODE_FILL
   const pad = 13
   const hasKicker = Boolean(kicker)
-  const kickerY = y + 17
-  const labelY = hasKicker ? y + (detail ? 34 : 36) : y + h / 2 + 4
-  const detailY = y + 49
+  // Anchor the text block to the node's vertical centre (cy) rather than a fixed
+  // offset from the top, so tall nodes stay balanced instead of top-weighted. The
+  // per-line offsets keep the original 17px / 15px baseline gaps and are tuned so
+  // the block's ink is optically centred (kicker caps to detail descenders).
+  const cy = y + h / 2
+  const kickerY = detail ? cy - 14 : cy - 8
+  const labelY = hasKicker ? (detail ? cy + 3 : cy + 11) : cy + 4
+  const detailY = cy + 18
 
   return (
     <g>
