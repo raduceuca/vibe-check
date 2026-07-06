@@ -18,12 +18,12 @@ html {
   --vc-panel: #fafafa;
   --vc-panel-2: #f4f4f4;
   --vc-ink: #111112;
-  --vc-ink-2: rgba(17, 17, 18, 0.72);
-  --vc-ink-3: rgba(17, 17, 18, 0.52);
-  --vc-ink-4: rgba(17, 17, 18, 0.38);
-  --vc-line: rgba(17, 17, 18, 0.1);
+  --vc-ink-2: rgba(17, 17, 18, 0.8);
+  --vc-ink-3: rgba(17, 17, 18, 0.62);
+  --vc-ink-4: rgba(17, 17, 18, 0.48);
+  --vc-line: rgba(17, 17, 18, 0.12);
   --vc-line-2: rgba(17, 17, 18, 0.06);
-  --vc-line-strong: rgba(17, 17, 18, 0.16);
+  --vc-line-strong: rgba(17, 17, 18, 0.2);
   --vc-sig: #c0362c;
   --vc-sig-bg: rgba(192, 54, 44, 0.1);
   --vc-amber: #a16207;
@@ -52,12 +52,12 @@ html {
     --vc-panel: #111113;
     --vc-panel-2: #161618;
     --vc-ink: #f4f4f5;
-    --vc-ink-2: rgba(244, 244, 245, 0.7);
-    --vc-ink-3: rgba(244, 244, 245, 0.5);
-    --vc-ink-4: rgba(244, 244, 245, 0.34);
-    --vc-line: rgba(244, 244, 245, 0.11);
+    --vc-ink-2: rgba(244, 244, 245, 0.78);
+    --vc-ink-3: rgba(244, 244, 245, 0.6);
+    --vc-ink-4: rgba(244, 244, 245, 0.46);
+    --vc-line: rgba(244, 244, 245, 0.14);
     --vc-line-2: rgba(244, 244, 245, 0.06);
-    --vc-line-strong: rgba(244, 244, 245, 0.18);
+    --vc-line-strong: rgba(244, 244, 245, 0.22);
     --vc-sig: #f2555a;
     --vc-sig-bg: rgba(242, 85, 90, 0.13);
     --vc-amber: #e0a53a;
@@ -72,12 +72,12 @@ html {
   --vc-panel: #111113;
   --vc-panel-2: #161618;
   --vc-ink: #f4f4f5;
-  --vc-ink-2: rgba(244, 244, 245, 0.7);
-  --vc-ink-3: rgba(244, 244, 245, 0.5);
-  --vc-ink-4: rgba(244, 244, 245, 0.34);
-  --vc-line: rgba(244, 244, 245, 0.11);
+  --vc-ink-2: rgba(244, 244, 245, 0.78);
+  --vc-ink-3: rgba(244, 244, 245, 0.6);
+  --vc-ink-4: rgba(244, 244, 245, 0.46);
+  --vc-line: rgba(244, 244, 245, 0.14);
   --vc-line-2: rgba(244, 244, 245, 0.06);
-  --vc-line-strong: rgba(244, 244, 245, 0.18);
+  --vc-line-strong: rgba(244, 244, 245, 0.22);
   --vc-sig: #f2555a;
   --vc-sig-bg: rgba(242, 85, 90, 0.13);
   --vc-amber: #e0a53a;
@@ -91,12 +91,12 @@ html {
   --vc-panel: #fafafa;
   --vc-panel-2: #f4f4f4;
   --vc-ink: #111112;
-  --vc-ink-2: rgba(17, 17, 18, 0.72);
-  --vc-ink-3: rgba(17, 17, 18, 0.52);
-  --vc-ink-4: rgba(17, 17, 18, 0.38);
-  --vc-line: rgba(17, 17, 18, 0.1);
+  --vc-ink-2: rgba(17, 17, 18, 0.8);
+  --vc-ink-3: rgba(17, 17, 18, 0.62);
+  --vc-ink-4: rgba(17, 17, 18, 0.48);
+  --vc-line: rgba(17, 17, 18, 0.12);
   --vc-line-2: rgba(17, 17, 18, 0.06);
-  --vc-line-strong: rgba(17, 17, 18, 0.16);
+  --vc-line-strong: rgba(17, 17, 18, 0.2);
   --vc-sig: #c0362c;
   --vc-sig-bg: rgba(192, 54, 44, 0.1);
   --vc-amber: #a16207;
@@ -245,9 +245,9 @@ html {
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--vc-ink-3);
+  color: var(--vc-ink-2);
   background: var(--vc-bg);
-  border: 1px solid var(--vc-line);
+  border: 1px solid var(--vc-line-strong);
   border-radius: 6px;
   padding: 5px 10px;
   cursor: pointer;
@@ -268,9 +268,9 @@ html {
   font-family: var(--vc-sans);
   font-size: 13.5px;
   font-weight: 550;
-  color: var(--vc-ink-2);
-  background: var(--vc-panel);
-  border: 1px solid var(--vc-line);
+  color: var(--vc-bg);
+  background: var(--vc-ink);
+  border: 1px solid var(--vc-ink);
   border-radius: 9px;
   padding: 10px 13px;
   cursor: pointer;
@@ -282,9 +282,9 @@ html {
   width: 100%;
 }
 .vc-btn:hover {
-  color: var(--vc-ink);
-  border-color: var(--vc-line-strong);
-  background: var(--vc-panel-2);
+  color: var(--vc-bg);
+  background: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
+  border-color: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
 }
 .vc-btn:active {
   transform: scale(0.985);
@@ -305,7 +305,9 @@ html {
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--vc-ink-4);
+  /* Muted tint of the button's own light text so it stays legible on the dark
+     fill in both themes (light text in light, dark text in dark). */
+  color: color-mix(in srgb, var(--vc-bg) 62%, transparent);
   margin-left: auto;
 }
 
@@ -1263,9 +1265,9 @@ html {
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--vc-ink-2);
-  background: var(--vc-bg);
-  border: 1px solid var(--vc-line);
+  color: var(--vc-bg);
+  background: var(--vc-ink);
+  border: 1px solid var(--vc-ink);
   border-radius: 7px;
   padding: 5px 11px;
   cursor: pointer;
@@ -1273,11 +1275,11 @@ html {
   flex: none;
 }
 .vc-term-play:hover:not(:disabled) {
-  color: var(--vc-ink);
-  border-color: var(--vc-line-strong);
+  background: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
+  border-color: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
 }
 .vc-term-play:disabled {
-  color: var(--vc-ink-4);
+  color: color-mix(in srgb, var(--vc-bg) 52%, transparent);
   cursor: default;
 }
 .vc-term-body {
@@ -1424,22 +1426,23 @@ html {
   font-family: var(--vc-mono);
   font-size: 13px;
   letter-spacing: 0.01em;
-  color: var(--vc-ink);
-  background: var(--vc-panel);
-  border: 1px solid var(--vc-line-strong);
+  color: var(--vc-bg);
+  background: var(--vc-ink);
+  border: 1px solid var(--vc-ink);
   border-radius: 9px;
   padding: 11px 16px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  transition: background 0.15s, border-color 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 .vc-audit-run:hover:not(:disabled) {
-  background: var(--vc-panel-2);
+  background: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
+  border-color: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
 }
 .vc-audit-run:disabled {
-  color: var(--vc-ink-3);
+  color: color-mix(in srgb, var(--vc-bg) 55%, transparent);
   cursor: default;
 }
 .vc-audit-run .vc-audit-run-dot {
