@@ -55,9 +55,9 @@ const ScanColumn = ({
               {row.label}
               {!row.pass && row.detail ? <span className="vc-check-detail"> — {row.detail}</span> : null}
             </span>
-            {!row.pass && row.fixHref ? (
-              <Link className="vc-check-fix" href={row.fixHref}>
-                how to fix →
+            {row.fixHref ? (
+              <Link className="vc-check-fix" href={row.fixHref} data-pass={row.pass}>
+                {row.pass ? 'guide →' : 'how to fix →'}
               </Link>
             ) : null}
           </li>

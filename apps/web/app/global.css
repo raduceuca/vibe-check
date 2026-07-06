@@ -1667,6 +1667,14 @@ html {
   color: var(--vc-ink);
   text-decoration: underline;
 }
+/* On a passing check the guide link is calm (an invitation, not a to-do), so the
+   misses' "how to fix" still read as the actionable rows. */
+.vc-check-fix[data-pass='true'] {
+  color: var(--vc-ink-4);
+}
+.vc-check-fix[data-pass='true']:hover {
+  color: var(--vc-ink-2);
+}
 
 /* PipelineDiagram ships two layouts from one stage list: a two-row serpentine
    for wide viewports and a vertical stack for narrow ones, so node text never
