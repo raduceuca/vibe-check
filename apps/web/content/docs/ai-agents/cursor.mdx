@@ -1,0 +1,51 @@
+---
+title: Cursor
+description: Add the VibeCheck MCP server to Cursor.
+---
+
+Cursor reads MCP servers from a JSON file. Add one for VibeCheck and Cursor's
+agent gets all six tools.
+
+## Project config
+
+Create `.cursor/mcp.json` at the root of your project:
+
+```json
+{
+  "mcpServers": {
+    "vibe-check": {
+      "command": "npx",
+      "args": ["-y", "@wcgw/vibe-check-mcp"]
+    }
+  }
+}
+```
+
+Commit this file to share the setup with your team. For a machine-wide server
+that works in every project, put the same `mcpServers` block in `~/.cursor/mcp.json`
+instead.
+
+## Enable and verify
+
+1. Restart Cursor (or reload the window) so it picks up the new config.
+2. Open **Settings → MCP** — `vibe-check` should show a green/connected status
+   and list its tools.
+3. Confirm the HTTP receiver is up:
+
+   ```bash
+   curl http://localhost:4200/api/health   # → {"status":"ok"}
+   ```
+
+Then ask Cursor's agent:
+
+```text
+What performance issues is VibeCheck detecting right now?
+```
+
+<Callout type="warn" title="Troubleshooting">
+  If `vibe-check` shows an error in Settings → MCP, check the JSON for a trailing
+  comma or missing bracket, then run `npx -y @wcgw/vibe-check-mcp` in a terminal
+  to see the startup error directly. If it connects but returns "No snapshot
+  available yet", your app isn't beaconing — make sure the widget is running with
+  `beaconUrl="http://localhost:4200"`. See [Troubleshooting](/docs/troubleshooting).
+</Callout>

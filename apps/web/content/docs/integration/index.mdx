@@ -1,0 +1,55 @@
+---
+title: React (drop-in)
+description: Install, render once, and tour the VibeCheck props and hooks.
+---
+
+The fastest path: install the package and render `<VibeCheck />` once near your
+app root.
+
+## Install
+
+```bash
+pnpm add @wcgw/vibe-check
+```
+
+## Render once
+
+```tsx
+import { VibeCheck } from '@wcgw/vibe-check'
+
+export function Root() {
+  return (
+    <>
+      <App />
+      {process.env.NODE_ENV !== 'production' && <VibeCheck />}
+    </>
+  )
+}
+```
+
+## Props tour
+
+| Prop | Type | Notes |
+| --- | --- | --- |
+| `position` | `'bottom-right'` \| … | Corner the panel docks to. |
+| `panels` | `PanelType[]` | Which panels to show (fps, vitals, memory, console, issues). |
+| `startCollapsed` | `boolean` | Start as a floating pill. |
+| `beaconUrl` | `string` | Where to POST snapshots — your MCP server. |
+| `storageKey` | `string` | Distinct localStorage bucket per embed. |
+| `engine` | `VibeEngine \| null` | Drive a provided engine (e.g. `createScriptedEngine`). |
+
+## Gate it behind a shortcut
+
+Swap `<VibeCheck />` for `<PerfToggle />` to hide the panel behind
+`Alt+Shift+V` (override with the `shortcut` prop).
+
+## Hooks for custom UI
+
+Build your own panel with `useFrameRate`, `useWebVitals`, `useMemory`,
+`useLongFrames`, and `useDetectedIssues` — see the
+[React API reference](/docs/reference/react-api).
+
+<Callout title="Next.js">
+  In the App Router the widget must run client-side. See the
+  [Next.js guide](/docs/integration/nextjs).
+</Callout>

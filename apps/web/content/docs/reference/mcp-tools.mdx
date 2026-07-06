@@ -1,0 +1,98 @@
+---
+title: MCP tools & HTTP API
+description: The six MCP tools, their parameters and returns, plus the HTTP endpoints and env vars.
+---
+
+`@wcgw/vibe-check-mcp` runs one process that is both a stdio MCP server (six
+tools for your agent) and an HTTP server (the beacon receiver + SSE stream).
+Every tool returns its payload as JSON text; the shapes below are that payload.
+
+## MCP tools
+
+### `get_performance_snapshot`
+
+The latest full snapshot. No parameters.
+
+- **Returns** — the `VibeSnapshot` JSON, or `{ "error": "No snapshot available yet. The browser widget has not sent any data." }` if none has arrived.
+
+### `get_detected_issues`
+
+Active issues only — anything acknowledged or resolved is filtered out.
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `severity` | `'info' \| 'warning' \| 'error' \| 'critical'` (optional) | Filter by severity. |
+| `detector` | `string` (optional) | Filter by detector name, e.g. `dom-bloat`. |
+
+- **Returns** — `{ "count": number, "issues": VibeIssue[] }`.
+
+### `get_fix_suggestions`
+
+Cause, step-by-step fix, and code for one issue.
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `issue_id` | `string` (required) | The issue's `id`. Searched in the latest snapshot and the 100-issue history. |
+
+- **Returns** — a markdown suggestion, or `{ "error": "Issue with id \"…\" not found." }`.
+
+### `watch_performance`
+
+Blocks until the next snapshot arrives — use it to confirm a fix took effect.
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `timeout_seconds` | `number` 1–300 (default `30`) | How long to wait. |
+
+- **Returns** — the next `VibeSnapshot` JSON, or `{ "error": "No snapshot received within N seconds" }` on timeout.
+
+### `acknowledge_issue`
+
+Mark an issue seen; it drops out of `get_detected_issues`.
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `issue_id` | `string` (required) | The issue's `id`. |
+
+- **Returns** — `{ "acknowledged": true, "issue_id": "…" }`, or a not-found error.
+
+### `resolve_issue`
+
+Mark an issue fixed; it drops out of `get_detected_issues`.
+
+| Parameter | Type | Notes |
+| --- | --- | --- |
+| `issue_id` | `string` (required) | The issue's `id`. |
+
+- **Returns** — `{ "resolved": true, "issue_id": "…" }`, or a not-found error.
+
+## HTTP API
+
+The HTTP server listens on `http://127.0.0.1:4200` by default. CORS is open
+(`Access-Control-Allow-Origin: *`) so a browser on any localhost origin can
+reach it; `OPTIONS` preflights return `204`.
+
+| Route | Method | Purpose | Response |
+| --- | --- | --- | --- |
+| `/api/snapshot` | POST | Receive a `VibeSnapshot` from the browser beacon (validated with zod; max 1 MB body). | `200 { "received": true }`, or `400 { "error": "Invalid snapshot format" }` / `{ "error": "Invalid JSON body" }`. |
+| `/api/stream` | GET (SSE) | Stream snapshots as they arrive. Opens with `data: {"connected":true}`, then one `data:` event per snapshot. Max 10 concurrent connections. | `text/event-stream`, or `503 { "error": "Too many SSE connections" }`. |
+| `/api/health` | GET | Liveness check. | `200 { "status": "ok" }`. |
+
+```bash
+curl http://localhost:4200/api/health
+# {"status":"ok"}
+```
+
+## Environment variables
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `VIBE_CHECK_PORT` | `4200` | Listen port. Invalid or out-of-range values fall back to `4200`. |
+| `VIBE_CHECK_HOST` | `127.0.0.1` | Bind address. Loopback-only by default. |
+
+<Callout type="warn" title="Keep it on loopback">
+  The server is an unauthenticated dev tool that stores browser telemetry and
+  serves it to an AI agent. It binds to `127.0.0.1` on purpose — only override
+  `VIBE_CHECK_HOST` for trusted setups (e.g. a container bridge), never a public
+  interface.
+</Callout>

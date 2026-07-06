@@ -1,0 +1,57 @@
+---
+title: Claude Code
+description: Add the VibeCheck MCP server to Claude Code.
+---
+
+Claude Code manages MCP servers with the `claude mcp` command — no config file to
+edit by hand.
+
+## Add the server
+
+```bash
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp
+```
+
+Everything after `--` is the command Claude Code will spawn. The single process
+it launches is both the stdio MCP server (which Claude Code talks to) and the
+HTTP receiver on `localhost:4200` (which your browser widget beacons to).
+
+## Scopes
+
+`claude mcp add` writes to the **local** scope by default (just you, just this
+project). Change it with `--scope`:
+
+```bash
+# Share the config with teammates by committing it to the repo
+claude mcp add --scope project vibe-check -- npx -y @wcgw/vibe-check-mcp
+
+# Make it available across all your projects
+claude mcp add --scope user vibe-check -- npx -y @wcgw/vibe-check-mcp
+```
+
+`--scope project` writes a `.mcp.json` at the repo root that you can commit, so
+everyone on the team gets the server automatically.
+
+## Verify
+
+```bash
+claude mcp list                        # vibe-check should be listed
+curl http://localhost:4200/api/health  # → {"status":"ok"}
+```
+
+Then ask, inside Claude Code:
+
+```text
+What performance issues is VibeCheck detecting right now?
+```
+
+Claude Code will call `get_detected_issues` and report back.
+
+<Callout type="warn" title="Troubleshooting">
+  If the tools don't appear, run `claude mcp list` — a `Failed` status means the
+  command didn't start. Try `npx -y @wcgw/vibe-check-mcp` in a terminal to see
+  the error directly. If it starts but the agent sees no data, the widget in your
+  app isn't beaconing: confirm its `beaconUrl` is `http://localhost:4200` and
+  that `curl http://localhost:4200/api/health` returns OK. See
+  [Troubleshooting](/docs/troubleshooting).
+</Callout>

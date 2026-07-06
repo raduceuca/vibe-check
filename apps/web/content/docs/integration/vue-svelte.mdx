@@ -1,0 +1,88 @@
+---
+title: Vue · Svelte
+description: Drive the headless core engine from any framework and render your own UI.
+---
+
+The React widget is just one consumer of `@wcgw/vibe-check-core`. The engine is
+framework-agnostic and has zero runtime dependencies, so in Vue, Svelte, Solid,
+Angular — or anything else — you drive the engine yourself and render (or don't
+render) your own UI. The pattern is always: `start()` on mount, subscribe,
+`stop()` on unmount.
+
+## Vue
+
+```vue
+<!-- VibeMeter.vue -->
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { VibeCheckEngine, type VibeSnapshot } from '@wcgw/vibe-check-core'
+
+const fps = ref(0)
+const issueCount = ref(0)
+
+let engine: VibeCheckEngine | null = null
+let unsubscribe: (() => void) | null = null
+
+onMounted(() => {
+  engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+  unsubscribe = engine.onSnapshot((snap: VibeSnapshot) => {
+    fps.value = snap.frameRate.fps
+    issueCount.value = snap.issues.length
+  })
+  engine.start()
+})
+
+onUnmounted(() => {
+  unsubscribe?.()
+  engine?.stop()
+})
+</script>
+
+<template>
+  <div>{{ fps }} fps · {{ issueCount }} issues</div>
+</template>
+```
+
+## Svelte
+
+```svelte
+<!-- VibeMeter.svelte -->
+<script lang="ts">
+  import { onMount } from 'svelte'
+  import { VibeCheckEngine, type VibeSnapshot } from '@wcgw/vibe-check-core'
+
+  let fps = 0
+  let issueCount = 0
+
+  onMount(() => {
+    const engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+    const unsubscribe = engine.onSnapshot((snap: VibeSnapshot) => {
+      fps = snap.frameRate.fps
+      issueCount = snap.issues.length
+    })
+    engine.start()
+
+    // onMount's return runs on unmount
+    return () => {
+      unsubscribe()
+      engine.stop()
+    }
+  })
+</script>
+
+<div>{fps} fps · {issueCount} issues</div>
+```
+
+<Callout type="warn" title="Always pair start() with stop()">
+  The engine installs `PerformanceObserver`s and patches `console`/`fetch`.
+  Skipping `stop()` on unmount leaks observers and leaves the patches installed.
+  Call `unsubscribe()` then `engine.stop()` in your framework's teardown hook.
+</Callout>
+
+## Render nothing (beacon-only)
+
+You don't need any UI to feed your agent. Give the engine a `beaconUrl`, start
+it, and let it POST snapshots on its own — see the
+[Vanilla / headless guide](/docs/integration/vanilla#beacon-only-mode). The
+engine feature-detects browser APIs and silently skips collectors the host
+doesn't support, so the same code is safe everywhere.

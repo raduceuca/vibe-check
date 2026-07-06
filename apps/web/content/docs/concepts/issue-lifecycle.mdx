@@ -1,0 +1,69 @@
+---
+title: Issue lifecycle
+description: Severity levels and the detected → acknowledged → resolved flow.
+---
+
+Every problem VibeCheck finds is a `VibeIssue`. It's born when a detector's
+threshold trips, travels to the MCP store over the beacon, and moves through a
+three-state lifecycle as your agent works on it.
+
+## The issue shape
+
+```ts
+interface VibeIssue {
+  readonly id: string
+  readonly detector: DetectorName        // e.g. 'dom-bloat'
+  readonly severity: Severity            // info | warning | error | critical
+  readonly title: string
+  readonly description: string
+  readonly evidence: Record<string, unknown> // typed per detector
+  readonly timestamp: number
+  readonly acknowledged: boolean
+  readonly resolved: boolean
+}
+```
+
+## Severity
+
+Four levels, ordered least to most urgent:
+
+```text
+info  →  warning  →  error  →  critical
+```
+
+Severity is set by the detector — for example `dom-bloat` emits a `warning` at
+≥800 nodes and an `error` at ≥1,500. Agents can filter by it: `get_detected_issues`
+accepts a `severity` argument.
+
+## The lifecycle
+
+```text
+detected  →  acknowledged  →  resolved
+```
+
+- **detected** — a detector emitted the issue from a snapshot; it arrives in the
+  store and shows up in `get_detected_issues`.
+- **acknowledged** — you or the agent has seen it and doesn't want it in the
+  active list. The `acknowledge_issue` tool records its id.
+- **resolved** — it's fixed. The `resolve_issue` tool records its id.
+
+Acknowledging or resolving an issue removes it from `get_detected_issues`, so the
+active list is always "what still needs attention."
+
+## Where state lives
+
+The MCP `VibeStore` is immutable — every update returns a new store. It holds:
+
+- `latestSnapshot` — the most recent snapshot received.
+- `issueHistory` — the last **100** issues seen (older ones are dropped).
+- `acknowledgedIds` / `resolvedIds` — sets of ids the agent has actioned.
+
+Because acknowledge/resolve state is keyed by issue id, a re-detected issue that
+carries the same id stays actioned across snapshots.
+
+<Callout title="Two issue stores">
+  The MCP `VibeStore` (above) is what your **agent** reads. The React widget
+  keeps its own browser-side `IssueStore` in `localStorage` with a `new` →
+  `sent-to-agent` → `resolved` status, so the overlay's list survives reloads.
+  They track the same issues from opposite ends of the pipeline.
+</Callout>

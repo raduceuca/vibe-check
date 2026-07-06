@@ -1,0 +1,55 @@
+---
+title: Other MCP clients
+description: Claude Desktop, Windsurf, and the universal config block.
+---
+
+Every MCP client that speaks stdio accepts the same server definition. If your
+client isn't Claude Code or Cursor, use the block below.
+
+## The universal config
+
+```json
+{
+  "mcpServers": {
+    "vibe-check": {
+      "command": "npx",
+      "args": ["-y", "@wcgw/vibe-check-mcp"]
+    }
+  }
+}
+```
+
+The command is identical everywhere — only the file it goes in differs.
+
+## Claude Desktop
+
+Add the block to Claude Desktop's config file, then fully quit and reopen the app
+(a window reload is not enough):
+
+| OS | Config file |
+| --- | --- |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+If the file doesn't exist yet, create it with just the `mcpServers` object above.
+After restarting, the tools appear under the MCP/tools menu in the composer.
+
+## Windsurf and others
+
+Most other clients (Windsurf, Cline, Zed, and so on) read a `mcpServers` object
+too — consult your client's MCP docs for the exact file path and drop the same
+block in. The `command` / `args` never change.
+
+## Verify
+
+```bash
+curl http://localhost:4200/api/health   # → {"status":"ok"}
+```
+
+<Callout type="warn" title="Troubleshooting">
+  If the server won't load, run `npx -y @wcgw/vibe-check-mcp` in a terminal to
+  surface the error, and double-check the JSON is valid (no trailing commas).
+  Remember to fully restart the client after editing its config. If it loads but
+  the agent sees no data, confirm your app's widget is beaconing to
+  `http://localhost:4200`. See [Troubleshooting](/docs/troubleshooting).
+</Callout>

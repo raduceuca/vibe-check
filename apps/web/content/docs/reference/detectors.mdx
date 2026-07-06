@@ -1,0 +1,84 @@
+---
+title: Detector & audit reference
+description: All 13 detectors, their thresholds, the audit check ids, and where to fix each.
+---
+
+All 13 detectors are enabled by default; toggle any of them via
+`config.detectors` (see [The Engine](/docs/concepts/engine#configuration)). The
+`Fix guide` column links to a framework-specific walkthrough for each problem.
+
+| Detector | What it catches | Threshold | Fix guide |
+| --- | --- | --- | --- |
+| `dom-bloat` | Excessive DOM nodes and deep nesting | ≥ 800 nodes (warning), ≥ 1,500 (error) | [Excessive DOM size](/fix/excessive-dom-size) |
+| `duplicate-requests` | The same URL + method fetched repeatedly | 2+ identical requests within 2s | [Duplicate requests](/fix/duplicate-network-requests) |
+| `console-spam` | High-volume console output | > 20 calls per 10s window | [Console log spam](/fix/console-log-spam) |
+| `memory-leak` | Steadily growing JS heap without GC recovery | > 10% growth over 30s (warning), > 25% (error) | [Memory leak](/fix/memory-leak) |
+| `layout-thrashing` | Clusters of layout shifts without user input | ≥ 3 shifts within 500ms | [Layout shift](/fix/cumulative-layout-shift) |
+| `unoptimized-images` | Missing dimensions/lazy/alt, oversized, or distorted images | natural > 2× rendered; aspect mismatch > 0.15 | [Unoptimized images](/fix/unoptimized-images) |
+| `large-images` | Oversized image transfers | ≥ 500KB (warning), ≥ 1,024KB (error) | [Large image files](/fix/large-image-files) |
+| `long-task-attribution` | Scripts causing long animation frames (LoAF) | ≥ 3 long frames attributed to one source | [Long tasks](/fix/long-tasks) |
+| `resource-bloat` | Oversized JS/CSS/font/image resources | ≥ 100KB (prod) / 500KB (dev) | [Large JS bundles](/fix/large-javascript-bundles) |
+| `web-essentials` | Missing document essentials (favicon, viewport, lang, charset) | 4 document checks | [Web essentials](/fix/essentials) |
+| `heavy-library` | Known heavy libraries and their pitfalls | 16 library signatures | [Heavy dependencies](/fix/heavy-dependencies) |
+| `seo` | Discoverability / search-visibility problems | 20 checks (title ≤ 60, description ≤ 160 chars, …) | [Search visibility](/fix/seo) |
+| `aeo` | AI answer-engine / agent readiness | 9 checks | [AI readiness](/fix/aeo) |
+
+## Audit checks
+
+The `seo`, `aeo`, and `web-essentials` detectors each emit one issue per failed
+check. Each check id below is the value carried in the issue's `evidence.check`.
+
+### Search visibility (`seo`) — 20 checks
+
+Fix guides live under [/fix/seo](/fix/seo).
+
+- `title-missing` — Missing page title
+- `title-too-long` — Page title is too long
+- `title-default` — Page title is a framework default
+- `meta-description-missing` — Missing meta description
+- `meta-description-too-long` — Meta description is too long
+- `og-image-missing` — Missing social preview image (og:image)
+- `og-title-missing` — Missing og:title
+- `og-description-missing` — Missing og:description
+- `canonical-missing` — Missing canonical link
+- `h1-missing` — No &lt;h1&gt; heading
+- `h1-multiple` — Multiple &lt;h1&gt; headings
+- `image-alt-missing` — Images missing alt text
+- `slug-unfriendly` — Unfriendly URL slug
+- `noindex` — Page is set to "noindex"
+- `title-too-short` — Page title is very short
+- `og-url-missing` — Missing og:url
+- `twitter-card-missing` — Missing Twitter/X card
+- `generic-link-text` — Vague link text
+- `sitemap-missing` — Missing or invalid sitemap.xml
+- `robots-missing` — Missing robots.txt
+
+### AI answer-engine readiness (`aeo`) — 9 checks
+
+Fix guides live under [/fix/aeo](/fix/aeo).
+
+- `structured-data-missing` — No structured data (JSON-LD)
+- `structured-data-invalid` — Structured data is invalid
+- `no-main-landmark` — No &lt;main&gt; landmark
+- `no-author-metadata` — No author or date signals
+- `llms-txt-missing` — No llms.txt
+- `content-requires-js` — Content only renders with JavaScript
+- `markdown-negotiation-missing` — No markdown content negotiation
+- `ai-crawlers-blocked` — robots.txt blocks AI crawlers
+- `mcp-discovery-missing` — No agent interface (MCP) advertised
+
+### Document essentials (`web-essentials`) — 4 checks
+
+Fix guides live under [/fix/essentials](/fix/essentials).
+
+- `favicon` — Missing favicon
+- `viewport` — Missing viewport meta tag
+- `lang` — Missing lang attribute on &lt;html&gt;
+- `charset` — Missing charset declaration
+
+<Callout title="Evidence shapes">
+  Each issue carries a typed `evidence` object — e.g. `dom-bloat` emits
+  `{ nodeCount, maxDepth, selector }`, `duplicate-requests` emits
+  `{ url, method, count, windowMs }`. See `IssueEvidenceMap` in the
+  [protocol types](/docs/reference/core-api#types) for the full per-detector map.
+</Callout>

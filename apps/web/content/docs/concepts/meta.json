@@ -1,0 +1,11 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "architecture",
+    "collectors",
+    "detectors",
+    "engine",
+    "beacon",
+    "issue-lifecycle"
+  ]
+}

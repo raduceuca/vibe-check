@@ -1,0 +1,88 @@
+---
+title: Collectors
+description: The six browser measurements VibeCheck records, and the Collector interface.
+---
+
+Collectors are the measurement layer. Each one watches a single browser signal —
+frame rate, long frames, memory, web vitals, resources, or console volume — and
+exposes its current reading as a plain stats object. The engine reads all six
+every snapshot tick; the detectors analyze what they produce.
+
+## The `Collector<T>` interface
+
+Every collector implements the same four-method contract, so the engine treats
+them uniformly and you can build your own:
+
+```ts
+interface Collector<T> {
+  start(): void
+  stop(): void
+  getStats(): T
+  onUpdate(callback: (stats: T) => void): () => void
+}
+```
+
+`onUpdate` returns an unsubscribe function. `getStats` is a pure read of the
+current value — safe to call at any cadence.
+
+## The six collectors
+
+| Collector | Measures | Backed by | Stats shape |
+| --- | --- | --- | --- |
+| `FrameRateCollector` | FPS, avg/max frame time, dropped frames, smoothness. | `requestAnimationFrame` over a 1s window. | `FrameRateStats` |
+| `LongFrameCollector` | Long Animation Frames with per-script attribution. | `PerformanceObserver` (`long-animation-frame`). | `LongFrameStats` |
+| `MemoryCollector` | JS heap used/total (MB) and used %. | `performance.memory`, polled every 2s. | `HeapMemory \| null` |
+| `WebVitalsCollector` | LCP, INP, CLS with `good` / `needs-improvement` / `poor` ratings. | `PerformanceObserver`. | `WebVitalsStats` |
+| `ResourceCollector` | Transfer bytes by type (JS/CSS/image/font) + the largest resources. | `PerformanceResourceTiming`, polled every 5s. | `ResourceStats` |
+| `ConsoleCollector` | Counts of `console.log` / `warn` / `error`. | Wraps the three methods, counts, and calls through. | `ConsoleStats` |
+
+<Callout type="warn" title="Availability varies by browser">
+  `LongFrameCollector` needs the LoAF API and `MemoryCollector` needs
+  `performance.memory` — both Chromium-only. Where an API is missing the
+  collector stays inert and its stats read empty (or `null` for memory), so the
+  host is never broken. See [feature detection](/docs/reference/core-api#feature-detection).
+</Callout>
+
+## Two ways to consume a collector
+
+Drive one directly:
+
+```ts
+import { FrameRateCollector } from '@wcgw/vibe-check-core'
+
+const fps = new FrameRateCollector()
+fps.start()
+
+const off = fps.onUpdate((stats) => {
+  console.info(stats.fps, stats.droppedFrames, stats.smoothness)
+})
+
+// later
+off()
+fps.stop()
+```
+
+Or, in React, use the matching hook — it manages the collector lifecycle for you:
+
+```tsx
+import { useFrameRate } from '@wcgw/vibe-check'
+
+function Meter() {
+  const { fps, smoothness } = useFrameRate(true) // pass enabled
+  return <span>{fps} fps · {smoothness}% smooth</span>
+}
+```
+
+Each collector's reading also appears as a field on the
+[`VibeSnapshot`](/docs/reference/core-api#vibesnapshot) the engine assembles —
+`frameRate`, `longFrames`, `memory`, `webVitals`, `resources`, and `console`.
+
+## Notes on specific collectors
+
+- **Console** — the wrapper only counts; it forwards every call to the original
+  method, so your logs still print. On `stop()` it restores the console **only**
+  if its own wrapper is still installed, so it never clobbers another patcher.
+- **Web vitals** — CLS is computed with the standard session-window algorithm
+  (1s gap / 5s max window) and shifts with recent user input are excluded.
+- **Frame rate** — samples are kept in a fixed-capacity `RingBuffer`, so the hot
+  `rAF` path allocates nothing per frame.

@@ -1,0 +1,38 @@
+---
+title: How it works
+description: The packages that make up VibeCheck, and when you need each one.
+---
+
+VibeCheck is a small pipeline of focused packages. You rarely need all of them
+at once.
+
+## The packages
+
+| Package | What it does | When you need it |
+| --- | --- | --- |
+| `@wcgw/vibe-check-core` | Framework-agnostic engine: collectors + detectors. Zero runtime deps. | Always — it's the measurement layer. |
+| `@wcgw/vibe-check` | React overlay widget (`<VibeCheck />`, `<PerfToggle />`) + hooks. | React / Next apps that want the visual panel. |
+| `@wcgw/vibe-check-mcp` | MCP server: receives snapshots over HTTP, exposes six tools to agents. | When you want your AI agent to read the data. |
+
+## The dependency chain
+
+```text
+core  (zero deps)
+  → react  (depends on core)
+    → your app
+
+mcp  (standalone — receives snapshots over HTTP)
+```
+
+The MCP package does **not** import core. It receives snapshots over HTTP and
+mirrors core's `VibeSnapshot` shape, so the browser and the agent stay decoupled.
+
+## What runs where
+
+- **In the browser:** collectors measure the page; detectors analyze snapshots;
+  the engine orchestrates them and (optionally) beacons snapshots out.
+- **On your machine:** the MCP server holds the latest snapshot in an immutable
+  store and answers your agent's tool calls.
+
+Continue with the [Quickstart](/docs/quickstart), or dig into
+[Concepts](/docs/concepts/architecture).

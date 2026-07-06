@@ -1,0 +1,104 @@
+---
+title: The Engine
+description: VibeCheckEngine orchestrates collectors, detectors, and the beacon.
+---
+
+`VibeCheckEngine` is the one object you start. It owns the six collectors and
+the enabled detectors, assembles a `VibeSnapshot` on demand, notifies
+subscribers every 500ms, and — if you give it a `beaconUrl` — ships snapshots to
+the MCP server.
+
+## Lifecycle
+
+```ts
+import { VibeCheckEngine } from '@wcgw/vibe-check-core'
+
+const engine = new VibeCheckEngine()
+engine.start()
+
+// Read the current snapshot at any time
+const snapshot = engine.getSnapshot()
+
+// Or subscribe — the callback fires ~every 500ms
+const unsubscribe = engine.onSnapshot((snap) => {
+  console.info(snap.frameRate.fps, snap.issues.length)
+})
+
+// Clean up
+unsubscribe()
+engine.stop()
+```
+
+`start()` and `stop()` are idempotent — calling `start()` twice is a no-op. On
+`stop()` the engine tears everything down in reverse start order and restores any
+patched globals.
+
+## The `VibeEngine` interface
+
+The React widget consumes an engine through this interface, not the concrete
+class — which is why a scripted engine can stand in for the real one:
+
+```ts
+interface VibeEngine {
+  start(): void
+  stop(): void
+  getSnapshot(): VibeSnapshot
+  getIssues(): readonly VibeIssue[]
+  clearIssues(): void
+  onSnapshot(callback: (snapshot: VibeSnapshot) => void): () => void
+  isRunning(): boolean
+  getBeaconStatus(): BeaconStatus | null
+}
+```
+
+## Configuration
+
+The constructor takes a `Partial<VibeCheckConfig>`, merged over `DEFAULT_CONFIG`:
+
+```ts
+const engine = new VibeCheckEngine({
+  beaconUrl: 'http://localhost:4200', // enable delivery to the MCP server
+  beaconIntervalMs: 2000,             // default
+  detectors: {
+    memoryLeak: false,                // disable a single detector
+  },
+})
+```
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | `true` | |
+| `beaconUrl` | `string` | — | Omit to run with no delivery (local-only). |
+| `beaconIntervalMs` | `number` | `2000` | How often the beacon POSTs. |
+| `detectors` | object of booleans | all `true` | One flag per detector. |
+
+<Callout title="Beacon vs. snapshot cadence">
+  The engine notifies `onSnapshot` subscribers every **500ms** (for a live UI),
+  but the beacon POSTs on its own **`beaconIntervalMs`** (default 2s). The two
+  are independent.
+</Callout>
+
+## Scripted engine (for demos)
+
+`createScriptedEngine(scenario)` implements the exact `VibeEngine` surface but
+replays a canned timeline instead of reading live collectors — so docs and
+landing-page demos are deterministic for every visitor. It drops into the same
+slot as the real engine (including the widget's `engine` prop):
+
+```ts
+import { createScriptedEngine } from '@wcgw/vibe-check-core'
+
+const engine = createScriptedEngine({
+  stepMs: 1000,
+  loop: true,
+  frames: [
+    { snapshot: { frameRate: { fps: 60, avgFrameTime: 16, maxFrameTime: 18, droppedFrames: 0, smoothness: 100 } } },
+    { afterMs: 2000, issues: [/* VibeIssue[] */] },
+  ],
+})
+engine.start()
+```
+
+Each frame's `snapshot` is merged over the running snapshot (unspecified metrics
+persist frame to frame); a frame's `issues`, when present, replaces the current
+issue list.

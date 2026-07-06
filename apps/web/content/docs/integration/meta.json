@@ -1,0 +1,4 @@
+{
+  "title": "Integration Guides",
+  "pages": ["index", "nextjs", "vue-svelte", "vanilla"]
+}

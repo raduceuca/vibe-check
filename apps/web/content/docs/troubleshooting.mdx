@@ -1,0 +1,84 @@
+---
+title: Troubleshooting
+description: Fixes for the common snags when wiring up the widget and the MCP server.
+---
+
+Most setup problems fall into one of four buckets: the widget won't render, no
+data reaches the agent, the MCP server won't connect, or a metric is missing
+because the browser doesn't support it. Work top to bottom.
+
+## The widget doesn't appear
+
+- Confirm `<VibeCheck />` is actually mounted and not gated out — a
+  `process.env.NODE_ENV !== 'production'` guard hides it in production builds.
+- If you use `<PerfToggle />`, it starts as a collapsed pill; press its shortcut
+  (**`Alt+Shift+V`** by default) to expand it. Set a custom combo with the
+  `shortcut` prop.
+- Check for a rendering error in the console that unmounts the tree above it.
+
+## SSR error / "window is not defined" (Next.js)
+
+The widget reads browser-only APIs, so it can't run during the server render.
+
+- In the App Router, load it in a Client Component with
+  `dynamic(() => import('@wcgw/vibe-check').then(m => m.VibeCheck), { ssr: false })`.
+- See the [Next.js guide](/docs/integration/nextjs) for the full pattern.
+- Outside React, the headless engine feature-detects APIs and no-ops on the
+  server — but only construct/`start()` it in a browser context.
+
+## The agent sees no data ("No snapshot available yet")
+
+This means the MCP server is up but the browser never beaconed to it.
+
+- Give the widget a `beaconUrl`: `<VibeCheck beaconUrl="http://localhost:4200" />`.
+  Without it the engine runs local-only and sends nothing.
+- Confirm the server is running: `npx -y @wcgw/vibe-check-mcp`, then
+  `curl http://localhost:4200/api/health` → `{"status":"ok"}`.
+- Check the widget's Settings panel for beacon status. "Connecting" or a failure
+  there means the POST isn't landing — verify the URL, port, and that the server
+  process is alive.
+- CORS is open by default, so a cross-origin localhost app can reach the server;
+  a blocked request usually means the server isn't running on that port at all.
+
+## Port 4200 is already in use
+
+- Start the server on another port with `VIBE_CHECK_PORT`:
+  `VIBE_CHECK_PORT=4300 npx -y @wcgw/vibe-check-mcp`.
+- Point the widget at the same port: `beaconUrl="http://localhost:4300"`.
+
+## The MCP server doesn't show up in my agent
+
+- **Restart the client.** Most clients only read MCP config at startup — fully
+  quit and reopen (Claude Desktop especially; a window reload isn't enough).
+- **Validate the JSON.** A trailing comma or missing bracket in `mcp.json` /
+  `claude_desktop_config.json` silently drops the server.
+- **Run it by hand** to see the real error:
+  `npx -y @wcgw/vibe-check-mcp`. It should print
+  `HTTP server listening on http://127.0.0.1:4200` to stderr and stay running.
+- In Claude Code, `claude mcp list` shows a `Failed` status if the command
+  didn't start.
+
+See the per-client guides for exact config: [Claude Code](/docs/ai-agents/claude-code),
+[Cursor](/docs/ai-agents/cursor), [other clients](/docs/ai-agents/other-clients).
+
+## A metric or detector is always empty
+
+VibeCheck feature-detects browser APIs and silently skips collectors the host
+doesn't support — so a quiet metric is usually a missing API, not a bug.
+
+- **Memory / `memory-leak`** — needs `performance.memory`, which is Chromium-only.
+  In Firefox and Safari memory reads `null` and the detector stays quiet by design.
+- **Long frames / `long-task-attribution`** — need the Long Animation Frame
+  (LoAF) API, also Chromium-only.
+- **Web vitals** — LCP, INP, and CLS each depend on their `PerformanceObserver`
+  entry types; unsupported ones stay `null`.
+- You can check support directly with the exported helpers
+  (`hasPerformanceMemory()`, `hasLongAnimationFrame()`, …) — see the
+  [Core API reference](/docs/reference/core-api#feature-detection).
+
+<Callout title="Still stuck?">
+  Confirm all three pieces are alive at once: the widget rendering in your app,
+  the beacon status reading "active" in Settings, and
+  `curl http://localhost:4200/api/health` returning OK. If all three are green,
+  ask your agent to call `get_detected_issues`.
+</Callout>

@@ -1,0 +1,139 @@
+---
+title: Core API
+description: Every export from @wcgw/vibe-check-core — engine, collectors, detectors, beacon, config, and utilities.
+---
+
+`@wcgw/vibe-check-core` is framework-agnostic with zero runtime dependencies.
+Everything below is a named export (this package has no default export).
+
+## Engine
+
+- `VibeCheckEngine` — the main class. Constructor takes `Partial<VibeCheckConfig>`.
+- `VibeEngine` — the interface both the live and scripted engines implement.
+
+```ts
+class VibeCheckEngine implements VibeEngine {
+  constructor(config?: Partial<VibeCheckConfig>)
+  start(): void
+  stop(): void
+  isRunning(): boolean
+  getSnapshot(): VibeSnapshot
+  getIssues(): readonly VibeIssue[]
+  clearIssues(): void
+  onSnapshot(cb: (snapshot: VibeSnapshot) => void): () => void   // fires ~every 500ms
+  getBeaconStatus(): BeaconStatus | null
+}
+```
+
+### Scripted engine
+
+- `createScriptedEngine(scenario: ScriptedScenario): VibeEngine`
+- types `ScriptedScenario`, `ScriptedFrame`
+
+Replays a canned timeline instead of live collectors. See
+[The Engine](/docs/concepts/engine#scripted-engine-for-demos).
+
+## Configuration
+
+- `VibeCheckConfig` — the config type.
+- `DEFAULT_CONFIG` — the defaults the constructor merges over.
+
+```ts
+interface VibeCheckConfig {
+  readonly enabled: boolean            // default true
+  readonly beaconUrl?: string          // default undefined (local-only)
+  readonly beaconIntervalMs: number    // default 2000
+  readonly detectors: {                // one boolean per detector, all true
+    domBloat, duplicateRequests, consoleSpam, memoryLeak, layoutThrashing,
+    unoptimizedImages, longTaskAttribution, resourceBloat, largeImages,
+    webEssentials, heavyLibrary, seo, aeo
+  }
+}
+```
+
+## Collectors
+
+Each implements `Collector<T>` (`start` / `stop` / `getStats` / `onUpdate`). See
+[Collectors](/docs/concepts/collectors) for what each measures.
+
+`FrameRateCollector`, `LongFrameCollector`, `MemoryCollector`,
+`WebVitalsCollector`, `ResourceCollector`, `ConsoleCollector`.
+
+## Detectors
+
+Each is a factory returning a `Detector` (`start` / `stop` / `getIssues` /
+`clear`). See the [Detector reference](/docs/reference/detectors) for thresholds.
+
+`createDomBloatDetector`, `createDuplicateRequestsDetector`,
+`createConsoleSpamDetector`, `createMemoryLeakDetector`,
+`createLayoutThrashingDetector`, `createUnoptimizedImagesDetector`,
+`createLongTaskAttributionDetector`, `createResourceBloatDetector`,
+`createLargeImagesDetector`, `createWebEssentialsDetector`,
+`createHeavyLibraryDetector`, `createSeoDetector`, `createAeoDetector`.
+
+Also exported: `SEO_CRITERIA_COUNT`, `AEO_CRITERIA_COUNT`, `LIBRARY_SIGNATURES`,
+and the `LibrarySignature` type.
+
+## Beacon
+
+- `BeaconClient` — POSTs snapshots to `<url>/api/snapshot` on an interval.
+- types `BeaconClientConfig`, `BeaconStatus`
+
+See [The Beacon](/docs/concepts/beacon).
+
+## Suggestions
+
+- `getSuggestion(issue: VibeIssue, mode?: SuggestionMode): Suggestion`
+- `getAgentPrompt(issues: readonly VibeIssue[], mode?: SuggestionMode): string`
+- `PROACTIVE_PROMPTS: readonly ProactivePrompt[]`
+- types `SuggestionMode` (`'technical' | 'vibe'`), `Suggestion`, `ProactivePrompt`
+
+## Utilities
+
+- `RingBuffer` — fixed-capacity circular buffer used by the collectors.
+
+### Feature detection
+
+Each returns a `boolean`; the engine uses them to skip unsupported collectors.
+
+`hasPerformanceObserver`, `hasEntryType(type)`, `hasPerformanceMemory`,
+`hasLongAnimationFrame`, `hasLayoutShift`, `hasLargestContentfulPaint`,
+`hasEventTiming`, `hasMutationObserver`, `hasResourceTiming`.
+
+```ts
+import { hasPerformanceMemory } from '@wcgw/vibe-check-core'
+
+if (!hasPerformanceMemory()) {
+  // Non-Chromium: memory metrics read null, memory-leak stays quiet.
+}
+```
+
+## Types
+
+### `VibeSnapshot`
+
+The wire payload — what `getSnapshot()` returns and the beacon POSTs.
+
+```ts
+interface VibeSnapshot {
+  readonly timestamp: number
+  readonly frameRate: FrameRateStats
+  readonly longFrames: LongFrameStats
+  readonly webVitals: WebVitalsStats
+  readonly memory: HeapMemory | null
+  readonly resources: ResourceStats
+  readonly console: ConsoleStats
+  readonly issues: readonly VibeIssue[]
+  readonly domNodeCount: number
+}
+```
+
+### Everything else
+
+Also exported as types: `VibeIssue`, `Severity`, `DetectorName`,
+`FrameRateStats`, `LongFrameStats`, `LongFrameEntry`, `ScriptAttribution`,
+`WebVitalsStats`, `WebVitalEntry`, `VitalRating`, `HeapMemory`, `ResourceStats`,
+`LargeResource`, `ConsoleStats`, `Collector`, `Detector`, `IssueEvidenceMap`,
+`EvidenceFor`, plus the `EMPTY_*` stat constants
+(`EMPTY_FRAME_RATE_STATS`, `EMPTY_LONG_FRAME_STATS`, `EMPTY_WEB_VITALS`,
+`EMPTY_RESOURCE_STATS`, `EMPTY_CONSOLE_STATS`).

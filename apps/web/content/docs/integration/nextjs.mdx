@@ -1,0 +1,78 @@
+---
+title: Next.js
+description: Mount the widget in the App Router without SSR surprises.
+---
+
+The widget reads browser-only APIs (`requestAnimationFrame`, `PerformanceObserver`,
+`performance.memory`), so it must run on the client. In the App Router that means
+one of two patterns.
+
+## Recommended: a dynamic, client-only wrapper
+
+Load the widget with `ssr: false` so it never runs during the server render — no
+`window` guard to write yourself, and it's automatically code-split out of the
+server bundle.
+
+```tsx
+// components/VibeWidget.tsx
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const VibeCheck = dynamic(
+  () => import('@wcgw/vibe-check').then((m) => m.VibeCheck),
+  { ssr: false },
+)
+
+export function VibeWidget() {
+  return <VibeCheck position="bottom-right" beaconUrl="http://localhost:4200" />
+}
+```
+
+## Place it once, dev-only
+
+Render the wrapper high in the tree — the root layout is ideal — and gate it out
+of production so it never ships to real users:
+
+```tsx
+// app/layout.tsx
+import { VibeWidget } from '@/components/VibeWidget'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        {process.env.NODE_ENV !== 'production' && <VibeWidget />}
+      </body>
+    </html>
+  )
+}
+```
+
+The root layout is a Server Component, which is fine — `<VibeWidget />` is a
+Client Component boundary, so only it and its children hydrate on the client.
+
+## Simpler: mark the file `'use client'`
+
+If you import `<VibeCheck />` directly instead of via `dynamic`, add `'use client'`
+to the top of that file and keep it out of Server Components. The dynamic
+`ssr: false` approach above is still preferred because it skips the server pass
+entirely.
+
+<Callout type="warn" title="Gate behind a shortcut instead">
+  Swap `<VibeCheck />` for `<PerfToggle />` to keep the panel hidden until you
+  press its shortcut (default `Alt+Shift+V`). Same client rules apply.
+</Callout>
+
+## Connect your agent
+
+Point `beaconUrl` at your running MCP server (default `http://localhost:4200`)
+and start it so your agent can read the data:
+
+```bash
+npx -y @wcgw/vibe-check-mcp
+```
+
+See [AI Agent Setup](/docs/ai-agents/overview) to wire it into Claude Code,
+Cursor, or another client.

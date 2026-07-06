@@ -1,0 +1,43 @@
+---
+title: Introduction
+description: A performance conscience for your coding agent — what VibeCheck is and how the pipeline fits together.
+---
+
+VibeCheck is a browser performance instrument for the AI-built frontend. AI
+agents ship code that passes review and looks fine in the happy path — then
+leaks memory across route changes, bloats the DOM, fires the same request eight
+times, janks on scroll, shifts layout as things load, and quietly fails Core Web
+Vitals and SEO. Nobody is watching, because the person who "wrote" it was an
+agent and the human never opened DevTools.
+
+VibeCheck is the observer that was missing. It runs in the corner of your app,
+catches the problem, and hands the evidence straight to your coding agent in the
+agent's own language — the Model Context Protocol (MCP).
+
+## The pipeline
+
+```text
+Browser (core collectors)
+  → VibeCheckEngine
+    → BeaconClient  (POST /api/snapshot)
+      → MCP server  (localhost:4200)
+        → VibeStore  (immutable state)
+          → MCP tools  (your AI agent reads)
+```
+
+Three packages form the pipeline:
+
+- **`@wcgw/vibe-check-core`** — collects metrics in the browser (FPS, long
+  frames, memory, web vitals, resources, console) and runs the detectors. Zero
+  runtime dependencies.
+- **`@wcgw/vibe-check`** — the React overlay widget (`<VibeCheck />`,
+  `<PerfToggle />`) plus hooks.
+- **`@wcgw/vibe-check-mcp`** — the MCP server that receives snapshots over HTTP
+  and exposes them to AI agents through six MCP tools.
+
+## Next steps
+
+<Cards>
+  <Card title="Quickstart" href="/docs/quickstart" description="Five minutes: drop in the widget and see issues in your agent." />
+  <Card title="How it works" href="/docs/how-it-works" description="The packages, and when you need each one." />
+</Cards>
