@@ -171,11 +171,12 @@ const LandingPage = () => (
 
       {/* ── 03 · What it catches ─────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="03" title="What it catches" sub="13 dial faces" />
+        <SectionHead num="03" title="The Slop Bestiary" sub="what it catches" />
         <p className="vc-p">
-          A restrained set of detectors and audits. One line each, plus the kind
-          of issue string it emits into the widget&rsquo;s Problems list — and
-          into your agent. Hover or tab through a card to watch it fire.
+          Thirteen recurring frontend regressions that AI agents ship without
+          noticing — each one a specimen the instrument catches by name. Hover a
+          card for the field note: how it slips in, and the exact issue string it
+          logs when it does.
         </p>
         <DetectorsGrid />
 
