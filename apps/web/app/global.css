@@ -1735,15 +1735,18 @@ html {
    by PIP COUNT, never a second hue (no amber here). The reveal reuses the
    existing .vc-card[data-fire] hover / focus-within / focus-visible mechanism
    (no JS) — the .vc-emit fault-red treatment above still drives the emit string.
-   prefers-reduced-motion renders the field note statically, mirroring the
-   .vc-card[data-fire] .vc-emit reduced-motion rule above. Self-contained: does
-   not touch the shared .vc-grid* / .vc-card / button / layout blocks.
+   ZERO LAYOUT SHIFT: each plate is a fixed-footprint spacer (.vc-spec) holding an
+   absolutely-positioned card (.vc-spec-inner); firing grows the inner DOWNWARD
+   into a popover over the plates below, so the grid never reflows. prefers-
+   reduced-motion keeps that overlay but drops the animation (note reveals
+   instantly on hover/focus — never shown always-on, which would permanently
+   overlap the plate below). Self-contained: does not touch the shared
+   .vc-grid* / .vc-card / button / layout blocks.
    ════════════════════════════════════════════════════════════════════════════ */
 
 /* Drawer grid: 3-up desktop / 2-up tablet / 1-up phone. Its own class so the
    shared .vc-grid-3 stays untouched; inherits display:grid + gap from .vc-grid.
-   align-items:start so a fired plate expands on its own without stretching its
-   row-mates. */
+   align-items:start keeps each fixed-height spacer at its own footprint. */
 .vc-bestiary {
   grid-template-columns: repeat(3, 1fr);
   align-items: start;
@@ -1759,14 +1762,53 @@ html {
   }
 }
 
-/* The plate — a uniform resting floor keeps the set reading as one drawer; it
-   grows past that only when fired. */
+/* The plate — a FIXED-FOOTPRINT spacer. It keeps a constant grid cell no matter
+   what the inner does, so firing a plate never reflows the drawer. The height is
+   the tallest RESTING card at this breakpoint (measured: ≤232px at 3-up/2-up,
+   ≤214px at 1-up) plus a small margin, so a resting inner never overhangs the
+   spacer, and short cards read as a uniform drawer floor. Its visual (bg /
+   border / radius / padding) is stripped here and moved onto .vc-spec-inner; the
+   outer keeps only .vc-card[data-fire] (for the fault-red .vc-emit reveal) and
+   hosts the absolutely-positioned inner. overflow:visible so the lifted popover
+   can extend below the footprint without being clipped. */
 .vc-spec {
+  position: relative;
+  height: 234px;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+}
+
+/* The visible card. Absolute + top/left/right:0 ALWAYS (rest and fired), so
+   switching to fired only grows it DOWNWARD — the grid never sees a size change.
+   min-height:100% makes it fill the footprint exactly at every breakpoint (no
+   overhang, no gap); on fire the field note expands and it grows past that,
+   floating over the cards below. */
+.vc-spec-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
+  min-height: 100%;
   padding: 14px 15px 12px;
-  min-height: 208px;
+  border: 1px solid var(--vc-line);
+  border-radius: 11px;
+  background: var(--vc-panel);
   overflow: hidden;
+  transition: box-shadow 0.24s ease, border-color 0.18s ease,
+    background 0.18s ease;
+}
+/* 1-up columns are wide, so resting cards are shorter (≤214px): tighten the
+   footprint so the drawer isn't needlessly airy on phones. Placed AFTER the
+   default .vc-spec so it wins on source order at this breakpoint (media queries
+   add no specificity). .vc-spec-inner tracks it via min-height:100%. */
+@media (max-width: 560px) {
+  .vc-spec {
+    height: 216px;
+  }
 }
 
 /* Top rail — catalogue symbol (left) + menace pips (right) */
@@ -1942,15 +1984,29 @@ html {
   animation: vc-fire-pulse 0.55s ease-out;
 }
 
-/* Reduced motion: no cross-fade — show the field note statically beneath the
-   tagline (mirrors the .vc-card[data-fire] .vc-emit reduced-motion rule above). */
+/* Lift the fired plate: raise it above its neighbours (z-index on the absolute
+   inner), deepen the border to the fault-red signal, add a drop shadow and a
+   slightly elevated fill so the popover reads as a solid card floating over the
+   ones below. Only the shadow/border/z-index change — no sibling ever moves. */
+.vc-spec:hover .vc-spec-inner,
+.vc-spec:focus-visible .vc-spec-inner,
+.vc-spec:focus-within .vc-spec-inner {
+  z-index: 5;
+  background: var(--vc-panel-2);
+  border-color: color-mix(in srgb, var(--vc-sig) 42%, var(--vc-line-strong));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1),
+    0 16px 34px -8px rgba(0, 0, 0, 0.34);
+}
+
+/* Reduced motion: keep the zero-reflow overlay, just drop the animation. The
+   note still reveals on hover / focus (in the absolute overlay, so nothing
+   reflows) but appears instantly. It is NOT shown statically-always, because an
+   always-expanded absolute inner would permanently overlap the plate below —
+   the same layout problem this section exists to avoid. */
 @media (prefers-reduced-motion: reduce) {
-  .vc-spec-tagline {
-    opacity: 1 !important;
-    max-height: none !important;
-  }
-  .vc-spec-note {
-    grid-template-rows: 1fr !important;
-    opacity: 1 !important;
+  .vc-spec-tagline,
+  .vc-spec-note,
+  .vc-spec-inner {
+    transition: none !important;
   }
 }

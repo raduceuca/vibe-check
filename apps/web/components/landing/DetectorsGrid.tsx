@@ -166,47 +166,53 @@ export const DetectorsGrid = () => (
           tabIndex={0}
           aria-label={`${s.personaName}. ${s.tagline} Detector ${s.detector}, menace ${s.menace} of ${MENACE_MAX}. Emits: ${s.emit}`}
         >
-          <div className="vc-spec-rail">
-            <span className="vc-spec-sym">{s.symbol}</span>
-            <span
-              className="vc-spec-menace"
-              role="img"
-              aria-label={`menace ${s.menace} of ${MENACE_MAX}`}
-            >
-              {Array.from({ length: MENACE_MAX }, (_, p) => (
-                <span
-                  key={p}
-                  className="vc-spec-pip"
-                  data-on={p < s.menace ? '' : undefined}
-                  aria-hidden="true"
-                />
-              ))}
-            </span>
-          </div>
+          {/* Fixed-footprint overlay: the outer .vc-spec keeps a constant grid
+              cell; this inner element carries the card visual and is absolutely
+              positioned, so revealing the field note grows it DOWNWARD over the
+              cards below without reflowing the grid (zero layout shift). */}
+          <div className="vc-spec-inner">
+            <div className="vc-spec-rail">
+              <span className="vc-spec-sym">{s.symbol}</span>
+              <span
+                className="vc-spec-menace"
+                role="img"
+                aria-label={`menace ${s.menace} of ${MENACE_MAX}`}
+              >
+                {Array.from({ length: MENACE_MAX }, (_, p) => (
+                  <span
+                    key={p}
+                    className="vc-spec-pip"
+                    data-on={p < s.menace ? '' : undefined}
+                    aria-hidden="true"
+                  />
+                ))}
+              </span>
+            </div>
 
-          {Art ? (
-            <span className="vc-spec-art" aria-hidden="true">
-              <Art />
-            </span>
-          ) : null}
+            {Art ? (
+              <span className="vc-spec-art" aria-hidden="true">
+                <Art />
+              </span>
+            ) : null}
 
-          <div className="vc-spec-base">
-            <div className="vc-spec-name">{s.personaName}</div>
-            <p className="vc-spec-tagline">{s.tagline}</p>
-            <div className="vc-spec-note">
-              <div className="vc-spec-note-inner">
-                <p className="vc-spec-story">{s.story}</p>
-                <div className="vc-spec-emitrow">
-                  <span className="vc-spec-detname">{s.detector}</span>
-                  <span className="vc-emit">{s.emit}</span>
+            <div className="vc-spec-base">
+              <div className="vc-spec-name">{s.personaName}</div>
+              <p className="vc-spec-tagline">{s.tagline}</p>
+              <div className="vc-spec-note">
+                <div className="vc-spec-note-inner">
+                  <p className="vc-spec-story">{s.story}</p>
+                  <div className="vc-spec-emitrow">
+                    <span className="vc-spec-detname">{s.detector}</span>
+                    <span className="vc-emit">{s.emit}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="vc-spec-foot" aria-hidden="true">
-            <span className="vc-spec-cat">{cat}</span>
-            <span className="vc-spec-pin" />
+            <div className="vc-spec-foot" aria-hidden="true">
+              <span className="vc-spec-cat">{cat}</span>
+              <span className="vc-spec-pin" />
+            </div>
           </div>
         </div>
       )
