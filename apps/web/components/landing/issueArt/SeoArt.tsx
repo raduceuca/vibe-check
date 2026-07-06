@@ -30,7 +30,7 @@ export const SeoArt = () => (
       strokeOpacity={FIRE_OP}
       fill="none"
     />
-    <path d="M18 32 H25" stroke={FIRE} strokeOpacity={0.4} fill="none" />
+    <path d="M18 32 H25" stroke={FIRE} strokeOpacity={0.85} fill="none" />
     {/* magnifier */}
     <g strokeOpacity={INK.strong} fill="none">
       <circle cx={31} cy={30} r={6.5} />

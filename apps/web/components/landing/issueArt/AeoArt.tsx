@@ -30,7 +30,7 @@ export const AeoArt = () => (
       strokeOpacity={FIRE_OP}
       fill="none"
     />
-    <path d="M18 32 H25" stroke={FIRE} strokeOpacity={0.4} fill="none" />
+    <path d="M18 32 H25" stroke={FIRE} strokeOpacity={0.85} fill="none" />
     {/* answer-engine robot */}
     <g strokeOpacity={INK.strong} fill="none">
       <path d="M34 24 V20.5" />

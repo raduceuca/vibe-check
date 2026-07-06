@@ -33,7 +33,7 @@ export const WebEssentialsArt = () => (
         stroke={FIRE}
         strokeOpacity={FIRE_OP}
       />
-      <path d="M22 22 H30" stroke={FIRE} strokeOpacity={0.4} strokeDasharray="2.5 2.5" />
+      <path d="M22 22 H30" stroke={FIRE} strokeOpacity={0.85} strokeDasharray="2.5 2.5" />
       <rect
         x={14.5}
         y={33}
@@ -43,7 +43,7 @@ export const WebEssentialsArt = () => (
         stroke={FIRE}
         strokeOpacity={FIRE_OP}
       />
-      <path d="M22 35 H30" stroke={FIRE} strokeOpacity={0.4} strokeDasharray="2.5 2.5" />
+      <path d="M22 35 H30" stroke={FIRE} strokeOpacity={0.85} strokeDasharray="2.5 2.5" />
     </g>
   </ArtSvg>
 )

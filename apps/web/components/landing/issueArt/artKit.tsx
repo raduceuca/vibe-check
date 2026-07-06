@@ -19,19 +19,23 @@ import type { ReactNode } from 'react'
 export const VIEW = 48
 export const STROKE = 1.5
 
-// Neutral opacity ladder (over currentColor === --vc-ink).
+// ONE flat colour, no fills. The glyphs are single-tone monoline drawings — the
+// shape alone carries the concept; the card's severity dot carries the colour.
+// Every INK step resolves to the same tone (so old strong/mid/soft callsites
+// still work but render identically) and fills are off. Painted with
+// currentColor === the card's --vc-ink, so it stays theme-aware.
+const TONE = 0.85
 export const INK = {
-  strong: 0.5, // primary structure
-  mid: 0.3, // secondary structure / connectors
-  soft: 0.16, // faint background / frame ticks
-  fill: 0.05, // box fills
+  strong: TONE,
+  mid: TONE,
+  soft: TONE,
+  fill: 0, // no fills
 } as const
 
-// The one accent — the card's severity colour (falls back to the base signal
-// token so the glyph is never colourless outside a fire card). Never a raw hex.
-export const FIRE = 'var(--vc-fire, var(--vc-sig))'
-export const FIRE_OP = 0.95
-export const FIRE_FILL = 0.13
+// The former per-glyph accent is folded into the single tone — no second colour.
+export const FIRE = 'currentColor'
+export const FIRE_OP = TONE
+export const FIRE_FILL = 0
 
 interface ArtSvgProps {
   readonly children: ReactNode

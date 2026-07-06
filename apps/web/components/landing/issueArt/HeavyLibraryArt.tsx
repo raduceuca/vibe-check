@@ -39,7 +39,7 @@ export const HeavyLibraryArt = () => (
     <path
       d="M5 26 L18 39 M18 26 L5 39"
       stroke={FIRE}
-      strokeOpacity={0.5}
+      strokeOpacity={0.85}
       fill="none"
     />
   </ArtSvg>
