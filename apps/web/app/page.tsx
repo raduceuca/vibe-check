@@ -6,10 +6,11 @@ import { WidgetLayoutSync } from '@/components/vibe/WidgetLayoutSync'
 import { InstallCommand } from '@/components/landing/InstallCommand'
 import { BreakThisPage } from '@/components/landing/BreakThisPage'
 import { DetectorsGrid } from '@/components/landing/DetectorsGrid'
+import { LiveGauges } from '@/components/landing/LiveGauges'
 import { AuditThisPage } from '@/components/landing/AuditThisPage'
 import { AgentRoundTrip } from '@/components/landing/AgentRoundTrip'
 import { SectionHead } from '@/components/landing/SectionHead'
-import { SiteHeader } from '@/components/site/SiteHeader'
+import { SiteShell } from '@/components/site/SiteShell'
 import { PipelineDiagram } from '@/components/diagrams'
 
 // A tight landing pitch, kept ≤ 160 chars so VibeCheck's own seo audit passes
@@ -83,7 +84,7 @@ const jsonLd = {
 }
 
 const LandingPage = () => (
-  <div className="vc-landing">
+  <SiteShell landing>
     {/* schema.org structured data — read by answer engines and by VibeCheck's
         own aeo audit (structured-data-missing / -invalid). */}
     <script
@@ -91,7 +92,6 @@ const LandingPage = () => (
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
     />
-    <SiteHeader active="/" />
     {/* The real widget, mounted live, measuring THIS page. Calm green at rest. */}
     <VibeWidget position="bottom-right" />
     {/* Reflects the widget's expanded/collapsed state onto :root so the layout
@@ -111,8 +111,8 @@ const LandingPage = () => (
         </div>
 
         <h1 className="vc-hero-head">
-          Your agent shipped it.{' '}
-          <span className="vc-hero-sig">This caught what it broke.</span>
+          <span className="vc-hero-line">Your agent shipped it.</span>
+          <span className="vc-hero-line">This caught what it broke.</span>
         </h1>
 
         <p className="vc-lede">
@@ -141,7 +141,7 @@ const LandingPage = () => (
 
       {/* ── 01 · The pain ────────────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="01" title="The pain, named in one breath" sub="your Tuesday" />
+        <SectionHead title="The pain, named in one breath" sub="your Tuesday" />
         <p className="vc-p">
           AI agents ship frontends that pass review and look fine in the happy
           path — then <b>leak memory</b> across route changes, <b>bloat the DOM</b>{' '}
@@ -160,7 +160,7 @@ const LandingPage = () => (
 
       {/* ── 02 · Break this page ─────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="02" title="Break this page" sub="the live proof" />
+        <SectionHead title="Break this page" sub="the live proof" />
         <p className="vc-p">
           These are not mockups. Each button induces a <b>real</b> fault in this
           page; the instrument in the corner catches it in real time. When
@@ -169,9 +169,27 @@ const LandingPage = () => (
         <BreakThisPage />
       </section>
 
-      {/* ── 03 · What it catches ─────────────────────────────────────────── */}
+      {/* ── The gauges — the always-measuring layer ──────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="03" title="The Slop Bestiary" sub="what it catches" />
+        <SectionHead title="Always measuring" sub="the live layer" />
+        <p className="vc-p">
+          Before it catches anything by name, the instrument is simply{' '}
+          <b>measuring</b> — continuously, in the corner. Below are this
+          page&rsquo;s real readings right now, off the same collectors the
+          widget ships: frame health, main-thread long tasks, JS-heap memory and
+          the Core Web Vitals. Not a mockup — a live readout.
+        </p>
+        <LiveGauges />
+        <p className="vc-p" style={{ marginTop: 14, color: 'var(--vc-ink-3)', fontSize: 14 }}>
+          That&rsquo;s the measurement layer — six of the signals it watches
+          without pause. On top of it, the instrument <b>catches</b> thirteen
+          named regressions when those readings go wrong. Meet them:
+        </p>
+      </section>
+
+      {/* ── What it catches ──────────────────────────────────────────────── */}
+      <section className="vc-section">
+        <SectionHead title="The Slop Bestiary" sub="what it catches" />
         <p className="vc-p">
           Thirteen recurring frontend regressions that AI agents ship without
           noticing — each one a specimen the instrument catches by name. Hover a
@@ -199,7 +217,7 @@ const LandingPage = () => (
 
       {/* ── 04 · The round-trip ──────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="04" title="From symptom to fix" sub="the round-trip" />
+        <SectionHead title="From symptom to fix" sub="the round-trip" />
         <p className="vc-p">
           The widget captures a snapshot, beacons it to a local MCP server, and
           your agent reads it — then proposes the diff. The loop that was missing
@@ -219,7 +237,7 @@ const LandingPage = () => (
 
       {/* ── 05 · Install & wire up ───────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead num="05" title="Install & wire up your agent" sub="two blocks" />
+        <SectionHead title="Install & wire up your agent" sub="two blocks" />
         <h3 className="vc-h3">Drop in the widget</h3>
         <pre className="vc-pre">
 {`import { VibeCheck } from '@wcgw/vibe-check'
@@ -253,7 +271,7 @@ const LandingPage = () => (
         </div>
       </footer>
     </main>
-  </div>
+  </SiteShell>
 )
 
 export default LandingPage

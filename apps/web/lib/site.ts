@@ -13,18 +13,3 @@ export const GITHUB_URL = 'https://github.com/raduceuca/vibe-check'
 // Absolute URL for a site-relative path.
 export const absoluteUrl = (path: string): string =>
   `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
-
-export interface NavLink {
-  readonly label: string
-  readonly href: string
-  readonly external?: boolean
-}
-
-// The quiet top nav shared across landing, /fix, and docs.
-export const NAV_LINKS: readonly NavLink[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Fix guides', href: '/fix' },
-  { label: 'Scan', href: '/scan' },
-  { label: 'Docs', href: '/docs' },
-  { label: 'GitHub', href: GITHUB_URL, external: true },
-]

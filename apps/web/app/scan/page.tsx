@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { SiteHeader } from '@/components/site/SiteHeader'
+import { SiteShell } from '@/components/site/SiteShell'
 import { ScanForm } from '@/components/scan/ScanForm'
 import { ScanBoards } from '@/components/scan/ScanBoards'
 import { absoluteUrl } from '@/lib/site'
@@ -31,8 +31,7 @@ export const metadata: Metadata = {
 }
 
 const ScanPage = () => (
-  <div className="vc-landing">
-    <SiteHeader active="/scan" />
+  <SiteShell>
     <main className="vc-wrap">
       <header className="vc-scan-hero">
         <div className="vc-eyebrow">
@@ -54,7 +53,7 @@ const ScanPage = () => (
       <ScanForm />
       <ScanBoards />
     </main>
-  </div>
+  </SiteShell>
 )
 
 export default ScanPage

@@ -13,7 +13,8 @@ html {
    --wcgw-* theme so the site and the widget read as one system.
    ──────────────────────────────────────────────────────────────────────────── */
 
-.vc-landing {
+.vc-landing,
+.vc-docs {
   --vc-bg: #ffffff;
   --vc-panel: #fafafa;
   --vc-panel-2: #f4f4f4;
@@ -34,7 +35,13 @@ html {
     Consolas, monospace;
   --vc-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
+}
 
+/* The landing / scan / fix surfaces paint the page in the instrument palette. The
+   .vc-docs scope only *exposes* the --vc-* tokens (so the shared SiteSidebar CSS
+   and the docs-sidebar match block can consume them) without restyling Fumadocs'
+   own content. */
+.vc-landing {
   background: var(--vc-bg);
   color: var(--vc-ink);
   font-family: var(--vc-sans);
@@ -47,7 +54,8 @@ html {
 
 /* Dark tokens: OS default + explicit next-themes class / data-theme overrides. */
 @media (prefers-color-scheme: dark) {
-  .vc-landing {
+  .vc-landing,
+  .vc-docs {
     --vc-bg: #0b0b0c;
     --vc-panel: #111113;
     --vc-panel-2: #161618;
@@ -67,7 +75,9 @@ html {
   }
 }
 :root.dark .vc-landing,
-:root[data-theme='dark'] .vc-landing {
+:root[data-theme='dark'] .vc-landing,
+:root.dark .vc-docs,
+:root[data-theme='dark'] .vc-docs {
   --vc-bg: #0b0b0c;
   --vc-panel: #111113;
   --vc-panel-2: #161618;
@@ -86,7 +96,9 @@ html {
   --vc-ok-bg: rgba(74, 222, 128, 0.13);
 }
 :root.light .vc-landing,
-:root[data-theme='light'] .vc-landing {
+:root[data-theme='light'] .vc-landing,
+:root.light .vc-docs,
+:root[data-theme='light'] .vc-docs {
   --vc-bg: #ffffff;
   --vc-panel: #fafafa;
   --vc-panel-2: #f4f4f4;
@@ -118,18 +130,18 @@ html {
   padding: clamp(22px, 5vw, 56px) clamp(16px, 5vw, 44px) 0;
 }
 /* The live widget panel is fixed bottom-right; centered content would run under
-   it and become unreadable. On wide screens, while the widget is mounted-and-
-   expanded (the landing default), shift content left and reserve a right gutter
-   for the panel. When it's collapsed to a pill (or absent), re-center. The
-   WidgetLayoutSync client reflects the widget state onto :root[data-vc-widget].
-   Default is the expanded layout so there is no shift as the widget mounts. */
+   it and become unreadable. On wide screens the landing reserves a right gutter
+   for the panel — this is the first-paint DEFAULT, matching the widget's
+   expanded-on-mount state, so <main> never reflows as the widget hydrates. Only
+   once the USER collapses the widget to a pill does WidgetLayoutSync set
+   :root[data-vc-widget='collapsed'] and the column re-center (a user-initiated
+   shift, which CLS excludes). WidgetLayoutSync never emits a pre-mount state. */
 @media (min-width: 1100px) {
-  .vc-landing .vc-wrap {
-    margin-left: clamp(24px, 6vw, 80px);
-    margin-right: 420px;
+  .vc-app-landing .vc-wrap {
+    margin-left: clamp(16px, 3vw, 48px);
+    margin-right: 400px;
   }
-  :root[data-vc-widget="collapsed"] .vc-landing .vc-wrap,
-  :root[data-vc-widget="off"] .vc-landing .vc-wrap {
+  :root[data-vc-widget='collapsed'] .vc-app-landing .vc-wrap {
     margin-left: auto;
     margin-right: auto;
   }
@@ -167,12 +179,6 @@ html {
   padding-bottom: 12px;
   margin-bottom: 24px;
 }
-.vc-sechead .vc-num {
-  font-family: var(--vc-mono);
-  font-size: 12px;
-  color: var(--vc-ink-4);
-  font-variant-numeric: tabular-nums;
-}
 .vc-sechead h2 {
   font-size: 23px;
   letter-spacing: -0.015em;
@@ -187,6 +193,147 @@ html {
   text-transform: uppercase;
   color: var(--vc-ink-4);
 }
+
+/* Live gauges — the always-measuring layer, wired to the real core collectors
+   (see components/landing/LiveGauges.tsx). Six live readings off THIS page. */
+.vc-gauges {
+  border: 1px solid var(--vc-line);
+  border-radius: 12px;
+  background: var(--vc-panel);
+  padding: 15px 17px 17px;
+}
+.vc-gauges-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 13px;
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.vc-gauges-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vc-ok);
+  flex: none;
+  animation: vc-gauge-pulse 2.4s ease-out infinite;
+}
+.vc-gauges-live-label {
+  color: var(--vc-ink-2);
+}
+.vc-gauges-note {
+  margin-left: auto;
+  color: var(--vc-ink-4);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 10.5px;
+}
+@keyframes vc-gauge-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--vc-ok-bg);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(21, 128, 61, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(21, 128, 61, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vc-gauges-live {
+    animation: none;
+  }
+}
+.vc-gauges-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--vc-line);
+  border: 1px solid var(--vc-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.vc-gauge {
+  background: var(--vc-bg);
+  padding: 11px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.vc-gauge-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.vc-gauge-lab {
+  font-family: var(--vc-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--vc-ink-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vc-gauge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--vc-line-strong);
+}
+.vc-gauge[data-tone='ok'] .vc-gauge-dot {
+  background: var(--vc-ok);
+}
+.vc-gauge[data-tone='warn'] .vc-gauge-dot {
+  background: var(--vc-amber);
+}
+.vc-gauge[data-tone='bad'] .vc-gauge-dot {
+  background: var(--vc-sig);
+}
+.vc-gauge-read {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.vc-gauge-val {
+  font-family: var(--vc-mono);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--vc-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.vc-gauge-unit {
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  color: var(--vc-ink-4);
+}
+.vc-gauge-sub {
+  font-size: 11px;
+  color: var(--vc-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 900px) {
+  .vc-gauges-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .vc-gauges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .vc-gauges-note {
+    display: none;
+  }
+}
 .vc-section {
   margin: 64px 0 0;
   scroll-margin-top: 20px;
@@ -194,13 +341,18 @@ html {
 
 /* Hero */
 .vc-hero-head {
-  font-size: clamp(30px, 5.4vw, 50px);
-  line-height: 1.04;
-  letter-spacing: -0.025em;
-  font-weight: 660;
+  font-size: clamp(32px, 5.8vw, 54px);
+  line-height: 1.03;
+  letter-spacing: -0.03em;
+  font-weight: 760;
   margin: 18px 0 0;
   text-wrap: balance;
-  max-width: 20ch;
+}
+/* Each sentence is its own line-block, so the break is always at the period —
+   only a too-narrow column wraps a sentence internally (balanced), never across
+   the sentence boundary. */
+.vc-hero-line {
+  display: block;
 }
 .vc-hero-sig {
   color: var(--vc-sig);
@@ -545,156 +697,377 @@ html {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Shared top nav — quiet, hairline-ruled. Used on the landing + /fix; docs use
-   the equivalent Fumadocs nav. Tokens inherit from the .vc-landing wrapper.
+   SiteSidebar — the persistent left nav (landing / scan / fix)
+   A narrow, hairline-ruled rail translating Agentation's sidebar into the Quiet
+   Instrument identity: muted labels, a monochrome active state with a short
+   fault-red tick, a fault-red version badge, thin vertical guide lines down the
+   expanded sub-lists. The docs (Fumadocs) sidebar is matched to this in the block
+   directly below, so marketing + docs read as ONE nav. All colour comes from the
+   --vc-* tokens on the .vc-landing / .vc-docs scope. Shared width: --vc-side-w.
    ════════════════════════════════════════════════════════════════════════════ */
-.vc-site-header {
+:root {
+  --vc-side-w: 232px;
+}
+
+/* Shell: sticky sidebar + fluid content column */
+.vc-app {
+  display: flex;
+  align-items: flex-start;
+}
+.vc-app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Desktop rail */
+.vc-side {
   position: sticky;
   top: 0;
-  z-index: 40;
-  background: color-mix(in srgb, var(--vc-bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  border-bottom: 1px solid var(--vc-line-2);
+  flex: none;
+  align-self: stretch;
+  width: var(--vc-side-w);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vc-bg);
+  border-right: 1px solid var(--vc-line-2);
 }
-.vc-site-header-inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 clamp(16px, 5vw, 44px);
-  height: 48px;
+.vc-side-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 14px 18px;
+}
+
+/* Top: wordmark + version badge */
+.vc-side-top {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 9px;
+  padding: 18px 16px 12px;
 }
-.vc-site-brand {
-  font-weight: 660;
-  letter-spacing: -0.01em;
-  color: var(--vc-ink);
-  text-decoration: none;
+.vc-side-brand {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14.5px;
+  text-decoration: none;
+  color: var(--vc-ink);
 }
-.vc-site-brand-2 {
-  color: var(--vc-ink-3);
-  font-weight: 620;
+.vc-side-brand-name {
+  font-size: 15px;
+  font-weight: 660;
+  letter-spacing: -0.01em;
 }
-.vc-site-dot {
+.vc-side-brand-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--vc-ok);
   flex: none;
 }
-.vc-site-nav {
-  margin-left: auto;
+.vc-side-brand-2 {
+  color: var(--vc-ink-3);
+  font-weight: 620;
+}
+.vc-side-ver-badge {
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  color: var(--vc-sig);
+  background: var(--vc-sig-bg);
+  border: 1px solid color-mix(in srgb, var(--vc-sig) 26%, transparent);
+  border-radius: 5px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
+/* Nav list + rows */
+.vc-side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vc-side-section {
+  margin-top: 1px;
+}
+.vc-side-row {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-.vc-site-link {
-  font-family: var(--vc-mono);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: var(--vc-ink-3);
+  gap: 6px;
   text-decoration: none;
-  padding: 6px 10px;
+  color: var(--vc-ink-3);
   border-radius: 7px;
-  transition: color 0.15s, background 0.15s;
+  padding: 5px 9px;
+  line-height: 1.45;
+  transition: color 0.13s, background 0.13s;
 }
-.vc-site-link:hover {
+.vc-side-row:hover {
   color: var(--vc-ink);
   background: var(--vc-panel);
 }
-.vc-site-link[aria-current='page'] {
+.vc-side-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ink) 42%, transparent);
+  outline-offset: 1px;
+}
+.vc-side-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vc-side-row-l0 {
+  font-size: 13.5px;
+}
+.vc-side-row-l1,
+.vc-side-row-l2 {
+  font-size: 12.75px;
+}
+/* Active: bold ink + a short fault-red tick, plus a whisper-quiet panel pill. */
+.vc-side-row[data-active='true'] {
   color: var(--vc-ink);
+  font-weight: 600;
+  background: var(--vc-panel-2);
+}
+.vc-side-tick {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  border-radius: 1px;
+  background: var(--vc-sig);
+  transform: translateY(-50%);
+  transition: height 0.14s ease;
+}
+.vc-side-row[data-active='true'] .vc-side-tick {
+  height: 15px;
+}
+
+/* Sub-lists: indented with a thin vertical guide line */
+.vc-side-sub {
+  list-style: none;
+  margin: 1px 0 4px;
+  padding-left: 11px;
+  margin-left: 9px;
+  border-left: 1px solid var(--vc-line-2);
+}
+.vc-side-sub-deep {
+  margin-left: 7px;
+}
+
+/* External-link arrow (reveals on hover) */
+.vc-side-ext {
+  flex: none;
+  color: var(--vc-ink-4);
+  opacity: 0;
+  transition: opacity 0.13s;
+}
+.vc-side-row:hover .vc-side-ext {
+  opacity: 1;
+}
+
+/* Small-caps group label (Resources) */
+.vc-side-grouplabel {
+  font-family: var(--vc-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--vc-ink-4);
+  padding: 6px 9px 4px;
+  margin-top: 18px;
+}
+
+/* Footer: version + GitHub mark */
+.vc-side-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--vc-line-2);
+  font-family: var(--vc-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--vc-ink-4);
+}
+.vc-side-foot-gh {
+  display: inline-flex;
+  color: var(--vc-ink-3);
+  transition: color 0.13s;
+}
+.vc-side-foot-gh:hover {
+  color: var(--vc-ink);
+}
+
+/* Mobile top bar + drawer — hidden on desktop */
+.vc-side-bar,
+.vc-side-drawer,
+.vc-side-scrim {
+  display: none;
+}
+.vc-side-drawer {
+  visibility: hidden;
+}
+
+@media (max-width: 899px) {
+  .vc-app {
+    display: block;
+  }
+  .vc-side {
+    display: none;
+  }
+  .vc-side-bar {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 52px;
+    padding: 0 16px;
+    background: color-mix(in srgb, var(--vc-bg) 90%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--vc-line-2);
+  }
+  .vc-side-burger {
+    margin-left: auto;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3.5px;
+    width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    background: none;
+    border: 1px solid var(--vc-line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .vc-side-burger span {
+    display: block;
+    height: 1.5px;
+    background: var(--vc-ink-2);
+    border-radius: 1px;
+  }
+  .vc-side-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(2px);
+    animation: vc-side-fade 0.16s ease;
+    cursor: pointer;
+  }
+  .vc-side-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 61;
+    display: flex;
+    flex-direction: column;
+    width: min(84%, 320px);
+    height: 100dvh;
+    background: var(--vc-bg);
+    border-right: 1px solid var(--vc-line);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+  }
+  .vc-side-drawer[data-open='true'] {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.2s ease;
+  }
+  .vc-side-close {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: 1px solid var(--vc-line);
+    border-radius: 7px;
+    color: var(--vc-ink-2);
+    cursor: pointer;
+  }
+}
+@keyframes vc-side-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   /fix section — shell, sidebar, article, hub, code, chips.
+   Docs (Fumadocs) sidebar — matched to the SiteSidebar above
+   The docs pages keep Fumadocs' own DocsLayout (it renders the page tree with
+   native group expansion, active states and the mobile drawer), but we wrap it in
+   .vc-docs and re-skin the sidebar so it reads identically to the SiteSidebar:
+   same 232px width, the same neutrals, a fault-red active tick and version badge,
+   and our wordmark / primary links / Resources injected via nav.title + links +
+   the footer slot. Scoped to #nd-sidebar so the docs *content* is untouched.
    ════════════════════════════════════════════════════════════════════════════ */
-.vc-fix-shell {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 clamp(16px, 5vw, 44px);
-  display: grid;
-  grid-template-columns: 244px minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 56px);
-  align-items: start;
+/* Width — override the var Fumadocs sets on the layout root (#nd-docs-layout).
+   Scoped to md+ to mirror Fumadocs' own md:[--fd-sidebar-width:268px]; on mobile
+   the var must stay 0 so the collapsed layout doesn't reserve phantom space. */
+@media (min-width: 768px) {
+  .vc-docs #nd-docs-layout {
+    --fd-sidebar-width: var(--vc-side-w);
+  }
 }
-
-/* Sidebar */
-.vc-fix-aside {
-  position: sticky;
-  top: 48px;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  padding: 28px 4px 40px 0;
-  border-right: 1px solid var(--vc-line-2);
+/* Rail surface + hairline */
+.vc-docs #nd-sidebar {
+  background: var(--vc-bg);
+  border-inline-end: 1px solid var(--vc-line-2);
+  font-family: var(--vc-sans);
 }
-.vc-fix-sidebar {
-  font-size: 13px;
-}
-.vc-fix-side-home {
-  display: block;
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--vc-ink-4);
-  text-decoration: none;
-  padding: 4px 8px;
-  margin-bottom: 8px;
-}
-.vc-fix-side-home:hover,
-.vc-fix-side-home[aria-current='page'] {
-  color: var(--vc-ink);
-}
-.vc-fix-side-group {
-  margin: 14px 0 0;
-}
-.vc-fix-side-cat {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 620;
-  letter-spacing: -0.005em;
-  color: var(--vc-ink);
-  text-decoration: none;
-  padding: 5px 8px;
-}
-.vc-fix-side-cat:hover,
-.vc-fix-side-cat[aria-current='page'] {
-  color: var(--vc-sig);
-}
-.vc-fix-side-list {
-  list-style: none;
-  margin: 2px 0 0;
-  padding: 0 0 0 8px;
-  border-left: 1px solid var(--vc-line-2);
-  margin-left: 8px;
-}
-.vc-fix-side-link {
-  display: block;
-  color: var(--vc-ink-3);
-  text-decoration: none;
-  padding: 4px 8px;
-  border-radius: 6px;
-  line-height: 1.35;
-  transition: color 0.12s, background 0.12s;
-}
-.vc-fix-side-link:hover {
-  color: var(--vc-ink);
-  background: var(--vc-panel);
-}
-.vc-fix-side-link[data-active='true'] {
-  color: var(--vc-ink);
+/* Active item — match SiteSidebar exactly: whisper-quiet panel pill, bold ink, and
+   a short fault-red tick at the left edge. Fumadocs' own ::before bar is
+   content:none on these link items, so we recreate the tick ourselves. */
+.vc-docs #nd-sidebar [data-active='true'] {
+  position: relative;
   background: var(--vc-panel-2);
-  font-weight: 550;
+  color: var(--vc-ink);
+  font-weight: 600;
+}
+.vc-docs #nd-sidebar [data-active='true']::before {
+  content: '' !important;
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  width: 2px;
+  height: 15px;
+  border-radius: 1px;
+  background: var(--vc-sig) !important;
+  transform: translateY(-50%);
+}
+/* The wordmark dot + version badge live in nav.title; the Resources group +
+   version footer live in the footer slot. Give the footer version line the same
+   mono treatment as SiteSidebar. */
+.vc-docs .vc-side-footer {
+  padding: 10px 4px 2px;
+  border-top: 1px solid var(--vc-line-2);
+}
+.vc-docs .vc-side-grouplabel {
+  margin-top: 8px;
+  padding-inline: 4px;
 }
 
-/* Main column */
+/* ════════════════════════════════════════════════════════════════════════════
+   /fix section — article, hub, code, chips. (Primary nav is the shared
+   SiteSidebar, which expands "Fix guides" to the categories + active problems.)
+   ════════════════════════════════════════════════════════════════════════════ */
+/* Main column — sits in the SiteShell content column, so it carries its own
+   readable gutter + centering. */
 .vc-fix-main {
-  padding: 32px 0 80px;
+  padding: clamp(24px, 4vw, 44px) clamp(16px, 5vw, 44px) 80px;
   min-width: 0;
 }
 .vc-fix-article,
@@ -1169,16 +1542,6 @@ html {
   color: var(--vc-ink-3);
   font-size: 12.5px;
   line-height: 1.5;
-}
-
-/* Responsive: fold the sidebar away on narrow viewports */
-@media (max-width: 920px) {
-  .vc-fix-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .vc-fix-aside {
-    display: none;
-  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════

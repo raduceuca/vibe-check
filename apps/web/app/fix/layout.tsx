@@ -1,30 +1,15 @@
 import type { ReactNode } from 'react'
-import { CATEGORY_META, problemsInCategory } from '@/lib/problems'
-import { FixSidebar, type SidebarSection } from '@/components/fix/FixSidebar'
-import { SiteHeader } from '@/components/site/SiteHeader'
+import { SiteShell } from '@/components/site/SiteShell'
 
-// The /fix shell: shared quiet header, the subtle category → problems sidebar,
-// and the single <main> landmark for the section. The sidebar tree is built here
-// (server) from the data and passed down as lightweight {slug,label} — the heavy
-// problem content never reaches the client.
-
-const tree: readonly SidebarSection[] = CATEGORY_META.map((c) => ({
-  key: c.key,
-  label: c.label,
-  tagline: c.tagline,
-  items: problemsInCategory(c.key).map((p) => ({ slug: p.slug, label: p.h1 })),
-}))
-
+// The /fix shell. Primary navigation is the shared SiteSidebar (its "Fix guides"
+// section expands to the four categories and, on a category / problem page, the
+// active category expands to its problems) — so the section no longer carries its
+// own sidebar. This layout just provides the single <main> landmark + content
+// gutter to the right of the rail.
 const FixLayout = ({ children }: { children: ReactNode }) => (
-  <div className="vc-landing vc-fix">
-    <SiteHeader active="/fix" />
-    <div className="vc-fix-shell">
-      <aside className="vc-fix-aside">
-        <FixSidebar tree={tree} />
-      </aside>
-      <main className="vc-fix-main">{children}</main>
-    </div>
-  </div>
+  <SiteShell>
+    <main className="vc-fix-main">{children}</main>
+  </SiteShell>
 )
 
 export default FixLayout
