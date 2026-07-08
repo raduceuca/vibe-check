@@ -1,54 +1,43 @@
-import { ArtSvg, INK, FIRE, FIRE_OP, FIRE_FILL } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Crosshair, OP, HAIR, C, pt } from './instrumentKit'
 
-// layout-thrashing — rows that should align to the left baseline jump off it;
-// the shifted rows are the fault accent.
+// layout-thrashing (instrument grammar) — the reticle jumps. A faint ghost
+// reading (offset crosshair + square) sits down-right of the true one; a short
+// arrow snaps from the ghost back to the solid node. The doubled, misregistered
+// crosshair reads as content shifting under you (CLS).
+const OFF_X = 5.5
+const OFF_Y = 4.5
+const GX = C + OFF_X // ghost centre
+const GY = C + OFF_Y
+
+// arrow: ghost → solid (the snap into place)
+const DIR = (Math.atan2(C - GY, C - GX) * 180) / Math.PI
+const [ax0, ay0] = pt(GX, GY, 2.4, DIR) // start just off the ghost
+const [ax1, ay1] = pt(GX, GY, 4.6, DIR) // tip, short of the solid node
+const [hb1x, hb1y] = pt(ax1, ay1, 2.6, DIR + 150)
+const [hb2x, hb2y] = pt(ax1, ay1, 2.6, DIR - 150)
+
 export const LayoutThrashingArt = () => (
   <ArtSvg>
-    {/* intended left baseline */}
-    <path d="M9 8 V40" strokeOpacity={INK.mid} fill="none" />
-    {/* aligned rows */}
+    {/* ghost reading — where it was */}
+    <Crosshair cx={GX} cy={GY} reach={13} gap={3.5} ticks={false} opacity={OP.faint} />
     <rect
-      x={9}
-      y={11}
-      width={22}
-      height={5}
-      rx={1.5}
-      strokeOpacity={INK.strong}
+      x={GX - 2.4}
+      y={GY - 2.4}
+      width={4.8}
+      height={4.8}
+      rx={0.6}
       fill="currentColor"
-      fillOpacity={INK.fill}
+      fillOpacity={OP.faint}
+      stroke="none"
     />
-    <rect
-      x={9}
-      y={27}
-      width={18}
-      height={5}
-      rx={1.5}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* shifted rows (fault) */}
-    <rect
-      x={16}
-      y={19}
-      width={22}
-      height={5}
-      rx={1.5}
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      fill={FIRE}
-      fillOpacity={FIRE_FILL}
-    />
-    <rect
-      x={14}
-      y={35}
-      width={24}
-      height={5}
-      rx={1.5}
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      fill={FIRE}
-      fillOpacity={FIRE_FILL}
-    />
+    {/* true reading — where it snapped to */}
+    <Crosshair reach={13} gap={3.5} opacity={OP.line} />
+    {/* the jump */}
+    <g fill="none" strokeWidth={HAIR} strokeOpacity={OP.line}>
+      <line x1={ax0} y1={ay0} x2={ax1} y2={ay1} />
+      <polyline points={`${hb1x},${hb1y} ${ax1},${ay1} ${hb2x},${hb2y}`} />
+    </g>
+    <Node shape="square" r={2.4} />
   </ArtSvg>
 )

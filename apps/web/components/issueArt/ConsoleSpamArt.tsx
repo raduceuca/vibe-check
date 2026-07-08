@@ -1,32 +1,45 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Ray, Ring, OP } from './instrumentKit'
 
-// console-spam — a console whose log rows pile up; the error rows (fault accent,
-// each with a leading tick) overflow past the frame.
+// console-spam (instrument grammar) — a noisy readout: a central dot firing a
+// dense fan of short rays at scattered, uneven bearings (several dashed = the
+// repeated log noise), a few landing in tiny leaf-dots. One faint ambient ring
+// frames the din. Reads as the same log blurted over and over, outward.
+interface Burst {
+  readonly deg: number
+  readonly to: number
+  readonly dashed: boolean
+  readonly tip?: number
+}
+
+const BURSTS: readonly Burst[] = [
+  { deg: -82, to: 12, dashed: true, tip: 1 },
+  { deg: -38, to: 10, dashed: false },
+  { deg: 6, to: 13, dashed: true },
+  { deg: 44, to: 9, dashed: false, tip: 1 },
+  { deg: 74, to: 12, dashed: true },
+  { deg: 112, to: 10, dashed: false },
+  { deg: 150, to: 13, dashed: true, tip: 1 },
+  { deg: -152, to: 9, dashed: false },
+  { deg: -116, to: 11, dashed: true },
+]
+
 export const ConsoleSpamArt = () => (
   <ArtSvg>
-    {/* console frame */}
-    <rect
-      x={7}
-      y={9}
-      width={30}
-      height={30}
-      rx={3}
-      strokeOpacity={INK.mid}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* neutral log rows */}
-    <g strokeOpacity={INK.strong} fill="none">
-      <path d="M12 16 H28" />
-      <path d="M12 24 H24" />
-      <path d="M12 32 H26" />
-    </g>
-    {/* error rows — pile up + overflow, leading tick */}
-    <g stroke={FIRE} strokeOpacity={FIRE_OP} fill="none">
-      <path d="M12 20 H42" />
-      <path d="M12 28 H42" />
-    </g>
-    <circle cx={9.5} cy={20} r={1.1} fill={FIRE} stroke="none" />
-    <circle cx={9.5} cy={28} r={1.1} fill={FIRE} stroke="none" />
+    {/* the din, framed */}
+    <Ring r={18} opacity={OP.faint} />
+    {/* scattered log noise firing outward */}
+    {BURSTS.map((b) => (
+      <Ray
+        key={b.deg}
+        deg={b.deg}
+        from={4}
+        to={b.to}
+        dashed={b.dashed}
+        tip={b.tip}
+        opacity={OP.line}
+      />
+    ))}
+    <Node shape="dot" r={2.2} />
   </ArtSvg>
 )

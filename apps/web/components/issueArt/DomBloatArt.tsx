@@ -1,61 +1,42 @@
-import { ArtSvg, INK, FIRE, FIRE_OP, FIRE_FILL } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Ring, OP, HAIR, C, pt } from './instrumentKit'
 
-// dom-bloat — a nesting tree (1 → 2 → 6) whose leaf row explodes into far too
-// many tiny nodes; the leaves are the fault accent.
+// dom-bloat (instrument grammar) — one focal node over-branching into far too
+// many small child nodes. Six hairline primaries each fork into two twigs ending
+// in tiny leaf-dots (12 children from one root); a faint dashed ambient ring
+// marks the swelling boundary of the tree.
+const PRIMARIES = [-90, -30, 30, 90, 150, -150] // evenly spaced branch bearings
+const FORK = 26 // twig splay off each primary
+const P_LEN = 9 // primary length
+const T_LEN = 6.5 // twig length
+
+const twigs = PRIMARIES.flatMap((deg) => {
+  const [fx, fy] = pt(C, C, P_LEN, deg)
+  return [deg - FORK, deg + FORK].map((td) => {
+    const [tx, ty] = pt(fx, fy, T_LEN, td)
+    return { key: `${deg}:${td}`, fx, fy, tx, ty }
+  })
+})
+
 export const DomBloatArt = () => (
   <ArtSvg>
-    {/* root */}
-    <rect
-      x={21}
-      y={6}
-      width={6}
-      height={5}
-      rx={1.5}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* children */}
-    <rect
-      x={11}
-      y={19}
-      width={7}
-      height={5}
-      rx={1.5}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    <rect
-      x={30}
-      y={19}
-      width={7}
-      height={5}
-      rx={1.5}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* connectors: root → children, children → leaf row */}
-    <path
-      d="M24 11 V15 M14.5 15 H33.5 M14.5 15 V19 M33.5 15 V19 M14.5 24 V28 M10 28 H19 M10 28 V32 M14.5 28 V32 M19 28 V32 M33.5 24 V28 M29 28 H38 M29 28 V32 M33.5 28 V32 M38 28 V32"
-      strokeOpacity={INK.mid}
-      fill="none"
-    />
-    {/* leaf explosion (fault) */}
-    {[8.5, 13, 17.5, 27.5, 32, 36.5].map((x) => (
-      <rect
-        key={x}
-        x={x}
-        y={32}
-        width={3}
-        height={3}
-        rx={0.8}
-        stroke={FIRE}
-        strokeOpacity={FIRE_OP}
-        fill={FIRE}
-        fillOpacity={FIRE_FILL}
-      />
+    {/* swelling boundary */}
+    <Ring r={20} opacity={OP.faint} dash="1.4 2.8" />
+    {/* branches: node → primary → two twigs */}
+    <g fill="none" strokeWidth={HAIR} strokeOpacity={OP.line}>
+      {PRIMARIES.map((deg) => {
+        const [px, py] = pt(C, C, P_LEN, deg)
+        return <line key={deg} x1={C} y1={C} x2={px} y2={py} />
+      })}
+      {twigs.map((t) => (
+        <line key={t.key} x1={t.fx} y1={t.fy} x2={t.tx} y2={t.ty} />
+      ))}
+    </g>
+    {/* leaf child-nodes — the proliferation */}
+    {twigs.map((t) => (
+      <circle key={t.key} cx={t.tx} cy={t.ty} r={1} fill="currentColor" fillOpacity={OP.line} stroke="none" />
     ))}
+    {/* root */}
+    <Node shape="square" r={2.6} />
   </ArtSvg>
 )

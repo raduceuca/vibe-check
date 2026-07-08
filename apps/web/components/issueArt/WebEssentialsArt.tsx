@@ -1,49 +1,24 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Crosshair, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
-// web-essentials — a document whose required meta slots are half missing; the
-// empty slots (fault accent) sit where a check should be.
+// web-essentials (instrument grammar) — the baseline gauge. A full crosshair
+// reticle with end ticks frames a solid gauge arc across the lower dial, with a
+// small check where the baseline is met. The core-vitals reference frame every
+// page is measured against.
+const [chx, chy] = pt(C, C, 13, 58) // check position, inside the gauge
+
 export const WebEssentialsArt = () => (
   <ArtSvg>
-    {/* page */}
-    <rect
-      x={11}
-      y={7}
-      width={26}
-      height={34}
-      rx={3}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
+    <Crosshair reach={21} gap={4} opacity={OP.line} />
+    {/* the baseline gauge */}
+    <Arc r={16} a0={140} a1={40} opacity={OP.line} />
+    {/* baseline met */}
+    <polyline
+      points={`${chx - 1.7},${chy - 0.2} ${chx - 0.5},${chy + 1.1} ${chx + 2},${chy - 1.7}`}
+      fill="none"
+      strokeWidth={HAIR}
+      strokeOpacity={OP.line}
     />
-    {/* present: check + line */}
-    <g fill="none">
-      <polyline points="15,15 16.5,16.6 19,13.8" strokeOpacity={INK.strong} />
-      <path d="M22 15 H32" strokeOpacity={INK.mid} />
-      <polyline points="15,28 16.5,29.6 19,26.8" strokeOpacity={INK.strong} />
-      <path d="M22 28 H32" strokeOpacity={INK.mid} />
-    </g>
-    {/* missing: empty slot (fault) + dashed placeholder */}
-    <g fill="none">
-      <rect
-        x={14.5}
-        y={20}
-        width={4}
-        height={4}
-        rx={1}
-        stroke={FIRE}
-        strokeOpacity={FIRE_OP}
-      />
-      <path d="M22 22 H30" stroke={FIRE} strokeOpacity={0.85} strokeDasharray="2.5 2.5" />
-      <rect
-        x={14.5}
-        y={33}
-        width={4}
-        height={4}
-        rx={1}
-        stroke={FIRE}
-        strokeOpacity={FIRE_OP}
-      />
-      <path d="M22 35 H30" stroke={FIRE} strokeOpacity={0.85} strokeDasharray="2.5 2.5" />
-    </g>
+    <Node shape="dot" r={2.2} />
   </ArtSvg>
 )

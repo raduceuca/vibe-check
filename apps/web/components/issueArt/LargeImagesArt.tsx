@@ -1,31 +1,17 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Ring, Ray, OP } from './instrumentKit'
 
-// large-images — a single image tile made heavy: a fault-accent weight drags it
-// down.
+// large-images (instrument grammar) — raw byte weight. A big solid node ringed
+// by heavy SOLID concentric rings (mass, not structure) with a plumb-line weight
+// hanging straight down to a leaf-dot. Distinct from unoptimized: this is sheer
+// heft on the wire, no resize would help — the file is simply too big.
 export const LargeImagesArt = () => (
   <ArtSvg>
-    {/* image tile */}
-    <rect
-      x={9}
-      y={8}
-      width={30}
-      height={21}
-      rx={2.5}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    <circle cx={15} cy={14} r={2} strokeOpacity={INK.strong} fill="none" />
-    <polyline
-      points="11,27 18,19 23,24 30,16 37,27"
-      strokeOpacity={INK.mid}
-      fill="none"
-    />
-    {/* weight pulling down (fault) */}
-    <g stroke={FIRE} strokeOpacity={FIRE_OP} fill="none">
-      <path d="M24 30 V39" />
-      <polyline points="20,35 24,40 28,35" />
-      <path d="M17 43 H31" />
-    </g>
+    {/* heft */}
+    <Ring r={9.5} dashed={false} opacity={OP.line} />
+    <Ring r={14} dashed={false} opacity={OP.line} />
+    {/* weight pulling down */}
+    <Ray deg={90} from={6} to={22} tip={1.8} opacity={OP.line} />
+    <Node shape="square" r={4.5} />
   </ArtSvg>
 )

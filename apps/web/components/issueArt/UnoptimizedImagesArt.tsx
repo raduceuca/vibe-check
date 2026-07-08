@@ -1,43 +1,47 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
-// unoptimized-images — a huge source frame (dashed, fault accent) collapsed into
-// a small display frame: served far larger than it renders.
+// unoptimized-images (instrument grammar) — served far larger than it renders. A
+// big outlined square holds a much smaller nested target square; a dashed reduce-
+// arc and an inward chevron in the gap point the surplus down to the size that
+// was actually needed. Reads as "shrink to fit."
+const RA = -45 // reduce cue bearing (upper-right gap)
+const [vtx, vty] = pt(C, C, 5.4, RA) // chevron vertex (inner, points to centre)
+const [cb1x, cb1y] = pt(C, C, 8.2, RA - 16)
+const [cb2x, cb2y] = pt(C, C, 8.2, RA + 16)
+
 export const UnoptimizedImagesArt = () => (
   <ArtSvg>
-    {/* oversized source */}
+    {/* served size */}
     <rect
-      x={7}
-      y={7}
-      width={34}
-      height={30}
-      rx={3}
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      strokeDasharray="3 3"
+      x={14}
+      y={14}
+      width={20}
+      height={20}
+      rx={1.5}
       fill="none"
+      strokeWidth={HAIR}
+      strokeOpacity={OP.ambient}
     />
-    {/* small display frame */}
+    {/* size actually needed */}
     <rect
-      x={18}
+      x={19}
       y={19}
-      width={17}
-      height={14}
-      rx={2}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* image glyph: sun + mountains */}
-    <circle cx={22} cy={23} r={1.6} strokeOpacity={INK.strong} fill="none" />
-    <polyline
-      points="19,32 23,27 26,30 31,25 34,30"
-      strokeOpacity={INK.mid}
+      width={10}
+      height={10}
+      rx={1}
       fill="none"
+      strokeWidth={HAIR}
+      strokeOpacity={OP.line}
     />
-    {/* squeeze brackets (fault) */}
-    <g stroke={FIRE} strokeOpacity={FIRE_OP} fill="none">
-      <polyline points="12,12 16,12 16,16" />
-      <polyline points="36,12 32,12 32,16" />
-    </g>
+    {/* reduce cue */}
+    <Arc r={7.6} a0={-66} a1={-24} dashed opacity={OP.ambient} />
+    <polyline
+      points={`${cb1x},${cb1y} ${vtx},${vty} ${cb2x},${cb2y}`}
+      fill="none"
+      strokeWidth={HAIR}
+      strokeOpacity={OP.line}
+    />
+    <Node shape="dot" r={2} />
   </ArtSvg>
 )

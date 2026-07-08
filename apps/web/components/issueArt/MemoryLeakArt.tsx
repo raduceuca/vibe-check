@@ -1,15 +1,42 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
-// memory-leak — heap only ever climbs: a monotonic rising line (fault accent)
-// that never drains, ending in an up-arrow.
-export const MemoryLeakArt = () => (
-  <ArtSvg>
-    {/* axes */}
-    <path d="M11 8 V40 H42" strokeOpacity={INK.mid} fill="none" />
-    {/* ever-rising heap */}
-    <g stroke={FIRE} strokeOpacity={FIRE_OP} fill="none">
-      <polyline points="11,38 18,33 25,29 31,23 36,18 39,12" />
-      <polyline points="36,15 39,12 42,15" />
-    </g>
-  </ArtSvg>
-)
+// memory-leak (instrument grammar) — concentric dashed rings expanding outward
+// and dissolving as they grow, each one OPEN at the same bearing so the ring
+// never closes; a single arrow breaks past the outermost ring and never returns
+// to baseline. Unbounded growth as an instrument reading.
+const ESCAPE = -52 // bearing of the opening + the escaping arrow (upper-right)
+const GAP = 34 // angular gap that keeps every ring open
+
+const arcs = [
+  { r: 6, opacity: OP.line },
+  { r: 11, opacity: OP.ambient },
+  { r: 16.5, opacity: OP.faint },
+] as const
+
+export const MemoryLeakArt = () => {
+  const [sx, sy] = pt(C, C, 3.5, ESCAPE) // arrow root, just off the node
+  const [ax, ay] = pt(C, C, 22, ESCAPE) // arrow tip, beyond the last ring
+  const [hx1, hy1] = pt(ax, ay, 3.6, ESCAPE + 148)
+  const [hx2, hy2] = pt(ax, ay, 3.6, ESCAPE - 148)
+  return (
+    <ArtSvg>
+      {arcs.map((a) => (
+        <Arc
+          key={a.r}
+          r={a.r}
+          a0={ESCAPE + GAP / 2}
+          a1={ESCAPE + 360 - GAP / 2}
+          dashed
+          opacity={a.opacity}
+        />
+      ))}
+      {/* growth breaking past the last ring, never returning */}
+      <g fill="none" strokeWidth={HAIR} strokeOpacity={OP.line}>
+        <line x1={sx} y1={sy} x2={ax} y2={ay} />
+        <polyline points={`${hx1},${hy1} ${ax},${ay} ${hx2},${hy2}`} />
+      </g>
+      <Node shape="dot" r={2.2} />
+    </ArtSvg>
+  )
+}

@@ -1,81 +1,22 @@
-import { ArtSvg, INK, FIRE, FIRE_OP, FIRE_FILL } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Ring, Ray, OP } from './instrumentKit'
 
-// resource-bloat — transferred-byte bars whose tops cross the budget line; the
-// over-budget caps are the fault accent.
+// resource-bloat (instrument grammar) — too many resources pulled onto one
+// horizon. A wide even fan of rays from the centre lands leaf-dots ON a single
+// dashed range ring; a faint outer ring sits beyond. Many fetches, all dragged
+// up to the same page-weight boundary at once.
+const FAN = [-126, -84, -42, 0, 42, 84, 126] // wide, even spread
+
 export const ResourceBloatArt = () => (
   <ArtSvg>
-    {/* baseline */}
-    <path d="M6 40 H42" strokeOpacity={INK.mid} fill="none" />
-    {/* under-budget bars */}
-    <rect
-      x={9}
-      y={26}
-      width={6}
-      height={14}
-      rx={1}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    <rect
-      x={27}
-      y={22}
-      width={6}
-      height={18}
-      rx={1}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* over-budget bars: neutral base + fault cap above the line */}
-    <rect
-      x={18}
-      y={18}
-      width={6}
-      height={22}
-      rx={1}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    <rect
-      x={18}
-      y={12}
-      width={6}
-      height={6}
-      rx={1}
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      fill={FIRE}
-      fillOpacity={FIRE_FILL}
-    />
-    <rect
-      x={36}
-      y={18}
-      width={6}
-      height={22}
-      rx={1}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    <rect
-      x={36}
-      y={10}
-      width={6}
-      height={8}
-      rx={1}
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      fill={FIRE}
-      fillOpacity={FIRE_FILL}
-    />
-    {/* budget line */}
-    <path
-      d="M6 18 H42"
-      strokeOpacity={INK.strong}
-      strokeDasharray="3 2.5"
-      fill="none"
-    />
+    {/* far horizon */}
+    <Ring r={21} opacity={OP.faint} />
+    {/* the weight boundary the resources land on */}
+    <Ring r={17} opacity={OP.ambient} />
+    {/* resources pulled onto it */}
+    {FAN.map((deg) => (
+      <Ray key={deg} deg={deg} from={3} to={17} tip={1.4} opacity={OP.line} />
+    ))}
+    <Node shape="dot" r={2.2} />
   </ArtSvg>
 )

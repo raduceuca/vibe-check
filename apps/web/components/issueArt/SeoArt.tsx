@@ -1,40 +1,28 @@
-import { ArtSvg, INK, FIRE, FIRE_OP } from './artKit'
+import { ArtSvg } from './artKit'
+import { Node, Ring, Crosshair, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
-// seo — a page inspected for search visibility: a magnifier over a pass/fail
-// checklist, the failed check in the fault accent.
-export const SeoArt = () => (
-  <ArtSvg>
-    {/* page */}
-    <rect
-      x={7}
-      y={7}
-      width={25}
-      height={30}
-      rx={3}
-      strokeOpacity={INK.strong}
-      fill="currentColor"
-      fillOpacity={INK.fill}
-    />
-    {/* text lines */}
-    <g strokeOpacity={INK.mid} fill="none">
-      <path d="M11 14 H28" />
-      <path d="M11 19 H24" />
-    </g>
-    {/* pass */}
-    <polyline points="11,25 12.4,26.6 15,23.8" strokeOpacity={INK.strong} fill="none" />
-    <path d="M18 25 H27" strokeOpacity={INK.mid} fill="none" />
-    {/* fail (fault) */}
-    <path
-      d="M11 30.5 L14 33.5 M14 30.5 L11 33.5"
-      stroke={FIRE}
-      strokeOpacity={FIRE_OP}
-      fill="none"
-    />
-    <path d="M18 32 H25" stroke={FIRE} strokeOpacity={0.85} fill="none" />
-    {/* magnifier */}
-    <g strokeOpacity={INK.strong} fill="none">
-      <circle cx={31} cy={30} r={6.5} />
-      <path d="M35.6 34.6 L41 40" />
-    </g>
-  </ArtSvg>
-)
+// seo (instrument grammar) — a radar scan: concentric dashed range-rings, a
+// crosshair reticle with end ticks, a solid sweep arm with a faint trailing
+// afterglow, and a single blip on a ring (the reading the audit finds). The
+// page, scanned for search visibility.
+const SWEEP = -34 // sweep-arm bearing (upper-right)
+
+export const SeoArt = () => {
+  const [sx, sy] = pt(C, C, 18.5, SWEEP)
+  const [bx, by] = pt(C, C, 13, SWEEP + 3)
+  return (
+    <ArtSvg>
+      <Ring r={8} opacity={OP.ambient} />
+      <Ring r={13} opacity={OP.ambient} />
+      <Ring r={18.5} opacity={OP.faint} />
+      <Crosshair reach={21} gap={3.5} />
+      {/* sweep afterglow trailing the arm */}
+      <Arc r={18.5} a0={SWEEP + 4} a1={SWEEP + 34} dashed opacity={OP.faint} />
+      {/* sweep arm */}
+      <line x1={C} y1={C} x2={sx} y2={sy} strokeWidth={HAIR} strokeOpacity={OP.line} />
+      {/* blip — the found reading */}
+      <circle cx={bx} cy={by} r={1.5} fill="currentColor" fillOpacity={OP.node} stroke="none" />
+      <Node shape="dot" r={2} />
+    </ArtSvg>
+  )
+}
