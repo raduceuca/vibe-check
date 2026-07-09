@@ -39,10 +39,7 @@ const ScanPage = () => (
           <span className="vc-dot" />
           <span>SEO / AEO scanner</span>
         </div>
-        <h1 className="vc-hero-head">
-          Can the answer engines{' '}
-          <span className="vc-hero-sig">read your site?</span>
-        </h1>
+        <h1 className="vc-hero-head">Can the answer engines read your site?</h1>
         <p className="vc-lede">
           Most sites are half-broken for Google and invisible to ChatGPT and
           Perplexity. Paste a URL — we run the same <b>19 SEO + 9 AEO</b> checks
