@@ -95,6 +95,37 @@ export const getCategoryMeta = (key: Category): CategoryMeta =>
 export const problemsInCategory = (key: Category): readonly Problem[] =>
   ALL_PROBLEMS.filter((p) => p.category === key)
 
+// ── Slop Bestiary → Fix guide ────────────────────────────────────────────────
+// Each live detector (the landing's Slop Bestiary specimens) maps to the fix
+// guide that remedies it: a specific problem slug for the ten runtime/asset
+// detectors, the category hub for the three audit detectors. The detector names
+// (from core) are NOT the fix slugs, so this is the single source of truth for
+// that correlation — validated in validateProblems() below.
+export const DETECTOR_FIX: Readonly<Record<string, string>> = {
+  'dom-bloat': 'excessive-dom-size',
+  'duplicate-requests': 'duplicate-network-requests',
+  'console-spam': 'console-log-spam',
+  'memory-leak': 'memory-leak',
+  'layout-thrashing': 'cumulative-layout-shift',
+  'unoptimized-images': 'unoptimized-images',
+  'large-images': 'large-image-files',
+  'long-task-attribution': 'long-tasks',
+  'resource-bloat': 'large-javascript-bundles',
+  'heavy-library': 'heavy-dependencies',
+  'web-essentials': 'essentials', // category hub
+  seo: 'seo', // category hub
+  aeo: 'aeo', // category hub
+}
+
+// Resolve a detector to its /fix href, or null if the target no longer resolves
+// (a slug rename surfaces as a null and is caught by validateProblems()).
+export const fixHrefForDetector = (detector: string): string | null => {
+  const target = DETECTOR_FIX[detector]
+  if (target === undefined) return null
+  if (isCategory(target) || BY_SLUG.has(target)) return `/fix/${target}`
+  return null
+}
+
 // Resolve `related` slugs to real problems, dropping any that don't exist.
 export const resolveRelated = (problem: Problem): readonly Problem[] =>
   problem.related

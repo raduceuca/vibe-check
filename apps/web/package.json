@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@wcgw/vibe-check": "workspace:*",
     "@wcgw/vibe-check-core": "workspace:*",
     "fumadocs-core": "16.10.7",

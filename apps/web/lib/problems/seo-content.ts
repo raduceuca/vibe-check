@@ -17,10 +17,10 @@ export const seoContentProblems: readonly Problem[] = [
     metaDescription:
       'The <h1> is your page’s strongest on-page topic signal. If it is missing, add exactly one that names what the page is about.',
     h1: 'No H1 heading',
-    pain: 'The <h1> is the strongest on-page signal of what a page is about, for both search engines and screen-reader users navigating by heading. AI-built pages often style a big <div> or <p> to look like a heading, so it looks right but carries zero semantic weight. Others start the document at <h2> because the <h1> “felt too big”.',
+    pain: 'The `<h1>` is the strongest on-page signal of what a page is about, for both search engines and screen-reader users navigating by heading. AI-built pages often style a big `<div>` or `<p>` to look like a heading, so it looks right but carries zero semantic weight. Others start the document at `<h2>` because the `<h1>` “felt too big”.',
     symptoms: [
-      'The visually-largest text is a styled <div> or <span>, not an <h1>',
-      'The document heading outline starts at <h2>',
+      'The visually-largest text is a styled `<div>` or `<span>`, not an `<h1>`',
+      'The document heading outline starts at `<h2>`',
       'Screen-reader heading navigation skips the main topic',
     ],
     detection: {
@@ -29,17 +29,17 @@ export const seoContentProblems: readonly Problem[] = [
       threshold: 'zero <h1> elements on the page',
     },
     rootCauses: [
-      'A heading was faked with a styled div/span instead of a real <h1>',
-      'The page starts its heading hierarchy at <h2>',
-      'A shared layout owns the <h1> on some routes but not this one',
+      'A heading was faked with a styled div/span instead of a real `<h1>`',
+      'The page starts its heading hierarchy at `<h2>`',
+      'A shared layout owns the `<h1>` on some routes but not this one',
     ],
     fix: {
       summary:
-        'Add exactly one <h1> per page that describes its main topic, and style it however you like — semantics and visual size are independent. Keep the rest of the outline logical (<h2> for sections, <h3> for subsections).',
+        'Add exactly one `<h1>` per page that describes its main topic, and style it however you like — semantics and visual size are independent. Keep the rest of the outline logical (`<h2>` for sections, `<h3>` for subsections).',
       steps: [
         'Identify the page’s single main topic',
-        'Mark it up as one <h1> (restyle with CSS, not by changing the tag)',
-        'Ensure sub-sections use <h2>/<h3> in order',
+        'Mark it up as one `<h1>` (restyle with CSS, not by changing the tag)',
+        'Ensure sub-sections use `<h2>`/`<h3>` in order',
       ],
       code: [
         {
@@ -54,7 +54,7 @@ export const seoContentProblems: readonly Problem[] = [
     },
     frameworkFixes: {
       react: {
-        note: 'Use a semantic <h1> element and style it with a class — do not reach for a styled div. Next.js is identical.',
+        note: 'Use a semantic `<h1>` element and style it with a class — do not reach for a styled div. Next.js is identical.',
         code: [
           {
             lang: 'tsx',
@@ -63,7 +63,7 @@ export const seoContentProblems: readonly Problem[] = [
         ],
       },
       vue: {
-        note: 'Render a real <h1> in the template.',
+        note: 'Render a real `<h1>` in the template.',
         code: [
           {
             lang: 'vue',
@@ -74,7 +74,7 @@ export const seoContentProblems: readonly Problem[] = [
         ],
       },
       svelte: {
-        note: 'Use an <h1> element in your markup.',
+        note: 'Use an `<h1>` element in your markup.',
         code: [
           {
             lang: 'svelte',
@@ -83,7 +83,7 @@ export const seoContentProblems: readonly Problem[] = [
         ],
       },
       vanilla: {
-        note: 'Ensure the page has one real <h1> element for its main topic.',
+        note: 'Ensure the page has one real `<h1>` element for its main topic.',
         code: [
           {
             lang: 'html',
@@ -95,15 +95,15 @@ export const seoContentProblems: readonly Problem[] = [
     faq: [
       {
         q: 'Can I have more than one H1?',
-        a: 'HTML5 technically allows it, but for SEO clarity ship exactly one <h1> per page and use <h2>+ for the rest. Multiple <h1>s dilute the topic signal.',
+        a: 'HTML5 technically allows it, but for SEO clarity ship exactly one `<h1>` per page and use `<h2>`+ for the rest. Multiple `<h1>`s dilute the topic signal.',
       },
       {
         q: 'Does the H1 have to be the biggest text?',
-        a: 'No. Semantics and styling are separate — style your <h1> however you like. What matters is that the tag is an <h1>.',
+        a: 'No. Semantics and styling are separate — style your `<h1>` however you like. What matters is that the tag is an `<h1>`.',
       },
       {
         q: 'Should the H1 match the <title>?',
-        a: 'They should be closely related but need not be identical. The <title> is tuned for search results; the <h1> is the on-page headline.',
+        a: 'They should be closely related but need not be identical. The `<title>` is tuned for search results; the `<h1>` is the on-page headline.',
       },
     ],
     related: ['multiple-h1-headings', 'missing-page-title', 'missing-image-alt-text', 'missing-main-landmark'],
@@ -119,11 +119,11 @@ export const seoContentProblems: readonly Problem[] = [
     metaDescription:
       'Several <h1>s scatter your page’s topic signal. Keep one <h1> and demote the rest to <h2> so the outline is clear.',
     h1: 'Multiple H1 headings',
-    pain: 'When several components each render their own <h1>, a page ends up with three or four competing “main topics”, and search engines have to guess which one describes the page. It also breaks the heading outline that screen-reader users rely on. Component libraries and AI-generated sections are the usual culprits — each card or hero brings its own <h1>.',
+    pain: 'When several components each render their own `<h1>`, a page ends up with three or four competing “main topics”, and search engines have to guess which one describes the page. It also breaks the heading outline that screen-reader users rely on. Component libraries and AI-generated sections are the usual culprits — each card or hero brings its own `<h1>`.',
     symptoms: [
-      'Multiple <h1> elements across cards, heroes, or sections',
+      'Multiple `<h1>` elements across cards, heroes, or sections',
       'The heading outline has several top-level entries',
-      'Reused components each declare their own <h1>',
+      'Reused components each declare their own `<h1>`',
     ],
     detection: {
       detector: 'seo',
@@ -131,17 +131,17 @@ export const seoContentProblems: readonly Problem[] = [
       threshold: 'more than one <h1> element',
     },
     rootCauses: [
-      'Reusable section/card components each hard-code an <h1>',
-      'A page composes several “hero” blocks that each own an <h1>',
+      'Reusable section/card components each hard-code an `<h1>`',
+      'A page composes several “hero” blocks that each own an `<h1>`',
       'Heading level was chosen for size, not hierarchy',
     ],
     fix: {
       summary:
-        'Keep a single <h1> for the page’s main topic and demote every other to <h2> or lower based on its place in the outline. Make reusable components accept a heading level (or default to <h2>) so they never emit a second <h1>.',
+        'Keep a single `<h1>` for the page’s main topic and demote every other to `<h2>` or lower based on its place in the outline. Make reusable components accept a heading level (or default to `<h2>`) so they never emit a second `<h1>`.',
       steps: [
-        'Find every <h1> on the page',
-        'Keep the one that names the page; change the rest to <h2>/<h3>',
-        'Parameterise shared components so they do not hard-code <h1>',
+        'Find every `<h1>` on the page',
+        'Keep the one that names the page; change the rest to `<h2>`/`<h3>`',
+        'Parameterise shared components so they do not hard-code `<h1>`',
       ],
       code: [
         {
@@ -158,7 +158,7 @@ export const seoContentProblems: readonly Problem[] = [
     },
     frameworkFixes: {
       react: {
-        note: 'Give reusable section components a level prop so only the page owns the <h1>. Next.js is identical.',
+        note: 'Give reusable section components a level prop so only the page owns the `<h1>`. Next.js is identical.',
         code: [
           {
             lang: 'tsx',
@@ -185,7 +185,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       svelte: {
-        note: 'Use svelte:element so the tag is data-driven, defaulting to h2.',
+        note: 'Use `svelte:element` so the tag is data-driven, defaulting to h2.',
         code: [
           {
             lang: 'svelte',
@@ -202,11 +202,11 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     faq: [
       {
         q: 'Is multiple H1 actually penalised?',
-        a: 'There is no direct penalty, but it weakens the topic signal and hurts accessibility. Keeping one <h1> is a clear, low-cost best practice.',
+        a: 'There is no direct penalty, but it weakens the topic signal and hurts accessibility. Keeping one `<h1>` is a clear, low-cost best practice.',
       },
       {
         q: 'What about the HTML5 outline algorithm?',
-        a: 'The sectioning-based outline algorithm was never implemented by browsers or assistive tech. In practice, use a single <h1> and ordered <h2>+ headings.',
+        a: 'The sectioning-based outline algorithm was never implemented by browsers or assistive tech. In practice, use a single `<h1>` and ordered `<h2>`+ headings.',
       },
     ],
     related: ['missing-h1-heading', 'missing-main-landmark', 'missing-page-title', 'missing-image-alt-text'],
@@ -222,7 +222,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     metaDescription:
       'Images with no alt attribute are invisible to screen readers and search engines. Add descriptive alt text (or alt="" if decorative).',
     h1: 'Images missing alt text',
-    pain: 'The alt attribute is how screen-reader users perceive an image and how search engines (and image search) understand it. An <img> with no alt attribute is opaque to both — the user hears only “image” or the filename. AI-generated markup frequently emits <img> tags with a src and nothing else.',
+    pain: 'The `alt` attribute is how screen-reader users perceive an image and how search engines (and image search) understand it. An `<img>` with no `alt` attribute is opaque to both — the user hears only “image” or the filename. AI-generated markup frequently emits `<img>` tags with a `src` and nothing else.',
     symptoms: [
       'Screen readers announce the filename or just “image”',
       'Images never appear in Google Image search',
@@ -234,17 +234,17 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
       threshold: 'one or more <img> without an alt attribute',
     },
     rootCauses: [
-      'Generated <img> tags include src but no alt',
-      'Dynamic images render without threading through an alt value',
-      'Decorative images omit alt entirely instead of using alt=""',
+      'Generated `<img>` tags include `src` but no `alt`',
+      'Dynamic images render without threading through an `alt` value',
+      'Decorative images omit `alt` entirely instead of using `alt=""`',
     ],
     fix: {
       summary:
-        'Give every <img> an alt attribute. For meaningful images, describe what the image conveys in context. For purely decorative images, use an explicit empty alt="" so assistive tech skips them — that is a valid signal, unlike a missing attribute.',
+        'Give every `<img>` an `alt` attribute. For meaningful images, describe what the image conveys in context. For purely decorative images, use an explicit empty `alt=""` so assistive tech skips them — that is a valid signal, unlike a missing attribute.',
       steps: [
-        'Add a descriptive alt to every content image',
-        'Use alt="" for decorative images (not a missing attribute)',
-        'For dynamic images, require alt text at the data layer',
+        'Add a descriptive `alt` to every content image',
+        'Use `alt=""` for decorative images (not a missing attribute)',
+        'For dynamic images, require `alt` text at the data layer',
       ],
       code: [
         {
@@ -259,7 +259,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     },
     frameworkFixes: {
       react: {
-        note: 'JSX warns on <img> without alt when the jsx-a11y ESLint rule is on. Thread alt through from data. Next.js <Image> requires it too.',
+        note: 'JSX warns on `<img>` without `alt` when the `jsx-a11y` ESLint rule is on. Thread `alt` through from data. Next.js `<Image>` requires it too.',
         code: [
           {
             lang: 'tsx',
@@ -270,7 +270,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       vue: {
-        note: 'Bind alt in the template; enable vuejs-accessibility/alt-text to catch omissions.',
+        note: 'Bind `alt` in the template; enable `vuejs-accessibility/alt-text` to catch omissions.',
         code: [
           {
             lang: 'vue',
@@ -279,7 +279,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       svelte: {
-        note: 'Svelte’s compiler emits an a11y-missing-attribute warning for <img> without alt.',
+        note: 'Svelte’s compiler emits an `a11y-missing-attribute` warning for `<img>` without `alt`.',
         code: [
           {
             lang: 'svelte',
@@ -288,7 +288,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       vanilla: {
-        note: 'Add an alt attribute to every <img> in your markup or templating.',
+        note: 'Add an `alt` attribute to every `<img>` in your markup or templating.',
         code: [
           {
             lang: 'html',
@@ -299,8 +299,8 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     },
     faq: [
       {
-        q: 'Is alt="" ever correct?',
-        a: 'Yes — for purely decorative images (dividers, background flourishes), an explicit empty alt="" tells assistive tech to skip it. That is different from omitting the attribute, which VibeCheck flags.',
+        q: 'Is `alt=""` ever correct?',
+        a: 'Yes — for purely decorative images (dividers, background flourishes), an explicit empty `alt=""` tells assistive tech to skip it. That is different from omitting the attribute, which VibeCheck flags.',
       },
       {
         q: 'What makes good alt text?',
@@ -342,10 +342,10 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     ],
     fix: {
       summary:
-        'Write link text that describes the destination, so it makes sense read on its own. If a card’s layout needs a short CTA, add a visually-hidden label or an aria-label that names the target.',
+        'Write link text that describes the destination, so it makes sense read on its own. If a card’s layout needs a short CTA, add a visually-hidden label or an `aria-label` that names the target.',
       steps: [
         'Rewrite generic links to name their destination',
-        'For unavoidable short CTAs, add an aria-label or visually-hidden text',
+        'For unavoidable short CTAs, add an `aria-label` or visually-hidden text',
         'Verify each link makes sense out of context',
       ],
       code: [
@@ -364,7 +364,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
     },
     frameworkFixes: {
       react: {
-        note: 'Pass a descriptive label, or an aria-label when the visible text must stay short. Next.js <Link> is identical.',
+        note: 'Pass a descriptive label, or an `aria-label` when the visible text must stay short. Next.js `<Link>` is identical.',
         code: [
           {
             lang: 'tsx',
@@ -373,7 +373,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       vue: {
-        note: 'Use descriptive slot text or bind aria-label.',
+        note: 'Use descriptive slot text or bind `aria-label`.',
         code: [
           {
             lang: 'vue',
@@ -382,7 +382,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
         ],
       },
       svelte: {
-        note: 'Write descriptive anchor text, or add aria-label for short CTAs.',
+        note: 'Write descriptive anchor text, or add `aria-label` for short CTAs.',
         code: [
           {
             lang: 'svelte',
@@ -398,7 +398,7 @@ defineProps<{ as?: 'h1' | 'h2' | 'h3'; title: string }>()
       },
       {
         q: 'How do I keep a short button label but still be descriptive?',
-        a: 'Add an aria-label that names the destination, or include visually-hidden text. The visible label can stay short while assistive tech and crawlers get the full meaning.',
+        a: 'Add an `aria-label` that names the destination, or include visually-hidden text. The visible label can stay short while assistive tech and crawlers get the full meaning.',
       },
     ],
     related: ['missing-image-alt-text', 'missing-h1-heading', 'missing-main-landmark', 'unfriendly-url-slug'],
@@ -452,7 +452,7 @@ slugify('Scaling Postgres to 1M rows') // → "scaling-postgres-to-1m-rows"`,
     },
     frameworkFixes: {
       nextjs: {
-        note: 'Folder and dynamic-segment names become the URL. Name the [slug] segment from a clean slug field, not an id.',
+        note: 'Folder and dynamic-segment names become the URL. Name the `[slug]` segment from a clean slug field, not an id.',
         code: [
           {
             lang: 'bash',
@@ -496,11 +496,11 @@ router.get('/blog/:slug', handler)`,
     metaDescription:
       'A noindex tag tells search engines to drop the page from results entirely. If it is not deliberate — often a staging leftover — remove it.',
     h1: 'Page is set to “noindex”',
-    pain: 'A <meta name="robots" content="noindex"> tells search engines to leave the page out of results entirely — the single most damaging SEO mistake because the page simply disappears. It is very often a leftover from a staging or “coming soon” environment that shipped to production. If it is not deliberate, it is an emergency.',
+    pain: 'A `<meta name="robots" content="noindex">` tells search engines to leave the page out of results entirely — the single most damaging SEO mistake because the page simply disappears. It is very often a leftover from a staging or “coming soon” environment that shipped to production. If it is not deliberate, it is an emergency.',
     symptoms: [
       'The page vanished from Google after a deploy',
       'Search Console reports “Excluded by ‘noindex’ tag”',
-      'A staging-wide noindex made it into the production build',
+      'A staging-wide `noindex` made it into the production build',
     ],
     detection: {
       detector: 'seo',
@@ -508,15 +508,15 @@ router.get('/blog/:slug', handler)`,
       threshold: '<meta name="robots" content> includes \'noindex\'',
     },
     rootCauses: [
-      'A staging/preview environment’s global noindex shipped to production',
-      'An environment flag that toggles noindex is misconfigured in prod',
+      'A staging/preview environment’s global `noindex` shipped to production',
+      'An environment flag that toggles `noindex` is misconfigured in prod',
       'A CMS “hidden” toggle was left on for a live page',
     ],
     fix: {
       summary:
-        'Remove the noindex directive from any page that should be indexed. If you gate indexing by environment, make sure production never emits noindex — and double-check the header form (X-Robots-Tag) too, not just the meta tag.',
+        'Remove the `noindex` directive from any page that should be indexed. If you gate indexing by environment, make sure production never emits `noindex` — and double-check the header form (`X-Robots-Tag`) too, not just the meta tag.',
       steps: [
-        'Search the codebase for “noindex” (meta tag and X-Robots-Tag header)',
+        'Search the codebase for “noindex” (meta tag and `X-Robots-Tag` header)',
         'Ensure production never emits it; gate it strictly to non-prod',
         'Request re-indexing in Search Console once removed',
       ],
@@ -551,7 +551,7 @@ router.get('/blog/:slug', handler)`,
         ],
       },
       svelte: {
-        note: 'Guard the noindex tag by environment inside <svelte:head>.',
+        note: 'Guard the `noindex` tag by environment inside `<svelte:head>`.',
         code: [
           {
             lang: 'svelte',
@@ -564,7 +564,7 @@ router.get('/blog/:slug', handler)`,
         ],
       },
       vanilla: {
-        note: 'Only inject the noindex tag (or X-Robots-Tag header) in staging; strip it from production builds.',
+        note: 'Only inject the `noindex` tag (or `X-Robots-Tag` header) in staging; strip it from production builds.',
         code: [
           {
             lang: 'html',
@@ -576,12 +576,12 @@ router.get('/blog/:slug', handler)`,
     },
     faq: [
       {
-        q: 'How fast will my page come back after removing noindex?',
+        q: 'How fast will my page come back after removing `noindex`?',
         a: 'It returns on the next crawl, which can be hours to weeks. Request indexing in Google Search Console to speed it up once the tag is gone.',
       },
       {
-        q: 'Is there a header version of noindex I might be missing?',
-        a: 'Yes — the X-Robots-Tag HTTP header does the same thing and is easy to overlook. Check your server/CDN config as well as the meta tag.',
+        q: 'Is there a header version of `noindex` I might be missing?',
+        a: 'Yes — the `X-Robots-Tag` HTTP header does the same thing and is easy to overlook. Check your server/CDN config as well as the meta tag.',
       },
       {
         q: 'What is the correct tag for pages I do want indexed?',

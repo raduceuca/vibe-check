@@ -20,6 +20,13 @@ import { ALL_PROBLEMS, problemsInCategory, type CategoryMeta } from './index'
 // A loose JSON value type — JSON-LD is plain data serialized into a script tag.
 type Json = string | number | boolean | null | Json[] | { readonly [k: string]: Json }
 
+// Strip inline-code backticks before text enters JSON-LD. The problem data marks
+// code fragments with `backticks` so the page renders <code> chips and the .md /
+// llms output gets correct Markdown — but JSON-LD is read by answer engines as
+// plain text, where a stray backtick is noise. Markdown keeps them; structured
+// data does not.
+const plain = (s: string): string => s.replace(/`/g, '')
+
 const organization = {
   '@type': 'Organization',
   name: SITE_NAME,
@@ -57,8 +64,8 @@ const breadcrumb = (problem: Problem, url: string, framework?: string): Json => 
 const techArticle = (problem: Problem, url: string): Json => ({
   '@context': 'https://schema.org',
   '@type': 'TechArticle',
-  headline: problem.title,
-  description: problem.metaDescription,
+  headline: plain(problem.title),
+  description: plain(problem.metaDescription),
   url,
   mainEntityOfPage: { '@type': 'WebPage', '@id': url },
   author: organization,
@@ -73,13 +80,13 @@ const howTo = (problem: Problem, url: string): Json | null => {
   return {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
-    name: problem.h1,
-    description: problem.fix.summary,
+    name: plain(problem.h1),
+    description: plain(problem.fix.summary),
     url,
     step: steps.map((text, i) => ({
       '@type': 'HowToStep',
       position: i + 1,
-      text,
+      text: plain(text),
     })),
   }
 }
@@ -91,8 +98,8 @@ const faqPage = (problem: Problem): Json | null => {
     '@type': 'FAQPage',
     mainEntity: problem.faq.map((f) => ({
       '@type': 'Question',
-      name: f.q,
-      acceptedAnswer: { '@type': 'Answer', text: f.a },
+      name: plain(f.q),
+      acceptedAnswer: { '@type': 'Answer', text: plain(f.a) },
     })),
   }
 }

@@ -1,10 +1,14 @@
 import Link from 'next/link'
+import { SmileySad, Warning } from '@phosphor-icons/react/dist/ssr'
 import type { Framework, Problem } from '@/lib/problems/types'
 import { CATEGORY_LABELS, FRAMEWORK_LABELS } from '@/lib/problems/types'
 import { frameworksFor, getCategoryMeta, resolveRelated } from '@/lib/problems'
 import { ISSUE_ART } from '@/components/issueArt'
 import { CodeBlockList } from './CodeBlockView'
 import { SeverityTag } from './SeverityTag'
+import { IconList } from './IconList'
+import { CatchPanel } from './CatchPanel'
+import { RichText } from './RichText'
 
 // ── The canonical problem page template ──────────────────────────────────────
 // Renders one problem from data: breadcrumb, a single <h1>, the pain, symptoms,
@@ -105,7 +109,9 @@ export const ProblemArticle = ({
             problem.h1
           )}
         </h1>
-        <p className="vc-fix-lede">{problem.pain}</p>
+        <p className="vc-fix-lede">
+          <RichText text={problem.pain} />
+        </p>
       </header>
 
       <FrameworkLinks problem={problem} current={framework} />
@@ -115,11 +121,7 @@ export const ProblemArticle = ({
         <h2 id="symptoms" className="vc-fix-h2">
           Symptoms
         </h2>
-        <ul className="vc-fix-list">
-          {problem.symptoms.map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-        </ul>
+        <IconList items={problem.symptoms} icon={SmileySad} tone="muted" />
       </section>
 
       {/* ── How VibeCheck catches it (the dogfood hook) ──────────────────── */}
@@ -127,15 +129,7 @@ export const ProblemArticle = ({
         <h2 id="detect" className="vc-fix-h2">
           How VibeCheck catches it
         </h2>
-        <p className="vc-fix-p">
-          The <span className="vc-code">{problem.detection.detector}</span> detector flags this
-          live in the browser and emits it to the widget&rsquo;s Problems list — and to your
-          coding agent over MCP. The issue string it reports:
-        </p>
-        <div className="vc-emit vc-fix-emit">{problem.detection.issueString}</div>
-        <p className="vc-fix-p vc-fix-threshold">
-          <span className="vc-fix-threshold-k">Threshold</span> {problem.detection.threshold}
-        </p>
+        <CatchPanel problem={problem} />
       </section>
 
       {/* ── Root causes ──────────────────────────────────────────────────── */}
@@ -143,11 +137,7 @@ export const ProblemArticle = ({
         <h2 id="causes" className="vc-fix-h2">
           Root causes
         </h2>
-        <ul className="vc-fix-list">
-          {problem.rootCauses.map((c, i) => (
-            <li key={i}>{c}</li>
-          ))}
-        </ul>
+        <IconList items={problem.rootCauses} icon={Warning} tone="amber" />
       </section>
 
       {/* ── The fix ──────────────────────────────────────────────────────── */}
@@ -158,7 +148,9 @@ export const ProblemArticle = ({
 
         {frameworkFix ? (
           <>
-            <p className="vc-fix-p">{frameworkFix.note}</p>
+            <p className="vc-fix-p">
+              <RichText text={frameworkFix.note} />
+            </p>
             <CodeBlockList blocks={frameworkFix.code} />
             {frameworkFix.docsUrl ? (
               <p className="vc-fix-p">
@@ -172,7 +164,9 @@ export const ProblemArticle = ({
                 <h3 className="vc-fix-h3">Steps</h3>
                 <ol className="vc-fix-steps">
                   {problem.fix.steps.map((s, i) => (
-                    <li key={i}>{s}</li>
+                    <li key={i}>
+                      <RichText text={s} />
+                    </li>
                   ))}
                 </ol>
               </>
@@ -185,11 +179,15 @@ export const ProblemArticle = ({
           </>
         ) : (
           <>
-            <p className="vc-fix-p">{problem.fix.summary}</p>
+            <p className="vc-fix-p">
+              <RichText text={problem.fix.summary} />
+            </p>
             {problem.fix.steps ? (
               <ol className="vc-fix-steps">
                 {problem.fix.steps.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>
+                    <RichText text={s} />
+                  </li>
                 ))}
               </ol>
             ) : null}
@@ -207,8 +205,12 @@ export const ProblemArticle = ({
           <dl className="vc-faq">
             {problem.faq.map((f, i) => (
               <div className="vc-faq-item" key={i}>
-                <dt>{f.q}</dt>
-                <dd>{f.a}</dd>
+                <dt>
+                  <RichText text={f.q} />
+                </dt>
+                <dd>
+                  <RichText text={f.a} />
+                </dd>
               </div>
             ))}
           </dl>

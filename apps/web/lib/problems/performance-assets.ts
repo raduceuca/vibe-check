@@ -14,7 +14,7 @@ export const performanceAssetProblems: readonly Problem[] = [
     metaDescription:
       'Images without dimensions shift layout; oversized ones waste bandwidth. Add width/height, lazy-load below the fold, and serve the right size.',
     h1: 'Unoptimized images',
-    pain: 'Images are usually the heaviest thing on a page, and when they ship without width/height they shift the layout as they load, when they ship at 2400px in a 400px slot they waste most of what they download, and when they load eagerly below the fold they steal bandwidth from what’s actually visible. AI scaffolds paste raw <img src> tags with none of the attributes that make images fast.',
+    pain: 'Images are usually the heaviest thing on a page, and when they ship without `width`/`height` they shift the layout as they load, when they ship at 2400px in a 400px slot they waste most of what they download, and when they load eagerly below the fold they steal bandwidth from what’s actually visible. AI scaffolds paste raw `<img src>` tags with none of the attributes that make images fast.',
     symptoms: [
       'Layout jumps as each image loads (no reserved space)',
       'A tiny thumbnail downloads a multi-megapixel original',
@@ -27,18 +27,18 @@ export const performanceAssetProblems: readonly Problem[] = [
       threshold: 'Natural size > 2× rendered size, or declared aspect ratio off by > 0.15, or missing dimensions/lazy/alt',
     },
     rootCauses: [
-      'No width/height attributes, so the browser can’t reserve space',
+      'No `width`/`height` attributes, so the browser can’t reserve space',
       'The source image is far larger than the size it’s displayed at',
-      'No loading="lazy" on images below the fold',
-      'Declared width/height that don’t match the file’s real aspect ratio',
+      'No `loading="lazy"` on images below the fold',
+      'Declared `width`/`height` that don’t match the file’s real aspect ratio',
     ],
     fix: {
       summary:
-        'Give every image explicit intrinsic width and height so the box is reserved before load, add loading="lazy" to below-the-fold images, serve the image at roughly the size it’s displayed (2× max for retina) in a modern format (WebP/AVIF), and use srcset/sizes for responsive delivery.',
+        'Give every image explicit intrinsic `width` and `height` so the box is reserved before load, add `loading="lazy"` to below-the-fold images, serve the image at roughly the size it’s displayed (2× max for retina) in a modern format (WebP/AVIF), and use `srcset`/`sizes` for responsive delivery.',
       steps: [
-        'Add width and height attributes matching the file’s real aspect ratio',
-        'Add loading="lazy" to images below the fold (never to the LCP image)',
-        'Resize and re-encode to WebP/AVIF at the displayed size, with srcset for density',
+        'Add `width` and `height` attributes matching the file’s real aspect ratio',
+        'Add `loading="lazy"` to images below the fold (never to the LCP image)',
+        'Resize and re-encode to WebP/AVIF at the displayed size, with `srcset` for density',
       ],
       code: [
         {
@@ -56,7 +56,7 @@ export const performanceAssetProblems: readonly Problem[] = [
     },
     frameworkFixes: {
       nextjs: {
-        note: 'next/image does all of this for you: it reserves space from width/height, lazy-loads by default, generates WebP/AVIF and a srcset, and serves the right size per device. Set priority on the LCP image so it isn’t lazy-loaded.',
+        note: '`next/image` does all of this for you: it reserves space from `width`/`height`, lazy-loads by default, generates WebP/AVIF and a `srcset`, and serves the right size per device. Set `priority` on the LCP image so it isn’t lazy-loaded.',
         docsUrl: 'https://nextjs.org/docs/app/api-reference/components/image',
         code: [
           {
@@ -68,7 +68,7 @@ export const performanceAssetProblems: readonly Problem[] = [
         ],
       },
       react: {
-        note: 'Plain React has no image pipeline, so add the attributes yourself — width/height, loading, decoding — and pre-generate responsive sizes at build time or via an image CDN.',
+        note: 'Plain React has no image pipeline, so add the attributes yourself — `width`/`height`, `loading`, `decoding` — and pre-generate responsive sizes at build time or via an image CDN.',
         code: [
           {
             lang: 'tsx',
@@ -84,7 +84,7 @@ export const performanceAssetProblems: readonly Problem[] = [
         ],
       },
       vue: {
-        note: 'Set the same attributes in the template. On Nuxt, use <NuxtImg> from @nuxt/image for automatic resizing and modern formats.',
+        note: 'Set the same attributes in the template. On Nuxt, use `<NuxtImg>` from `@nuxt/image` for automatic resizing and modern formats.',
         docsUrl: 'https://image.nuxt.com/',
         code: [
           {
@@ -97,7 +97,7 @@ export const performanceAssetProblems: readonly Problem[] = [
         ],
       },
       svelte: {
-        note: '@sveltejs/enhanced-img processes local images at build time — generating dimensions, modern formats, and a srcset from a single <enhanced:img> tag.',
+        note: '`@sveltejs/enhanced-img` processes local images at build time — generating dimensions, modern formats, and a `srcset` from a single `<enhanced:img>` tag.',
         docsUrl: 'https://svelte.dev/docs/kit/images',
         code: [
           {
@@ -123,14 +123,14 @@ export const performanceAssetProblems: readonly Problem[] = [
     faq: [
       {
         q: 'Should I lazy-load every image?',
-        a: 'No — never lazy-load your LCP (largest, above-the-fold) image; that delays the most important paint. Lazy-load only images below the fold. In Next.js, mark the hero with priority.',
+        a: 'No — never lazy-load your LCP (largest, above-the-fold) image; that delays the most important paint. Lazy-load only images below the fold. In Next.js, mark the hero with `priority`.',
       },
       {
         q: 'What does "oversized" mean exactly?',
         a: 'VibeCheck flags an image whose natural (file) dimensions are more than twice its rendered (displayed) size — you’re downloading at least 4× the pixels you show. Resize to the displayed size, 2× for retina.',
       },
       {
-        q: 'Why does missing width/height cause layout shift?',
+        q: 'Why does missing `width`/`height` cause layout shift?',
         a: 'Without dimensions the browser doesn’t know the image’s size until it downloads, so it reserves no space and everything below jumps when the image arrives. The attributes let it reserve the box up front.',
       },
     ],
@@ -166,11 +166,11 @@ export const performanceAssetProblems: readonly Problem[] = [
     ],
     fix: {
       summary:
-        'Compress and re-encode heavy images to WebP or AVIF (typically 30–80% smaller than PNG/JPEG at the same quality), resize them to no more than 2× their displayed dimensions, and ideally serve them through an image CDN that negotiates format and size per request. Use <picture> to offer AVIF with fallbacks.',
+        'Compress and re-encode heavy images to WebP or AVIF (typically 30–80% smaller than PNG/JPEG at the same quality), resize them to no more than 2× their displayed dimensions, and ideally serve them through an image CDN that negotiates format and size per request. Use `<picture>` to offer AVIF with fallbacks.',
       steps: [
         'Resize the source to at most 2× the size it’s displayed at',
         'Re-encode to AVIF/WebP with a quality around 75–80',
-        'Serve via <picture> with fallbacks, or through an image CDN',
+        'Serve via `<picture>` with fallbacks, or through an image CDN',
       ],
       code: [
         {
@@ -191,7 +191,7 @@ export const performanceAssetProblems: readonly Problem[] = [
     },
     frameworkFixes: {
       nextjs: {
-        note: 'next/image compresses and converts to AVIF/WebP automatically and serves per-device sizes — pointing it at a large source and letting it optimize is usually the whole fix.',
+        note: '`next/image` compresses and converts to AVIF/WebP automatically and serves per-device sizes — pointing it at a large source and letting it optimize is usually the whole fix.',
         docsUrl: 'https://nextjs.org/docs/app/api-reference/components/image',
         code: [
           {
@@ -203,7 +203,7 @@ export const performanceAssetProblems: readonly Problem[] = [
         ],
       },
       vue: {
-        note: 'On Nuxt, @nuxt/image compresses and reformats at build/request time. Plain Vue: pre-compress and use <picture> as above.',
+        note: 'On Nuxt, `@nuxt/image` compresses and reformats at build/request time. Plain Vue: pre-compress and use `<picture>` as above.',
         docsUrl: 'https://image.nuxt.com/',
         code: [
           {
@@ -215,7 +215,7 @@ export const performanceAssetProblems: readonly Problem[] = [
         ],
       },
       vanilla: {
-        note: 'Pre-compress with sharp/squoosh in your build, then serve AVIF/WebP with a <picture> fallback. Or put an image CDN in front and pass width/format query params.',
+        note: 'Pre-compress with sharp/squoosh in your build, then serve AVIF/WebP with a `<picture>` fallback. Or put an image CDN in front and pass width/format query params.',
         code: [
           {
             lang: 'bash',
@@ -232,7 +232,7 @@ npx @squoosh/cli --avif '{"quality":75}' hero.png`,
       },
       {
         q: 'AVIF or WebP?',
-        a: 'AVIF compresses better but encodes slower and has slightly less universal support; WebP is faster and near-universal. Offer AVIF first with a WebP (then JPEG) fallback via <picture>, and you get the best of both.',
+        a: 'AVIF compresses better but encodes slower and has slightly less universal support; WebP is faster and near-universal. Offer AVIF first with a WebP (then JPEG) fallback via `<picture>`, and you get the best of both.',
       },
       {
         q: 'Does this affect SEO?',
@@ -290,7 +290,7 @@ import debounce from 'lodash-es/debounce'`,
     },
     frameworkFixes: {
       react: {
-        note: 'Split at route and component boundaries with React.lazy + Suspense, and analyze the build with rollup-plugin-visualizer (Vite) to see what’s big.',
+        note: 'Split at route and component boundaries with `React.lazy` + `Suspense`, and analyze the build with `rollup-plugin-visualizer` (Vite) to see what’s big.',
         docsUrl: 'https://react.dev/reference/react/lazy',
         code: [
           {
@@ -305,7 +305,7 @@ const Editor = lazy(() => import('./Editor')) // its own chunk, loaded on demand
         ],
       },
       nextjs: {
-        note: 'Next code-splits per route automatically; use next/dynamic for heavy client components and @next/bundle-analyzer to inspect chunks. Prefer Server Components so code never reaches the client.',
+        note: 'Next code-splits per route automatically; use `next/dynamic` for heavy client components and `@next/bundle-analyzer` to inspect chunks. Prefer Server Components so code never reaches the client.',
         docsUrl: 'https://nextjs.org/docs/app/guides/lazy-loading',
         code: [
           {
@@ -316,7 +316,7 @@ const Map = dynamic(() => import('./Map'), { ssr: false, loading: () => <Skeleto
         ],
       },
       vue: {
-        note: 'Use defineAsyncComponent for on-demand components and Vue Router’s dynamic imports for route-level splitting.',
+        note: 'Use `defineAsyncComponent` for on-demand components and Vue Router’s dynamic imports for route-level splitting.',
         docsUrl: 'https://vuejs.org/guide/components/async.html',
         code: [
           {
@@ -330,7 +330,7 @@ const routes = [{ path: '/edit', component: () => import('./pages/Edit.vue') }]`
         ],
       },
       vanilla: {
-        note: 'Use dynamic import() to load heavy modules only when needed; modern bundlers split them into separate chunks automatically.',
+        note: 'Use dynamic `import()` to load heavy modules only when needed; modern bundlers split them into separate chunks automatically.',
         code: [
           {
             lang: 'js',
@@ -353,7 +353,7 @@ const routes = [{ path: '/edit', component: () => import('./pages/Edit.vue') }]`
       },
       {
         q: 'How do I find what’s making the bundle big?',
-        a: 'Run a bundle analyzer (@next/bundle-analyzer, rollup-plugin-visualizer, or source-map-explorer). It shows a treemap of every module so you can spot an oversized dependency or an accidental whole-library import.',
+        a: 'Run a bundle analyzer (`@next/bundle-analyzer`, `rollup-plugin-visualizer`, or `source-map-explorer`). It shows a treemap of every module so you can spot an oversized dependency or an accidental whole-library import.',
       },
     ],
     related: ['heavy-dependencies', 'long-tasks', 'duplicate-network-requests', 'excessive-dom-size'],
@@ -408,7 +408,7 @@ new Intl.DateTimeFormat('en', { dateStyle: 'long' }).format(d)`,
     },
     frameworkFixes: {
       react: {
-        note: 'Load heavy widgets on demand with React.lazy, and use a library’s lightweight entry when it has one — e.g. Framer Motion’s LazyMotion ships ~5KB instead of the full bundle.',
+        note: 'Load heavy widgets on demand with `React.lazy`, and use a library’s lightweight entry when it has one — e.g. Framer Motion’s `LazyMotion` ships ~5KB instead of the full bundle.',
         docsUrl: 'https://motion.dev/docs/react-reduce-bundle-size',
         code: [
           {
@@ -422,7 +422,7 @@ new Intl.DateTimeFormat('en', { dateStyle: 'long' }).format(d)`,
         ],
       },
       nextjs: {
-        note: 'Dynamic-import client-only heavy libraries with ssr:false so they never touch the server bundle or block first paint, and load them behind interaction where possible.',
+        note: 'Dynamic-import client-only heavy libraries with `ssr:false` so they never touch the server bundle or block first paint, and load them behind interaction where possible.',
         code: [
           {
             lang: 'tsx',
@@ -457,7 +457,7 @@ async function animate() {
       },
       {
         q: 'What’s the single most common heavy dependency?',
-        a: 'Date libraries and animation runtimes. Moment.js is a classic — the native Intl.DateTimeFormat replaces most of it for zero bytes — and animation libraries are frequently shipped in full when a tree-shaken or lazy subset would do.',
+        a: 'Date libraries and animation runtimes. Moment.js is a classic — the native `Intl.DateTimeFormat` replaces most of it for zero bytes — and animation libraries are frequently shipped in full when a tree-shaken or lazy subset would do.',
       },
     ],
     related: ['large-javascript-bundles', 'long-tasks', 'memory-leak', 'cumulative-layout-shift'],

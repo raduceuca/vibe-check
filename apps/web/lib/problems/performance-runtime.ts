@@ -15,7 +15,7 @@ export const performanceRuntimeProblems: readonly Problem[] = [
     metaDescription:
       'A huge DOM slows style, layout and memory on every frame. Virtualize long lists and flatten wrappers to get node count back under control.',
     h1: 'Excessive DOM size',
-    pain: 'Every DOM node the browser has to style, lay out, and keep in memory costs time on each frame, so a page with thousands of nodes feels sluggish to scroll and slow to interact with. AI agents produce this constantly: they map over data without virtualization, wrap everything in defensive <div>s, and render hidden content with display:none instead of not rendering it. The result passes review because it looks right — it just quietly janks.',
+    pain: 'Every DOM node the browser has to style, lay out, and keep in memory costs time on each frame, so a page with thousands of nodes feels sluggish to scroll and slow to interact with. AI agents produce this constantly: they map over data without virtualization, wrap everything in defensive `<div>`s, and render hidden content with `display:none` instead of not rendering it. The result passes review because it looks right — it just quietly janks.',
     symptoms: [
       'Scrolling stutters and interactions feel laggy on lower-end devices',
       'React/Vue DevTools shows thousands of elements under one list',
@@ -29,17 +29,17 @@ export const performanceRuntimeProblems: readonly Problem[] = [
     },
     rootCauses: [
       'Rendering a long list in full instead of windowing/virtualizing it',
-      'Deeply nested wrapper <div>s that add nodes without structure',
-      'Hidden content rendered with display:none instead of not being mounted',
+      'Deeply nested wrapper `<div>`s that add nodes without structure',
+      'Hidden content rendered with `display:none` instead of not being mounted',
       'Duplicate renders of the same subtree',
     ],
     fix: {
       summary:
-        'Only render what is on screen. Virtualize long lists so the DOM holds a small window of rows, flatten unnecessary wrapper elements using CSS grid/flex, and conditionally mount content instead of hiding it. As a cheap first win, add CSS content-visibility:auto to offscreen sections so the browser skips their layout.',
+        'Only render what is on screen. Virtualize long lists so the DOM holds a small window of rows, flatten unnecessary wrapper elements using CSS grid/flex, and conditionally mount content instead of hiding it. As a cheap first win, add CSS `content-visibility:auto` to offscreen sections so the browser skips their layout.',
       steps: [
         'Find the largest list or repeated subtree (VibeCheck reports the heaviest selector)',
         'Virtualize it so only visible rows are in the DOM',
-        'Remove redundant wrapper elements and replace display:none with conditional rendering',
+        'Remove redundant wrapper elements and replace `display:none` with conditional rendering',
       ],
       code: [
         {
@@ -54,7 +54,7 @@ export const performanceRuntimeProblems: readonly Problem[] = [
     },
     frameworkFixes: {
       react: {
-        note: 'Use a windowing library so a 10,000-row list keeps ~20 rows in the DOM. @tanstack/react-virtual is headless and works with any markup.',
+        note: 'Use a windowing library so a 10,000-row list keeps ~20 rows in the DOM. `@tanstack/react-virtual` is headless and works with any markup.',
         docsUrl: 'https://tanstack.com/virtual/latest',
         code: [
           {
@@ -98,7 +98,7 @@ function Rows({ items }: { items: Item[] }) {
         ],
       },
       vue: {
-        note: 'Use @tanstack/vue-virtual (or vue-virtual-scroller) to window long lists.',
+        note: 'Use `@tanstack/vue-virtual` (or `vue-virtual-scroller`) to window long lists.',
         docsUrl: 'https://tanstack.com/virtual/latest/docs/framework/vue/vue-virtual',
         code: [
           {
@@ -117,7 +117,7 @@ const rowVirtualizer = useVirtualizer({
         ],
       },
       svelte: {
-        note: 'Use @tanstack/svelte-virtual, or a Svelte-native virtual list, to keep only visible rows mounted.',
+        note: 'Use `@tanstack/svelte-virtual`, or a Svelte-native virtual list, to keep only visible rows mounted.',
         code: [
           {
             lang: 'svelte',
@@ -134,7 +134,7 @@ const rowVirtualizer = useVirtualizer({
         ],
       },
       vanilla: {
-        note: 'Without a framework, reach for CSS content-visibility first, then hand-roll windowing: render a fixed pool of rows and reposition them on scroll.',
+        note: 'Without a framework, reach for CSS `content-visibility` first, then hand-roll windowing: render a fixed pool of rows and reposition them on scroll.',
         code: [
           {
             lang: 'css',
@@ -149,11 +149,11 @@ const rowVirtualizer = useVirtualizer({
         a: 'Lighthouse warns past ~800 and errors past ~1,500 nodes in one document — the same thresholds VibeCheck uses. Under ~800 is comfortable; the exact number matters less than avoiding unbounded lists.',
       },
       {
-        q: 'Does hiding elements with display:none reduce DOM size?',
+        q: 'Does hiding elements with `display:none` reduce DOM size?',
         a: 'No. Hidden elements are still in the DOM and still cost memory and (for some operations) layout. Conditionally render them instead so they aren’t created until needed.',
       },
       {
-        q: 'Will content-visibility fix it on its own?',
+        q: 'Will `content-visibility` fix it on its own?',
         a: 'It skips rendering work for offscreen sections, which is a big, cheap win — but the nodes still exist. For truly large lists (thousands of rows) you still need virtualization.',
       },
     ],
@@ -182,7 +182,7 @@ const rowVirtualizer = useVirtualizer({
       threshold: '> 10% heap growth over 30s without GC recovery (warning), > 25% (error)',
     },
     rootCauses: [
-      'addEventListener / setInterval / setTimeout without a matching cleanup',
+      '`addEventListener` / `setInterval` / `setTimeout` without a matching cleanup',
       'Subscriptions (WebSocket, SSE, store, RxJS) never unsubscribed on unmount',
       'State that only grows — arrays/maps/caches that append and never evict',
       'Detached DOM nodes still referenced by a closure or long-lived variable',
@@ -211,7 +211,7 @@ window.removeEventListener('resize', onResize)`,
     },
     frameworkFixes: {
       react: {
-        note: 'Return a cleanup function from useEffect. It runs on unmount and before every re-run, so the listener/timer/subscription is always released.',
+        note: 'Return a cleanup function from `useEffect`. It runs on unmount and before every re-run, so the listener/timer/subscription is always released.',
         docsUrl: 'https://react.dev/reference/react/useEffect#connecting-to-an-external-system',
         code: [
           {
@@ -231,7 +231,7 @@ window.removeEventListener('resize', onResize)`,
         ],
       },
       nextjs: {
-        note: 'Same useEffect cleanup rules — but leaks in Next are most visible across client-side route changes, where a component unmounts without releasing a global listener. Also guard against effects running twice under React Strict Mode by making cleanup idempotent.',
+        note: 'Same `useEffect` cleanup rules — but leaks in Next are most visible across client-side route changes, where a component unmounts without releasing a global listener. Also guard against effects running twice under React Strict Mode by making cleanup idempotent.',
         code: [
           {
             lang: 'tsx',
@@ -245,7 +245,7 @@ useEffect(() => {
         ],
       },
       vue: {
-        note: 'Register teardown in onUnmounted (Composition API) or beforeUnmount (Options API). onScopeDispose works inside composables.',
+        note: 'Register teardown in `onUnmounted` (Composition API) or `beforeUnmount` (Options API). `onScopeDispose` works inside composables.',
         docsUrl: 'https://vuejs.org/api/composition-api-lifecycle.html#onunmounted',
         code: [
           {
@@ -267,7 +267,7 @@ onUnmounted(() => {
         ],
       },
       svelte: {
-        note: 'In Svelte 5, return a cleanup from $effect; in Svelte 4 use onDestroy. Either releases the resource when the component is torn down.',
+        note: 'In Svelte 5, return a cleanup from `$effect`; in Svelte 4 use `onDestroy`. Either releases the resource when the component is torn down.',
         docsUrl: 'https://svelte.dev/docs/svelte/lifecycle-hooks',
         code: [
           {
@@ -287,7 +287,7 @@ onUnmounted(() => {
         ],
       },
       vanilla: {
-        note: 'Keep a reference to every listener/timer you add and release them when the view is destroyed. AbortController makes multi-listener cleanup a one-liner.',
+        note: 'Keep a reference to every listener/timer you add and release them when the view is destroyed. `AbortController` makes multi-listener cleanup a one-liner.',
         code: [
           {
             lang: 'js',
@@ -326,7 +326,7 @@ ac.abort()`,
     metaDescription:
       'Content that jumps as the page loads fails Core Web Vitals and mis-taps users. Reserve space for images, ads and late content to stop the shift.',
     h1: 'Cumulative layout shift (CLS)',
-    pain: 'Layout shift is when content jumps after it has already rendered — an image loads and pushes the text down, a banner injects itself above the fold, a web font swaps and reflows everything. It is a Core Web Vitals metric Google ranks on, and it makes users tap the wrong thing. AI-built pages shift constantly because generated markup omits width/height on images and drops late content in without reserving space.',
+    pain: 'Layout shift is when content jumps after it has already rendered — an image loads and pushes the text down, a banner injects itself above the fold, a web font swaps and reflows everything. It is a Core Web Vitals metric Google ranks on, and it makes users tap the wrong thing. AI-built pages shift constantly because generated markup omits `width`/`height` on images and drops late content in without reserving space.',
     symptoms: [
       'Text and buttons jump down as images or ads load in',
       'You tap one thing and hit another because it moved',
@@ -339,18 +339,18 @@ ac.abort()`,
       threshold: '≥ 3 layout shifts within a 500ms window, with no recent user input',
     },
     rootCauses: [
-      'Images and videos without width/height (or an aspect-ratio box) reserving space',
+      'Images and videos without `width`/`height` (or an `aspect-ratio` box) reserving space',
       'Content injected above existing content (banners, cookie bars, ads) after load',
       'Web fonts swapping and reflowing text (FOUT) without a matched fallback',
       'Dynamically sized containers that resize once data arrives',
     ],
     fix: {
       summary:
-        'Reserve the final space before the content arrives. Give every image and embed explicit dimensions or a CSS aspect-ratio box, insert late content into a pre-sized container (never above existing content), and size fallback fonts to match the web font so the swap doesn’t reflow.',
+        'Reserve the final space before the content arrives. Give every image and embed explicit dimensions or a CSS `aspect-ratio` box, insert late content into a pre-sized container (never above existing content), and size fallback fonts to match the web font so the swap doesn’t reflow.',
       steps: [
-        'Add width and height (or aspect-ratio) to every image, video, and iframe',
+        'Add `width` and `height` (or `aspect-ratio`) to every image, video, and iframe',
         'Reserve a fixed-size slot for anything injected after load (ads, banners, embeds)',
-        'Use font-display: optional or a size-adjusted fallback to avoid font-swap reflow',
+        'Use `font-display: optional` or a size-adjusted fallback to avoid font-swap reflow',
       ],
       code: [
         {
@@ -371,7 +371,7 @@ ac.abort()`,
     },
     frameworkFixes: {
       nextjs: {
-        note: 'next/image reserves space from the width/height (or fill + a sized parent) automatically, and next/font eliminates font-swap shift by self-hosting with a size-adjusted fallback. Using both removes the two most common CLS sources.',
+        note: '`next/image` reserves space from the `width`/`height` (or fill + a sized parent) automatically, and `next/font` eliminates font-swap shift by self-hosting with a size-adjusted fallback. Using both removes the two most common CLS sources.',
         docsUrl: 'https://nextjs.org/docs/app/api-reference/components/image',
         code: [
           {
@@ -386,7 +386,7 @@ const inter = Inter({ subsets: ['latin'] }) // no layout shift on swap
         ],
       },
       react: {
-        note: 'Always pass width and height to <img> so the browser can reserve the box before the file loads, even when CSS scales it responsively.',
+        note: 'Always pass `width` and `height` to `<img>` so the browser can reserve the box before the file loads, even when CSS scales it responsively.',
         code: [
           {
             lang: 'tsx',
@@ -401,7 +401,7 @@ const inter = Inter({ subsets: ['latin'] }) // no layout shift on swap
         ],
       },
       vanilla: {
-        note: 'Set the width and height attributes on media, and wrap embeds in an aspect-ratio box. Never document.body.prepend() content above what the user is already reading.',
+        note: 'Set the `width` and `height` attributes on media, and wrap embeds in an `aspect-ratio` box. Never `document.body.prepend()` content above what the user is already reading.',
         code: [
           {
             lang: 'html',
@@ -420,8 +420,8 @@ const inter = Inter({ subsets: ['latin'] }) // no layout shift on swap
         a: 'VibeCheck observes the browser’s layout-shift entries. When three or more fire within 500ms without user input, it flags a cluster — that burst is exactly what a jumpy load feels like.',
       },
       {
-        q: 'My image is responsive — do I still set width and height?',
-        a: 'Yes. Set the intrinsic width/height attributes so the browser knows the aspect ratio, then use CSS (width:100%; height:auto) to scale it. That gives you responsiveness with zero shift.',
+        q: 'My image is responsive — do I still set `width` and `height`?',
+        a: 'Yes. Set the intrinsic `width`/`height` attributes so the browser knows the aspect ratio, then use CSS (`width:100%`; `height:auto`) to scale it. That gives you responsiveness with zero shift.',
       },
     ],
     related: ['unoptimized-images', 'large-image-files', 'excessive-dom-size', 'long-tasks'],
@@ -460,7 +460,7 @@ const inter = Inter({ subsets: ['latin'] }) // no layout shift on swap
       steps: [
         'Profile to find the script behind the long task (VibeCheck names it)',
         'Move heavy pure computation into a Web Worker, or chunk it with yielding',
-        'Defer non-critical work with requestIdleCallback / scheduler.yield',
+        'Defer non-critical work with `requestIdleCallback` / `scheduler.yield`',
       ],
       code: [
         {
@@ -480,7 +480,7 @@ const inter = Inter({ subsets: ['latin'] }) // no layout shift on swap
     },
     frameworkFixes: {
       react: {
-        note: 'Wrap non-urgent state updates in startTransition so React can interrupt them for input, and memoize expensive derived values so they don’t recompute every render. Code-split heavy components with React.lazy.',
+        note: 'Wrap non-urgent state updates in `startTransition` so React can interrupt them for input, and memoize expensive derived values so they don’t recompute every render. Code-split heavy components with `React.lazy`.',
         docsUrl: 'https://react.dev/reference/react/startTransition',
         code: [
           {
@@ -495,7 +495,7 @@ startTransition(() => setFilter(next)) // keeps typing responsive`,
         ],
       },
       nextjs: {
-        note: 'Move work off the client entirely: do the heavy computation in a Server Component or Server Action, and next/dynamic-import client-only heavy widgets so they don’t block first interaction.',
+        note: 'Move work off the client entirely: do the heavy computation in a Server Component or Server Action, and `next/dynamic`-import client-only heavy widgets so they don’t block first interaction.',
         code: [
           {
             lang: 'tsx',
@@ -555,17 +555,17 @@ worker.onmessage = (e) => render(e.data)`,
       threshold: '> 20 console calls within a rolling 10s window',
     },
     rootCauses: [
-      'Debug console.log statements never removed after a feature shipped',
+      'Debug `console.log` statements never removed after a feature shipped',
       'A verbose third-party library logging at its default level',
       'Logging inside a render, effect, or scroll/resize handler that fires constantly',
     ],
     fix: {
       summary:
-        'Strip console output at build time for production, keep intentional error reporting behind a level-aware logger, and add an ESLint no-console rule so new debug logs can’t be merged. Configure noisy libraries down to warn/error.',
+        'Strip console output at build time for production, keep intentional error reporting behind a level-aware logger, and add an ESLint `no-console` rule so new debug logs can’t be merged. Configure noisy libraries down to warn/error.',
       steps: [
         'Enable build-time console stripping for production builds',
         'Replace ad-hoc logs with a logger that is silent in production',
-        'Add the ESLint no-console rule (allowing warn/error) to prevent regressions',
+        'Add the ESLint `no-console` rule (allowing warn/error) to prevent regressions',
       ],
       code: [
         {
@@ -616,7 +616,7 @@ worker.onmessage = (e) => render(e.data)`,
         ],
       },
       vanilla: {
-        note: 'If you bundle with Terser/Rollup, enable drop_console for production. Otherwise gate logs behind a DEV flag.',
+        note: 'If you bundle with Terser/Rollup, enable `drop_console` for production. Otherwise gate logs behind a DEV flag.',
         code: [
           {
             lang: 'js',
@@ -628,16 +628,16 @@ worker.onmessage = (e) => render(e.data)`,
     },
     faq: [
       {
-        q: 'Should I remove console.error too?',
-        a: 'No — keep console.error (and usually console.warn) so genuine failures still surface. Strip only the debug-level console.log/info/debug noise. The examples here exclude error on purpose.',
+        q: 'Should I remove `console.error` too?',
+        a: 'No — keep `console.error` (and usually `console.warn`) so genuine failures still surface. Strip only the debug-level `console.log`/info/debug noise. The examples here exclude error on purpose.',
       },
       {
-        q: 'Is console.log actually a performance problem?',
+        q: 'Is `console.log` actually a performance problem?',
         a: 'In a hot path, yes. Each call serializes its arguments and incurs DevTools overhead. One log on click is nothing; a log inside a scroll handler or render loop firing hundreds of times a second is measurable.',
       },
       {
         q: 'How does VibeCheck count this?',
-        a: 'It wraps console.log/warn/error and counts calls in a rolling 10-second window. More than 20 in that window trips the console-spam detector.',
+        a: 'It wraps `console.log`/warn/error and counts calls in a rolling 10-second window. More than 20 in that window trips the console-spam detector.',
       },
     ],
     related: ['memory-leak', 'duplicate-network-requests', 'long-tasks', 'large-javascript-bundles'],
@@ -672,7 +672,7 @@ worker.onmessage = (e) => render(e.data)`,
     ],
     fix: {
       summary:
-        'Put a caching data layer in front of your fetches so identical in-flight requests are deduplicated and results are shared. Lift shared data to a common parent, cache responses, debounce rapid-fire inputs, and set sensible Cache-Control headers on the API.',
+        'Put a caching data layer in front of your fetches so identical in-flight requests are deduplicated and results are shared. Lift shared data to a common parent, cache responses, debounce rapid-fire inputs, and set sensible `Cache-Control` headers on the API.',
       steps: [
         'Adopt a query cache (or a shared in-flight promise map) that dedupes by key',
         'Give the same resource the same query key everywhere it’s used',
@@ -707,7 +707,7 @@ const { data } = useQuery({ queryKey: ['user', id], queryFn: () => fetchUser(id)
         ],
       },
       nextjs: {
-        note: 'In Server Components, wrap the fetcher in React’s cache() so repeat calls in one render dedupe; native fetch is also automatically memoized per request. That removes duplicate reads without a client cache.',
+        note: 'In Server Components, wrap the fetcher in React’s `cache()` so repeat calls in one render dedupe; native `fetch` is also automatically memoized per request. That removes duplicate reads without a client cache.',
         docsUrl: 'https://nextjs.org/docs/app/deep-dive/caching#request-memoization',
         code: [
           {
@@ -721,7 +721,7 @@ export const getUser = cache(async (id: string) => {
         ],
       },
       vue: {
-        note: 'Use @tanstack/vue-query for the same key-based dedup, or hoist the fetch into a Pinia store so components read shared state instead of refetching.',
+        note: 'Use `@tanstack/vue-query` for the same key-based dedup, or hoist the fetch into a Pinia store so components read shared state instead of refetching.',
         docsUrl: 'https://tanstack.com/query/latest/docs/framework/vue/overview',
         code: [
           {
@@ -768,7 +768,7 @@ export function getJSON(url) {
       },
       {
         q: 'Does HTTP caching solve this?',
-        a: 'Cache-Control helps the browser reuse responses, but the requests are still made and can still race. Client-side dedup (a query cache or shared promise) prevents the duplicate calls in the first place.',
+        a: '`Cache-Control` helps the browser reuse responses, but the requests are still made and can still race. Client-side dedup (a query cache or shared promise) prevents the duplicate calls in the first place.',
       },
       {
         q: 'Why do my duplicates come in bursts on mount?',

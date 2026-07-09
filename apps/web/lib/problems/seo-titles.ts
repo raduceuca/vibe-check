@@ -16,12 +16,12 @@ export const seoTitleProblems: readonly Problem[] = [
     metaDescription:
       'With no <title>, search results and browser tabs fall back to your URL. Add one unique, descriptive title under 60 characters.',
     h1: 'Missing page title',
-    pain: 'The <title> is the single strongest on-page ranking signal and the clickable headline in every search result. With none, Google shows your raw URL and browser tabs show a fragment of the address. AI scaffolds generate the app body but leave the document <head> alone, so the title never gets set for real routes.',
+    pain: 'The `<title>` is the single strongest on-page ranking signal and the clickable headline in every search result. With none, Google shows your raw URL and browser tabs show a fragment of the address. AI scaffolds generate the app body but leave the document `<head>` alone, so the title never gets set for real routes.',
     symptoms: [
       'Search results show the URL instead of a headline',
       'Browser tabs display the domain or “localhost” with no name',
       'Shared links and bookmarks have no readable label',
-      'Lighthouse reports “Document does not have a <title> element”',
+      'Lighthouse reports “Document does not have a `<title>` element”',
     ],
     detection: {
       detector: 'seo',
@@ -29,13 +29,13 @@ export const seoTitleProblems: readonly Problem[] = [
       threshold: 'document.title is empty',
     },
     rootCauses: [
-      'The head is never managed — the app only renders into <body>',
+      'The head is never managed — the app only renders into `<body>`',
       'A per-route title was planned but never wired to a head manager or metadata API',
-      'The base HTML template shipped with an empty <title></title>',
+      'The base HTML template shipped with an empty `<title></title>`',
     ],
     fix: {
       summary:
-        'Give every route a unique, descriptive <title> of roughly 30–60 characters that front-loads the page’s topic. Set it per page — a single site-wide title is almost as bad as none.',
+        'Give every route a unique, descriptive `<title>` of roughly 30–60 characters that front-loads the page’s topic. Set it per page — a single site-wide title is almost as bad as none.',
       steps: [
         'Decide a unique, keyword-led title for the route',
         'Set it via your framework’s head/metadata mechanism',
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
         ],
       },
       react: {
-        note: 'React 19 hoists a <title> rendered anywhere in your tree into the document head — no helmet library needed. On React 18, use react-helmet-async.',
+        note: 'React 19 hoists a `<title>` rendered anywhere in your tree into the document head — no helmet library needed. On React 18, use `react-helmet-async`.',
         code: [
           {
             lang: 'tsx',
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
         ],
       },
       vue: {
-        note: 'Set the title reactively with @unhead/vue’s useHead (built into Nuxt).',
+        note: 'Set the title reactively with `@unhead/vue`’s `useHead` (built into Nuxt).',
         docsUrl: 'https://unhead.unjs.io/usage/composables/use-head',
         code: [
           {
@@ -98,7 +98,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       svelte: {
-        note: 'Put a <title> inside <svelte:head> on the page component; it is set per route.',
+        note: 'Put a `<title>` inside `<svelte:head>` on the page component; it is set per route.',
         code: [
           {
             lang: 'svelte',
@@ -109,7 +109,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vanilla: {
-        note: 'Set the <title> in each page’s static <head>, or assign document.title at runtime for a client-rendered view.',
+        note: 'Set the `<title>` in each page’s static `<head>`, or assign `document.title` at runtime for a client-rendered view.',
         code: [
           {
             lang: 'html',
@@ -200,7 +200,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       react: {
-        note: 'Render a concise <title> directly (React 19). Compute it so it can’t exceed your budget.',
+        note: 'Render a concise `<title>` directly (React 19). Compute it so it can’t exceed your budget.',
         code: [
           {
             lang: 'tsx',
@@ -209,7 +209,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vue: {
-        note: 'Use @unhead/vue with a titleTemplate so the brand suffix is centralised.',
+        note: 'Use `@unhead/vue` with a `titleTemplate` so the brand suffix is centralised.',
         code: [
           {
             lang: 'ts',
@@ -221,7 +221,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       svelte: {
-        note: 'Keep the <svelte:head> title short; centralise the brand suffix in your layout.',
+        note: 'Keep the `<svelte:head>` title short; centralise the brand suffix in your layout.',
         code: [
           {
             lang: 'svelte',
@@ -267,8 +267,8 @@ useHead({ title: 'Pricing — Acme' })
       threshold: "title matches a known placeholder (e.g. 'React App', 'Vite App', 'Untitled')",
     },
     rootCauses: [
-      'The starter template’s default <title> in index.html was never changed',
-      'The app renders into <body> and no route ever overrides the placeholder',
+      'The starter template’s default `<title>` in `index.html` was never changed',
+      'The app renders into `<body>` and no route ever overrides the placeholder',
       'A copied boilerplate carried its original title through',
     ],
     fix: {
@@ -308,7 +308,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       react: {
-        note: 'Change the placeholder in index.html AND set a real per-view <title> (React 19) or via react-helmet-async.',
+        note: 'Change the placeholder in `index.html` AND set a real per-view `<title>` (React 19) or via `react-helmet-async`.',
         code: [
           {
             lang: 'html',
@@ -318,7 +318,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vue: {
-        note: 'Update index.html and set per-route titles with useHead.',
+        note: 'Update `index.html` and set per-route titles with `useHead`.',
         code: [
           {
             lang: 'ts',
@@ -327,7 +327,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vanilla: {
-        note: 'Replace the placeholder <title> in each HTML entry point with a real, page-specific title.',
+        note: 'Replace the placeholder `<title>` in each HTML entry point with a real, page-specific title.',
         code: [
           {
             lang: 'html',
@@ -408,7 +408,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       react: {
-        note: 'Render a fuller, keyword-led <title> (React 19).',
+        note: 'Render a fuller, keyword-led `<title>` (React 19).',
         code: [
           {
             lang: 'tsx',
@@ -417,7 +417,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       svelte: {
-        note: 'Expand the <svelte:head> title into a descriptive phrase.',
+        note: 'Expand the `<svelte:head>` title into a descriptive phrase.',
         code: [
           {
             lang: 'svelte',
@@ -451,7 +451,7 @@ useHead({ title: 'Pricing — Acme' })
     metaDescription:
       'No meta description lets Google write its own snippet from page text — usually a worse pitch. Add a 150–160 character summary.',
     h1: 'Missing meta description',
-    pain: 'The meta description is the paragraph under your title in search results — your one chance to pitch the click. Without it, Google scrapes some text off the page and often picks a boilerplate or nav fragment. AI-built pages skip it because it lives in <head>, which the generated components never touch.',
+    pain: 'The meta description is the paragraph under your title in search results — your one chance to pitch the click. Without it, Google scrapes some text off the page and often picks a boilerplate or nav fragment. AI-built pages skip it because it lives in `<head>`, which the generated components never touch.',
     symptoms: [
       'Search snippets are auto-generated and off-message',
       'Different queries surface random fragments of your page as the snippet',
@@ -463,7 +463,7 @@ useHead({ title: 'Pricing — Acme' })
       threshold: 'no <meta name="description">',
     },
     rootCauses: [
-      'The <head> is unmanaged, so no description tag is emitted',
+      'The `<head>` is unmanaged, so no description tag is emitted',
       'Descriptions were considered “optional” and skipped',
       'A per-route description was never written',
     ],
@@ -472,7 +472,7 @@ useHead({ title: 'Pricing — Acme' })
         'Write a unique 150–160 character description per page that summarises the content and includes a reason to click. It does not directly affect ranking, but a compelling snippet lifts click-through, which does.',
       steps: [
         'Write a 150–160 character summary with the page’s value and a keyword',
-        'Emit it as <meta name="description"> via your head/metadata mechanism',
+        'Emit it as `<meta name="description">` via your head/metadata mechanism',
         'Confirm it appears in view-source and is unique per route',
       ],
       code: [
@@ -484,7 +484,7 @@ useHead({ title: 'Pricing — Acme' })
     },
     frameworkFixes: {
       nextjs: {
-        note: 'Set `description` in the route’s metadata object (or generateMetadata for dynamic pages).',
+        note: 'Set `description` in the route’s metadata object (or `generateMetadata` for dynamic pages).',
         docsUrl: 'https://nextjs.org/docs/app/api-reference/functions/generate-metadata',
         code: [
           {
@@ -497,7 +497,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       react: {
-        note: 'Render <meta name="description"> in the component (React 19 hoists it to <head>).',
+        note: 'Render `<meta name="description">` in the component (React 19 hoists it to `<head>`).',
         code: [
           {
             lang: 'tsx',
@@ -506,7 +506,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vue: {
-        note: 'Add it to useHead’s meta array.',
+        note: 'Add it to `useHead`’s meta array.',
         code: [
           {
             lang: 'ts',
@@ -517,7 +517,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       svelte: {
-        note: 'Place the meta tag inside <svelte:head>.',
+        note: 'Place the meta tag inside `<svelte:head>`.',
         code: [
           {
             lang: 'svelte',
@@ -528,7 +528,7 @@ useHead({ title: 'Pricing — Acme' })
         ],
       },
       vanilla: {
-        note: 'Add the meta tag to each page’s <head>.',
+        note: 'Add the meta tag to each page’s `<head>`.',
         code: [
           {
             lang: 'html',

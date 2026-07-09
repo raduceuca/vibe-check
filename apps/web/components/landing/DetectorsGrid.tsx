@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import { ISSUE_ART } from '@/components/issueArt'
+import { fixHrefForDetector } from '@/lib/problems'
 
 interface Specimen {
   // The real detector name from @wcgw/vibe-check-core. Resolves the ISSUE_ART
@@ -153,18 +155,17 @@ const SPECIMENS: readonly Specimen[] = [
 // the field note statically (see the media query in global.css). The glyph is
 // decorative (aria-hidden); the plate carries a descriptive aria-label.
 export const DetectorsGrid = () => (
-  <div className="vc-grid vc-bestiary" role="list">
+  <div className="vc-grid vc-bestiary">
     {SPECIMENS.map((s, i) => {
       const Art = ISSUE_ART[s.detector]
       const cat = `No. ${String(i + 1).padStart(2, '0')} / ${SPECIMENS.length}`
       return (
-        <div
+        <Link
           className="vc-card vc-spec"
           key={s.detector}
+          href={fixHrefForDetector(s.detector) ?? '/fix'}
           data-fire=""
-          role="listitem"
-          tabIndex={0}
-          aria-label={`${s.personaName}. ${s.tagline} Detector ${s.detector}, menace ${s.menace} of ${MENACE_MAX}. Emits: ${s.emit}`}
+          aria-label={`${s.personaName}. ${s.tagline} Detector ${s.detector}, menace ${s.menace} of ${MENACE_MAX}. Emits: ${s.emit}. Read the fix guide.`}
         >
           {/* Fixed-footprint overlay: the outer .vc-spec keeps a constant grid
               cell; this inner element carries the card visual and is absolutely
@@ -211,10 +212,10 @@ export const DetectorsGrid = () => (
 
             <div className="vc-spec-foot" aria-hidden="true">
               <span className="vc-spec-cat">{cat}</span>
-              <span className="vc-spec-pin" />
+              <span className="vc-spec-fix">fix guide →</span>
             </div>
           </div>
-        </div>
+        </Link>
       )
     })}
   </div>
