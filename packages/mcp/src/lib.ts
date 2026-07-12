@@ -14,4 +14,15 @@ export type {
   ResourceInfo,
   ConsoleStats,
   VibeSnapshot,
+  AgentConnectionState,
+  DispatchResultCode,
+  ProjectSnapshotEnvelope,
+  ProjectSummary,
+  ProjectStatus,
+  DispatchIssueRequest,
+  DispatchIssueResponse,
+  QueuedIssue,
+  LeaseResult,
 } from './types.js'
+
+export { AGENT_CONNECTION_STATES, DISPATCH_RESULT_CODES } from './types.js'
