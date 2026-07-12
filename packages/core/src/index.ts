@@ -7,6 +7,7 @@ export type {
   LongFrameEntry,
   ScriptAttribution,
   VitalRating,
+  WebVitalEntry,
   WebVitalsStats,
   HeapMemory,
   ResourceStats,
@@ -17,6 +18,8 @@ export type {
   VibeCheckConfig,
   Collector,
   Detector,
+  IssueEvidenceMap,
+  EvidenceFor,
 } from './types.js'
 
 export {
@@ -30,6 +33,11 @@ export {
 
 // Engine
 export { VibeCheckEngine } from './engine.js'
+export type { VibeEngine } from './engine.js'
+
+// Scripted engine (deterministic snapshot/issue playback for demos)
+export { createScriptedEngine } from './scriptedEngine.js'
+export type { ScriptedScenario, ScriptedFrame } from './scriptedEngine.js'
 
 // Collectors
 export { FrameRateCollector } from './collectors/frameRate.js'
@@ -50,12 +58,14 @@ export { createLongTaskAttributionDetector } from './detectors/longTaskAttributi
 export { createResourceBloatDetector } from './detectors/resourceBloat.js'
 export { createLargeImagesDetector } from './detectors/largeImages.js'
 export { createWebEssentialsDetector } from './detectors/webEssentials.js'
+export { createSeoDetector, SEO_CRITERIA_COUNT } from './detectors/seo.js'
+export { createAeoDetector, AEO_CRITERIA_COUNT } from './detectors/aeo.js'
 export { createHeavyLibraryDetector, LIBRARY_SIGNATURES } from './detectors/heavyLibrary.js'
 export type { LibrarySignature } from './detectors/heavyLibrary.js'
 
 // Beacon
 export { BeaconClient } from './beacon/beaconClient.js'
-export type { BeaconClientConfig } from './beacon/beaconClient.js'
+export type { BeaconClientConfig, BeaconStatus } from './beacon/beaconClient.js'
 
 // Suggestions
 export { getSuggestion, getAgentPrompt, PROACTIVE_PROMPTS } from './suggestions/index.js'

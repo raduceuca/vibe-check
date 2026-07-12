@@ -31,8 +31,10 @@ const createMockImage = (options: {
   width?: string | null
   height?: string | null
   naturalWidth?: number
+  naturalHeight?: number
   renderedWidth?: number
   topOffset?: number
+  alt?: string | null
 }): HTMLImageElement => {
   const img = document.createElement('img')
 
@@ -40,6 +42,9 @@ const createMockImage = (options: {
   if (options.loading) img.setAttribute('loading', options.loading)
   if (options.width) img.setAttribute('width', options.width)
   if (options.height) img.setAttribute('height', options.height)
+  // Default to a real alt so existing cases aren't flagged for missing-alt;
+  // pass alt: null to test the missing case, alt: '' for a decorative image.
+  if (options.alt !== null) img.setAttribute('alt', options.alt ?? 'A description')
 
   // Mock getBoundingClientRect
   vi.spyOn(img, 'getBoundingClientRect').mockReturnValue({
@@ -59,6 +64,14 @@ const createMockImage = (options: {
     value: options.naturalWidth ?? 100,
     configurable: true,
   })
+  // Only define naturalHeight when a test cares (the aspect check is gated on
+  // naturalHeight > 0, so the default of 0 keeps unrelated tests out of it).
+  if (options.naturalHeight !== undefined) {
+    Object.defineProperty(img, 'naturalHeight', {
+      value: options.naturalHeight,
+      configurable: true,
+    })
+  }
   Object.defineProperty(img, 'width', {
     value: options.renderedWidth ?? 100,
     configurable: true,
@@ -133,7 +146,7 @@ describe('unoptimizedImages detector', () => {
 
     const issues = detector.getIssues()
     expect(issues.length).toBe(1)
-    expect(issues[0].evidence).toHaveProperty('issue', 'missing-lazy')
+    expect(issues[0].evidence['problems']).toContain('missing-lazy')
     expect(issues[0].severity).toBe('warning')
 
     detector.stop()
@@ -155,7 +168,7 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const lazyIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'missing-lazy',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-lazy'),
     )
     expect(lazyIssues).toEqual([])
 
@@ -177,7 +190,7 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const dimIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'missing-dimensions',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-dimensions'),
     )
     expect(dimIssues.length).toBe(1)
     expect(dimIssues[0].severity).toBe('error')
@@ -202,11 +215,111 @@ describe('unoptimizedImages detector', () => {
     detector.start()
 
     const oversizedIssues = detector.getIssues().filter(
-      (iss) => iss.evidence.issue === 'oversized',
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('oversized'),
     )
     expect(oversizedIssues.length).toBe(1)
     expect(oversizedIssues[0].severity).toBe('warning')
-    expect(oversizedIssues[0].evidence).toHaveProperty('naturalWidth', 2000)
+    expect(oversizedIssues[0].evidence['problems']).toContain('oversized')
+
+    detector.stop()
+  })
+
+  it('should detect images with no alt attribute', () => {
+    const img = createMockImage({
+      src: 'https://example.com/no-alt.jpg',
+      topOffset: 200,
+      width: '200',
+      height: '150',
+      alt: null, // truly missing
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const altIssues = detector.getIssues().filter(
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-alt'),
+    )
+    expect(altIssues.length).toBe(1)
+
+    detector.stop()
+  })
+
+  it('should not flag a decorative image (empty alt) for missing-alt', () => {
+    const img = createMockImage({
+      src: 'https://example.com/decorative.jpg',
+      topOffset: 200,
+      width: '200',
+      height: '150',
+      alt: '', // explicit decorative
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const altIssues = detector.getIssues().filter(
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('missing-alt'),
+    )
+    expect(altIssues).toEqual([])
+
+    detector.stop()
+  })
+
+  it('should detect images whose declared size distorts the aspect ratio', () => {
+    const img = createMockImage({
+      src: 'https://example.com/squished.jpg',
+      topOffset: 200,
+      width: '400',
+      height: '400', // declared 1:1
+      naturalWidth: 800,
+      naturalHeight: 200, // real 4:1
+      renderedWidth: 400, // avoid the oversized check
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const distortedIssues = detector.getIssues().filter(
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('distorted'),
+    )
+    expect(distortedIssues.length).toBe(1)
+
+    detector.stop()
+  })
+
+  it('should not flag a correctly-declared image as distorted', () => {
+    const img = createMockImage({
+      src: 'https://example.com/correct.jpg',
+      topOffset: 200,
+      width: '400',
+      height: '200', // declared 2:1
+      naturalWidth: 800,
+      naturalHeight: 400, // real 2:1 — matches
+      renderedWidth: 400,
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const distortedIssues = detector.getIssues().filter(
+      (iss) => (iss.evidence['problems'] as string[] | undefined)?.includes('distorted'),
+    )
+    expect(distortedIssues).toEqual([])
 
     detector.stop()
   })
@@ -279,6 +392,50 @@ describe('unoptimizedImages detector', () => {
     simulateAddedNodes([img])
 
     expect(detector.getIssues().length).toBe(initialCount)
+
+    detector.stop()
+  })
+
+  it('collapses repeat images with the same problem signature into one ×N issue', () => {
+    const img1 = createMockImage({ src: 'https://example.com/a.jpg', topOffset: 200 })
+    const img2 = createMockImage({ src: 'https://example.com/b.jpg', topOffset: 200 })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img1, img2] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const issues = detector.getIssues()
+    // Both images have only ['missing-dimensions'] — one grouped issue, count 2.
+    expect(issues.length).toBe(1)
+    expect(issues[0].evidence['count']).toBe(2)
+    expect(issues[0].title).toContain('×2')
+
+    detector.stop()
+  })
+
+  it('titles an extensionless URL by dimensions, never a bare numeric path', () => {
+    const img = createMockImage({
+      src: 'https://picsum.photos/2400/1200',
+      topOffset: 200,
+      naturalWidth: 2400,
+      naturalHeight: 1200,
+      renderedWidth: 100,
+    })
+
+    vi.spyOn(document, 'querySelectorAll').mockReturnValue(
+      [img] as unknown as NodeListOf<Element>,
+    )
+
+    const detector = createUnoptimizedImagesDetector()
+    detector.start()
+
+    const issues = detector.getIssues()
+    expect(issues.length).toBe(1)
+    expect(issues[0].title).toContain('2400×1200 image')
+    expect(issues[0].title).not.toContain('2400/1200')
 
     detector.stop()
   })

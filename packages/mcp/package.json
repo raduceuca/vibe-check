@@ -1,6 +1,6 @@
 {
   "name": "@wcgw/vibe-check-mcp",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "type": "module",
   "description": "MCP server for vibe-check performance monitoring — bridges browser metrics to AI agents",
   "main": "./dist/lib.cjs",
@@ -33,6 +33,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@wcgw/vibe-check-protocol": "workspace:*"
   },
   "keywords": ["mcp", "performance", "monitoring", "ai-agent", "vibe-coding"],
   "author": "Radu Ceuca",

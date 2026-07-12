@@ -1,38 +1,21 @@
 import type { CSSProperties } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
+import { T } from '../../tokens.js'
+import { Switch } from './Switch.js'
 
 interface ModeToggleProps {
   readonly mode: SuggestionMode
   readonly onToggle: () => void
 }
 
-const trackStyle = (isVibe: boolean): CSSProperties => ({
-  position: 'relative',
-  width: 36,
-  height: 18,
-  borderRadius: 9,
-  background: isVibe
-    ? 'rgba(255,255,255,0.12)'
-    : 'rgba(255,255,255,0.06)',
-  border: `1px solid rgba(255,255,255,${isVibe ? '0.15' : '0.08'})`,
-  cursor: 'pointer',
-  transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-  flexShrink: 0,
-})
-
-const thumbStyle = (isVibe: boolean): CSSProperties => ({
-  position: 'absolute',
-  top: 2,
-  left: isVibe ? 18 : 2,
-  width: 12,
-  height: 12,
-  borderRadius: '50%',
-  background: isVibe ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)',
-  boxShadow: isVibe ? '0 0 6px rgba(255,255,255,0.2)' : 'none',
-  transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-})
-
+// The two-label variant of Switch (dev ⇄ vibe). Same primitive as the boolean
+// ToggleRow, so both switches in Settings share one geometry, duration, and set
+// of on/off treatments. The visible dev/vibe words are decorative (aria-hidden);
+// the checkbox carries state via `checked`, named by a stable property so screen
+// readers announce e.g. "Simple wording, checked" rather than a contradictory
+// action + state.
 const containerStyle: CSSProperties = {
+  position: 'relative',
   display: 'flex',
   alignItems: 'center',
   gap: 6,
@@ -45,33 +28,18 @@ const containerStyle: CSSProperties = {
 const labelStyle = (active: boolean): CSSProperties => ({
   fontSize: 14,
   fontWeight: active ? 600 : 400,
-  color: active ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)',
-  transition: 'all 0.3s ease',
+  color: active ? T.textSecondary : T.textMuted,
+  transition: `color ${T.durationNormal} ${T.ease}`,
 })
 
 export const ModeToggle = ({ mode, onToggle }: ModeToggleProps) => {
   const isVibe = mode === 'vibe'
 
   return (
-    <div
-      style={containerStyle}
-      onClick={onToggle}
-      role="switch"
-      aria-checked={isVibe}
-      aria-label={`Switch to ${isVibe ? 'technical' : 'simple'} mode`}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onToggle()
-        }
-      }}
-    >
-      <span style={labelStyle(!isVibe)}>dev</span>
-      <div style={trackStyle(isVibe)}>
-        <div style={thumbStyle(isVibe)} />
-      </div>
-      <span style={labelStyle(isVibe)}>vibe</span>
-    </div>
+    <label style={containerStyle}>
+      <span aria-hidden="true" style={labelStyle(!isVibe)}>dev</span>
+      <Switch checked={isVibe} onChange={onToggle} ariaLabel="Simple wording" />
+      <span aria-hidden="true" style={labelStyle(isVibe)}>vibe</span>
+    </label>
   )
 }

@@ -1,33 +1,61 @@
-import type { CSSProperties } from 'react'
-import type { SuggestionMode } from '@wcgw/vibe-check-core'
-import { T, sectionHeaderStyle } from '../tokens.js'
+import { memo, type CSSProperties } from 'react'
+import type { SuggestionMode, BeaconStatus } from '@wcgw/vibe-check-core'
+import { T } from '../tokens.js'
+import { Button } from './ui/Button.js'
+import { sectionLabelStyle } from './ui/SectionHeader.js'
 import type { VibeCheckPreferences } from '../store/preferences.js'
 import { ToggleRow } from './ui/ToggleRow.js'
+import { ModeToggle } from './ui/ModeToggle.js'
 
 interface SettingsPanelProps {
   readonly prefs: VibeCheckPreferences
   readonly onUpdate: (updates: Partial<VibeCheckPreferences>) => void
   readonly mode: SuggestionMode
+  readonly onToggleMode: () => void
   readonly beaconUrl?: string
+  readonly beaconStatus?: BeaconStatus | null
   readonly onClearAll: () => void
 }
 
+// Honest tri-state derived from real delivery, not just Boolean(beaconUrl):
+// - 'inactive'   no beaconUrl configured
+// - 'pending'    configured, but no delivery confirmed yet (or last failed)
+// - 'active'     last snapshot reached the server
+type ConnectionState = 'inactive' | 'pending' | 'active'
+
+const deriveConnectionState = (
+  beaconUrl: string | undefined,
+  status: BeaconStatus | null | undefined,
+): ConnectionState => {
+  if (!beaconUrl) return 'inactive'
+  if (status && status.lastOk === true) return 'active'
+  return 'pending'
+}
+
 const sectionTitle: CSSProperties = {
-  ...sectionHeaderStyle,
+  ...sectionLabelStyle,
   marginTop: 14,
+  marginBottom: 8,
 }
 
 const firstSection: CSSProperties = {
-  ...sectionHeaderStyle,
+  ...sectionLabelStyle,
   marginTop: 0,
+  marginBottom: 8,
 }
 
-const mcpDotStyle = (connected: boolean): CSSProperties => ({
+const DOT_COLOR: Record<ConnectionState, string> = {
+  inactive: 'rgba(var(--wcgw-fg),0.15)',
+  pending: 'var(--wcgw-sev-warning)',
+  active: 'var(--wcgw-sev-success)',
+}
+
+const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
   width: 7,
   height: 7,
-  borderRadius: '50%',
-  background: connected ? T.green : 'rgba(255,255,255,0.15)',
-  boxShadow: connected ? `0 0 6px rgba(74,222,128,0.4)` : 'none',
+  borderRadius: T.radiusPill,
+  background: DOT_COLOR[state],
+  boxShadow: state === 'active' ? `0 0 6px color-mix(in srgb, var(--wcgw-sev-success) 40%, transparent)` : 'none',
   flexShrink: 0,
 })
 
@@ -39,13 +67,30 @@ const infoRowStyle: CSSProperties = {
   fontSize: 14,
 }
 
-export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, onClearAll }: SettingsPanelProps) => {
-  const mcpConnected = Boolean(beaconUrl)
+export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
+  const connection = deriveConnectionState(beaconUrl, beaconStatus)
+  const statusLabel: Record<ConnectionState, string> = {
+    inactive: mode === 'vibe' ? 'not connected' : 'inactive',
+    pending: mode === 'vibe' ? 'waiting for data' : 'no data yet',
+    active: mode === 'vibe' ? 'connected' : 'active',
+  }
+  const statusColor: Record<ConnectionState, string> = {
+    inactive: T.textMuted,
+    pending: 'var(--wcgw-sev-warning)',
+    active: 'var(--wcgw-sev-success)',
+  }
 
   return (
     <div style={{ paddingTop: 4 }}>
       <div style={firstSection}>
         {mode === 'vibe' ? 'Settings' : 'Configuration'}
+      </div>
+
+      <div style={{ ...infoRowStyle, paddingBottom: 8 }}>
+        <span style={{ color: T.textSecondary }}>
+          {mode === 'vibe' ? 'Wording' : 'Mode'}
+        </span>
+        <ModeToggle mode={mode} onToggle={onToggleMode} />
       </div>
 
       <ToggleRow
@@ -58,6 +103,16 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, onClearAll }: 
         checked={prefs.clearOnSend}
         onChange={(checked) => onUpdate({ clearOnSend: checked })}
       />
+      <ToggleRow
+        label={mode === 'vibe' ? 'Light theme' : 'Light theme'}
+        checked={prefs.theme === 'light'}
+        onChange={(checked) => onUpdate({ theme: checked ? 'light' : 'dark' })}
+      />
+      <ToggleRow
+        label={mode === 'vibe' ? 'Remember performance history' : 'Persist FPS history'}
+        checked={prefs.keepHistory}
+        onChange={(checked) => onUpdate({ keepHistory: checked })}
+      />
 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'AI Connection' : 'MCP Status'}
@@ -67,20 +122,17 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, onClearAll }: 
           {mode === 'vibe' ? 'Connected to AI tools' : 'MCP server'}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={mcpDotStyle(mcpConnected)} />
+          <span style={mcpDotStyle(connection)} />
           <span style={{
             fontSize: 14,
-            color: mcpConnected ? T.green : T.textMuted,
+            color: statusColor[connection],
             fontWeight: 500,
           }}>
-            {mcpConnected
-              ? (mode === 'vibe' ? 'connected' : 'active')
-              : (mode === 'vibe' ? 'not connected' : 'inactive')
-            }
+            {statusLabel[connection]}
           </span>
         </div>
       </div>
-      {!mcpConnected && (
+      {connection === 'inactive' && (
         <div style={{
           fontSize: 14,
           color: T.textTertiary,
@@ -88,33 +140,29 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, onClearAll }: 
           lineHeight: 1.5,
         }}>
           {mode === 'vibe'
-            ? 'Copy prompts manually until MCP is set up. Your AI agent will get issues automatically once connected.'
-            : 'Use clipboard prompts while MCP transport is unavailable. Configure beaconUrl to enable live sync.'}
+            ? 'Not linked to your AI tools yet — use the copy buttons for now. To link them, run `npx @wcgw/vibe-check-mcp` and add it to your AI tool’s MCP settings.'
+            : 'No beaconUrl configured. Pass beaconUrl to <VibeCheck> and run @wcgw/vibe-check-mcp to stream snapshots.'}
+        </div>
+      )}
+      {connection === 'pending' && (
+        <div style={{
+          fontSize: 14,
+          color: T.textTertiary,
+          marginTop: 6,
+          lineHeight: 1.5,
+        }}>
+          {mode === 'vibe'
+            ? 'Waiting to reach your AI tools. If this stays here, check that the vibe-check MCP server is running.'
+            : `No snapshot delivered yet. Verify the MCP server is running and reachable at ${beaconUrl}.`}
         </div>
       )}
 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}
       </div>
-      <button
-        onClick={onClearAll}
-        style={{
-          width: '100%',
-          padding: '8px 0',
-          borderRadius: 6,
-          fontSize: 14,
-          fontWeight: 500,
-          border: `1px solid rgba(239,68,68,0.12)`,
-          background: 'rgba(239,68,68,0.04)',
-          color: T.red,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          outline: 'none',
-          transition: 'background 0.2s ease',
-        }}
-      >
-        {mode === 'vibe' ? 'Clear all issues & start fresh' : 'Clear all tracked issues'}
-      </button>
+      <Button variant="danger" fullWidth onClick={onClearAll}>
+        {mode === 'vibe' ? 'clear all problems & start fresh' : 'clear all tracked issues'}
+      </Button>
 
       <div style={sectionTitle}>About</div>
       <div style={{
@@ -132,4 +180,4 @@ export const SettingsPanel = ({ prefs, onUpdate, mode, beaconUrl, onClearAll }: 
       </div>
     </div>
   )
-}
+})

@@ -1,6 +1,6 @@
 {
   "name": "@wcgw/vibe-check",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "type": "module",
   "description": "React performance monitoring overlay with AI/vibe-coding issue detection",
   "main": "./dist/index.cjs",
@@ -25,10 +25,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
+    "size": "pnpm build && node scripts/size-check.mjs",
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {
-    "@wcgw/vibe-check-core": "workspace:^"
+    "@wcgw/vibe-check-core": "workspace:^",
+    "@phosphor-icons/react": "^2.1.7",
+    "liveline": "^0.0.7"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

@@ -42,55 +42,59 @@ describe('PerfToggle', () => {
     })
   })
 
-  it('renders nothing initially', () => {
-    const { container } = render(<PerfToggle />)
+  it('renders the widget (collapsed pill) on first run', () => {
+    render(<PerfToggle />)
 
-    expect(container.innerHTML).toBe('')
+    // First-run is visible so the tool is discoverable, not invisible.
+    expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
   })
 
-  it('toggles on default keyboard shortcut (ctrl+shift+p)', () => {
-    const { container } = render(<PerfToggle />)
-
-    expect(container.innerHTML).toBe('')
-
-    fireEvent.keyDown(document, {
-      key: 'p',
-      ctrlKey: true,
-      shiftKey: true,
-    })
+  it('hides and shows on the default shortcut (alt+shift+v)', () => {
+    render(<PerfToggle />)
 
     expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
 
     fireEvent.keyDown(document, {
-      key: 'p',
-      ctrlKey: true,
+      key: 'v',
+      altKey: true,
       shiftKey: true,
     })
 
     expect(screen.queryByTestId('vibe-check-overlay')).toBeNull()
+
+    fireEvent.keyDown(document, {
+      key: 'v',
+      altKey: true,
+      shiftKey: true,
+    })
+
+    expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
   })
 
   it('toggles on custom shortcut prop', () => {
     render(<PerfToggle shortcut="alt+v" />)
+
+    expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
 
     fireEvent.keyDown(document, {
       key: 'v',
       altKey: true,
     })
 
-    expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
+    expect(screen.queryByTestId('vibe-check-overlay')).toBeNull()
   })
 
   it('does not toggle on non-matching shortcut', () => {
-    const { container } = render(<PerfToggle shortcut="ctrl+shift+p" />)
+    render(<PerfToggle shortcut="alt+shift+v" />)
 
+    // Wrong combo (no shift) leaves the widget in its current (visible) state.
     fireEvent.keyDown(document, {
-      key: 'p',
-      ctrlKey: false,
-      shiftKey: true,
+      key: 'v',
+      altKey: true,
+      shiftKey: false,
     })
 
-    expect(container.innerHTML).toBe('')
+    expect(screen.getByTestId('vibe-check-overlay')).toBeTruthy()
   })
 
   it('passes vibeCheckProps through to VibeCheck', () => {
@@ -99,12 +103,6 @@ describe('PerfToggle', () => {
         vibeCheckProps={{ position: 'top-left', panels: ['fps'] }}
       />
     )
-
-    fireEvent.keyDown(document, {
-      key: 'p',
-      ctrlKey: true,
-      shiftKey: true,
-    })
 
     const overlay = screen.getByTestId('vibe-check-overlay')
     expect(overlay.style.top).toBe('12px')

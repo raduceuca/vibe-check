@@ -50,34 +50,20 @@ const CHECKS: readonly EssentialCheck[] = [
       return meta !== null
     },
   },
-  {
-    id: 'title',
-    title: 'Missing or empty <title>',
-    severity: 'warning',
-    description: 'The page has no <title> or it is empty. This affects SEO, browser tabs, and accessibility.',
-    check: () => {
-      return document.title.trim().length > 0
-    },
-  },
-  {
-    id: 'description',
-    title: 'Missing meta description',
-    severity: 'info',
-    description: 'No <meta name="description"> found. Search engines use this for page summaries in results.',
-    check: () => {
-      const meta = document.querySelector('meta[name="description"]')
-      return meta !== null && (meta.getAttribute('content')?.trim().length ?? 0) > 0
-    },
-  },
+  // Note: page <title> and meta description are owned by the `seo` detector,
+  // which checks them more thoroughly (length, placeholder defaults).
 ]
 
 export const createWebEssentialsDetector = (): Detector => {
   let issues: VibeIssue[] = []
   let hasRun = false
+  let stopped = false
+  let loadHandler: (() => void) | null = null
+  let timerId: ReturnType<typeof setTimeout> | null = null
 
   const runChecks = (): void => {
     if (typeof document === 'undefined') return
-    if (hasRun) return
+    if (stopped || hasRun) return
     hasRun = true
 
     for (const check of CHECKS) {
@@ -101,18 +87,27 @@ export const createWebEssentialsDetector = (): Detector => {
     name: 'web-essentials',
 
     start(): void {
-      // Run after a short delay to let the app render
-      if (typeof document !== 'undefined') {
-        if (document.readyState === 'complete') {
-          setTimeout(runChecks, 500)
-        } else {
-          window.addEventListener('load', () => setTimeout(runChecks, 500), { once: true })
-        }
+      if (typeof document === 'undefined') return
+      stopped = false
+      // Run after a short delay to let the app render.
+      if (document.readyState === 'complete') {
+        timerId = setTimeout(runChecks, 500)
+      } else {
+        loadHandler = () => { timerId = setTimeout(runChecks, 500) }
+        window.addEventListener('load', loadHandler, { once: true })
       }
     },
 
     stop(): void {
-      // No ongoing observers to clean up
+      stopped = true
+      if (timerId !== null) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+      if (loadHandler !== null) {
+        window.removeEventListener('load', loadHandler)
+        loadHandler = null
+      }
     },
 
     getIssues(): readonly VibeIssue[] {

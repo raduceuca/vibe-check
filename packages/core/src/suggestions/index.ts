@@ -1,4 +1,4 @@
-import type { DetectorName, VibeIssue } from '../types.js'
+import type { DetectorName, VibeIssue, EvidenceFor } from '../types.js'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -12,32 +12,148 @@ export interface Suggestion {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const getImageName = (evidence: Record<string, unknown>): string => {
-  const src = typeof evidence['src'] === 'string' ? evidence['src'] as string : ''
-  if (!src) return 'unknown image'
-  // Extract readable filename from URL
-  const path = src.split('?')[0].split('#')[0]
-  const segments = path.split('/')
-  const last = segments[segments.length - 1]
-  // If it looks like a filename, use it; otherwise use last 2 path segments
-  if (last && last.includes('.')) return last
-  if (segments.length >= 2) return segments.slice(-2).join('/')
-  return last || src.slice(0, 60)
+const IMAGE_PROBLEM_LABELS: Record<string, string> = {
+  'missing-lazy': 'add lazy loading',
+  'missing-dimensions': 'add width & height',
+  'oversized': 'resize it to the displayed size',
+}
+const humanizeImageProblem = (p: string): string => IMAGE_PROBLEM_LABELS[p] ?? p
+
+// Per-check fix guidance for discoverability (SEO) findings.
+const SEO_FIXES: Record<string, string> = {
+  'title-missing': 'Add a unique, descriptive <title> (≤60 chars) in the page <head>.',
+  'title-too-long': 'Shorten the <title> to ≤60 characters so it is not truncated in search results.',
+  'title-default': 'Replace the placeholder <title> with a real, descriptive one.',
+  'meta-description-missing': 'Add a <meta name="description"> (≤160 chars) summarizing the page.',
+  'meta-description-too-long': 'Trim the meta description to ≤160 characters.',
+  'og-image-missing': 'Add <meta property="og:image"> (≈1200×630) so shared links show a preview.',
+  'og-title-missing': 'Add <meta property="og:title"> for share-optimized link previews.',
+  'og-description-missing': 'Add <meta property="og:description"> so shared links have descriptive text.',
+  'canonical-missing': 'Add <link rel="canonical" href="..."> pointing to the page’s preferred URL.',
+  'h1-missing': 'Add exactly one <h1> describing the page’s main topic.',
+  'h1-multiple': 'Keep a single <h1> and demote the rest to <h2>.',
+  'image-alt-missing': 'Add descriptive alt text to every <img> element.',
+  'slug-unfriendly': 'Use a clean kebab-case URL slug without IDs, underscores, or capitals.',
+  'sitemap-missing': 'Generate /sitemap.xml listing your pages and reference it from robots.txt.',
+  'robots-missing': 'Add a /robots.txt that allows crawling and points to your sitemap.',
+}
+const seoFix = (check: string): string => SEO_FIXES[check] ?? 'Review this discoverability issue.'
+
+// Per-check fix guidance for AEO (answer-engine / AI-agent readiness) findings.
+const AEO_FIXES: Record<string, string> = {
+  'structured-data-missing': 'Add schema.org JSON-LD (<script type="application/ld+json">) — Organization, Article, FAQPage, or Product as fits the page.',
+  'llms-txt-missing': 'Add a /llms.txt: a short markdown file summarizing the site and linking the pages you want LLMs to read.',
+  'content-requires-js': 'Render meaningful content server-side (SSR/SSG) or ship a prerendered/noscript fallback so non-JS crawlers can read it.',
+  'markdown-negotiation-missing': 'Optionally serve a markdown representation when the request sends Accept: text/markdown.',
+  'ai-crawlers-blocked': 'Update robots.txt to allow AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) if you want to be read and cited by assistants.',
+  'mcp-discovery-missing': 'If agents should act on your site, expose an MCP server card at /.well-known/mcp.json describing the available tools.',
+}
+const aeoFix = (check: string): string => AEO_FIXES[check] ?? 'Review this AI-readiness issue.'
+
+// Plain-language vibe-mode copy for each check, so vibe users (the default mode)
+// read "Shared links don't get their own title" instead of "Missing og:title".
+// Any check without an entry falls back to the detector's technical title/desc.
+interface VibeCopy {
+  readonly title: string
+  readonly explanation: string
+}
+
+const SEO_VIBE: Record<string, VibeCopy> = {
+  'title-missing': { title: 'Your page has no name', explanation: 'Search results and browser tabs will show the URL instead of a real title.' },
+  'title-too-long': { title: 'Your page title gets cut off', explanation: 'Google trims long titles, so the end of yours is hidden in search results.' },
+  'title-default': { title: 'Your page still has a placeholder title', explanation: 'Every search result and browser tab shows the framework default instead of a real title.' },
+  'meta-description-missing': { title: 'No summary for search results', explanation: 'Google writes its own snippet from your page text — usually a worse pitch than one you write.' },
+  'meta-description-too-long': { title: 'Your search summary gets cut off', explanation: 'Search engines trim long descriptions, so the end is hidden.' },
+  'og-image-missing': { title: 'Shared links show a blank preview', explanation: 'With no preview image, links to this page look empty on Slack, X, and iMessage.' },
+  'og-title-missing': { title: "Shared links don't get their own title", explanation: 'When someone shares this page, platforms fall back to the tab title.' },
+  'og-description-missing': { title: 'Shared links have no description', explanation: 'Links to this page show no descriptive text under the title.' },
+  'canonical-missing': { title: 'Google may see this page as duplicates', explanation: 'Without a canonical link, the same page at different URLs can split its search ranking.' },
+  'h1-missing': { title: 'Your page has no main heading', explanation: 'The main heading is the strongest signal to search engines about what the page is about.' },
+  'h1-multiple': { title: 'Your page has several competing headings', explanation: 'Multiple main headings scatter the topic signal — keep one and make the rest sub-headings.' },
+  'image-alt-missing': { title: 'Some images have no description', explanation: "Search engines and screen readers can't tell what these images show." },
+  'slug-unfriendly': { title: 'Your page address is messy', explanation: 'IDs, underscores, or capital letters in the URL are harder to read and share.' },
+  'sitemap-missing': { title: 'Search engines have no map of your site', explanation: 'Without a sitemap they have to discover every page on their own, which slows indexing.' },
+  'robots-missing': { title: 'No crawler instructions file', explanation: 'A robots.txt tells search engines what to index and where your sitemap is.' },
+  'noindex': { title: 'This page is hidden from search', explanation: 'A setting tells search engines to leave this page out of results entirely.' },
+  'title-too-short': { title: 'Your page title is too short', explanation: 'A longer, descriptive title ranks better and tells people what the page is about.' },
+  'og-url-missing': { title: 'Shares may credit the wrong address', explanation: 'og:url tells platforms the canonical address to credit shares to, even with tracking params.' },
+  'twitter-card-missing': { title: 'Links on X show a plain URL', explanation: 'Without a Twitter/X card, shared links show no rich preview.' },
+  'generic-link-text': { title: 'Some links just say "click here"', explanation: 'Descriptive link text tells search engines and screen readers where each link goes.' },
+}
+const seoVibe = (check: string): VibeCopy | undefined => SEO_VIBE[check]
+
+const AEO_VIBE: Record<string, VibeCopy> = {
+  'structured-data-missing': { title: 'AI tools have to guess what your page is about', explanation: 'Add a machine-readable summary (JSON-LD) so answer engines can read your facts instead of guessing.' },
+  'structured-data-invalid': { title: 'Your machine-readable summary is broken', explanation: 'The JSON-LD is malformed, so answer engines skip it. Validate it and fix the schema.' },
+  'no-main-landmark': { title: "Assistants can't find your main content", explanation: 'A <main> landmark tells readers and assistants where the primary content is.' },
+  'no-author-metadata': { title: 'No author or date on your page', explanation: 'Answer engines weigh authorship and freshness when deciding which sources to trust and cite.' },
+  'llms-txt-missing': { title: 'No cheat-sheet for AI assistants (llms.txt)', explanation: 'An llms.txt hands LLMs a clean summary of your site so they read it accurately.' },
+  'content-requires-js': { title: "Your page looks empty to anything that doesn't run JavaScript", explanation: 'Crawlers and agents that skip JavaScript see a blank page. Consider server-rendering or a fallback.' },
+  'markdown-negotiation-missing': { title: 'No plain-text version for agents', explanation: 'Offering a markdown version lets agents read your content without parsing the page.' },
+  'ai-crawlers-blocked': { title: "You're blocking AI assistants", explanation: "Your robots.txt disallows AI crawlers, so assistants can't read or cite this page." },
+  'mcp-discovery-missing': { title: "Agents can't discover your tools", explanation: 'Sites that want agents to take actions can advertise an MCP interface. Optional for content sites.' },
+}
+const aeoVibe = (check: string): VibeCopy | undefined => AEO_VIBE[check]
+
+const capitalizeFirst = (s: string): string => (s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1))
+
+// A URL's last path segment is a filename only when it has a short extension
+// (hero.png, logo.svg). CDN/placeholder URLs like picsum.photos/2400/1200 have
+// no filename — return null so callers fall back to host + dimensions instead of
+// surfacing "2400/1200" as if it were a name.
+const imageFilename = (src: string): string | null => {
+  if (!src) return null
+  const last = src.split('?')[0].split('#')[0].split('/').pop() ?? ''
+  return /\.[a-z0-9]{2,5}$/i.test(last) ? last : null
+}
+
+// Hostname of an absolute image URL (e.g. "picsum.photos"), or null when the src
+// is relative/opaque.
+const imageHost = (src: string): string | null => {
+  if (!src) return null
+  try {
+    const base = typeof location !== 'undefined' ? location.href : 'http://localhost'
+    return new URL(src, base).hostname || null
+  } catch {
+    return null
+  }
+}
+
+// A never-gibberish label for an image: a real filename when present, else a
+// "W×H image from host" / "image from host" / "W×H image" description assembled
+// from whatever is known. Used for both issue titles and AI prompts.
+const imageLabel = (
+  src: string,
+  dims?: { readonly w?: number | string; readonly h?: number | string },
+): string => {
+  const file = imageFilename(src)
+  if (file) return file
+  const host = imageHost(src)
+  const hasDims = dims != null && dims.w != null && dims.h != null && dims.w !== '?' && dims.h !== '?'
+  const size = hasDims ? `${dims!.w}×${dims!.h}` : ''
+  if (host && size) return `${size} image from ${host}`
+  if (host) return `image from ${host}`
+  if (size) return `${size} image`
+  return src ? src.slice(0, 60) : 'image'
 }
 
 // ── Dual-mode templates ─────────────────────────────────────────────────────
 
-interface DualTemplate {
-  readonly technical: (issue: VibeIssue) => Suggestion
-  readonly vibe: (issue: VibeIssue) => Suggestion
+interface DualTemplate<D extends DetectorName> {
+  readonly technical: (e: EvidenceFor<D>, issue: VibeIssue) => Suggestion
+  readonly vibe: (e: EvidenceFor<D>, issue: VibeIssue) => Suggestion
 }
 
-const templates: Record<DetectorName, DualTemplate> = {
+// Each detector's templates receive its typed evidence (EvidenceFor<D>), so a
+// read of a key the detector never emits is a compile error — the same
+// structural guard the MCP suggestions and createIssue use, all sourced from the
+// shared protocol.
+const templates: { [D in DetectorName]: DualTemplate<D> } = {
   'dom-bloat': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'DOM Bloat',
-      explanation: `${issue.evidence['nodeCount'] ?? 'Too many'} DOM nodes detected. Excess nodes increase memory usage, slow style calculations, and degrade interaction latency.`,
-      prompt: `I have a DOM bloat issue — ${issue.evidence['nodeCount'] ?? 'excessive'} nodes on the page.
+      explanation: `${e['nodeCount'] ?? 'Too many'} DOM nodes detected. Excess nodes increase memory usage, slow style calculations, and degrade interaction latency.`,
+      prompt: `I have a DOM bloat issue — ${e['nodeCount'] ?? 'excessive'} nodes on the page.
 
 Audit my component tree and fix:
 1. Virtualize any lists with >50 items using @tanstack/react-virtual
@@ -46,12 +162,12 @@ Audit my component tree and fix:
 4. Paginate or lazy-load data-heavy sections
 5. Check for accidental duplicate renders
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Too many elements on the page',
-      explanation: `Your page has ${issue.evidence['nodeCount'] ?? 'way too many'} invisible building blocks. Think of it like a room packed with furniture — the browser has to manage every single piece, making everything sluggish.`,
-      prompt: `My page is slow because it has too many elements (${issue.evidence['nodeCount'] ?? 'a lot'} of them). Can you help me reduce them? Look for:
+      explanation: `Your page has ${e['nodeCount'] ?? 'way too many'} invisible building blocks. Think of it like a room packed with furniture — the browser has to manage every single piece, making everything sluggish.`,
+      prompt: `My page is slow because it has too many elements (${e['nodeCount'] ?? 'a lot'} of them). Can you help me reduce them? Look for:
 - Long lists that should only show what's visible on screen
 - Unnecessary wrapper divs that can be removed
 - Sections that could load only when the user scrolls to them
@@ -60,10 +176,10 @@ Evidence: ${JSON.stringify(issue.evidence)}`,
   },
 
   'duplicate-requests': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Duplicate Network Requests',
-      explanation: `\`${issue.evidence['url'] ?? 'unknown'}\` fetched ${issue.evidence['count'] ?? 'multiple'} times. Wasted bandwidth, increased TTFB, and potential race conditions.`,
-      prompt: `Duplicate network request detected — \`${issue.evidence['url'] ?? 'unknown URL'}\` was fetched ${issue.evidence['count'] ?? 'multiple'} times.
+      explanation: `\`${e['url'] ?? 'unknown'}\` fetched ${e['count'] ?? 'multiple'} times. Wasted bandwidth, increased TTFB, and potential race conditions.`,
+      prompt: `Duplicate network request detected — \`${e['url'] ?? 'unknown URL'}\` was fetched ${e['count'] ?? 'multiple'} times.
 
 Fix this by:
 1. Use React Query or SWR for automatic request deduplication
@@ -71,20 +187,20 @@ Fix this by:
 3. Add proper Cache-Control headers on the API response
 4. Debounce any rapid-fire fetches (search, autocomplete)
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Same data fetched multiple times',
-      explanation: `Your page is asking the server for the same thing ${issue.evidence['count'] ?? 'several'} times. It's like calling the same restaurant to ask for the menu over and over.`,
-      prompt: `My page is fetching the same URL (${issue.evidence['url'] ?? 'a URL'}) multiple times. Can you find where this is happening and make it so it only fetches once? Maybe use a cache or share the data between components that need it.`,
+      explanation: `Your page is asking the server for the same thing ${e['count'] ?? 'several'} times. It's like calling the same restaurant to ask for the menu over and over.`,
+      prompt: `My page is fetching the same URL (${e['url'] ?? 'a URL'}) multiple times. Can you find where this is happening and make it so it only fetches once? Maybe use a cache or share the data between components that need it.`,
     }),
   },
 
   'console-spam': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Console Spam',
-      explanation: `${issue.evidence['callCount'] ?? 'Excessive'} console messages detected. Each call triggers string serialization and DevTools overhead, blocking the main thread in hot paths.`,
-      prompt: `Console spam detected — ${issue.evidence['callCount'] ?? 'many'} messages flooding the console.
+      explanation: `${e['callCount'] ?? 'Excessive'} console messages detected. Each call triggers string serialization and DevTools overhead, blocking the main thread in hot paths.`,
+      prompt: `Console spam detected — ${e['callCount'] ?? 'many'} messages flooding the console.
 
 Fix:
 1. Search codebase for console.log/warn/error and remove debug logs
@@ -92,20 +208,20 @@ Fix:
 3. Replace remaining logs with a level-aware logger
 4. Check for libraries with verbose default logging
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Too many console messages',
-      explanation: `Your page is printing ${issue.evidence['callCount'] ?? 'tons of'} messages to an invisible log. It's like someone narrating everything they do — it slows things down.`,
-      prompt: `My page is spamming the browser console with ${issue.evidence['callCount'] ?? 'too many'} messages. Can you find and remove unnecessary console.log statements? Keep only actual error logging.`,
+      explanation: `Your page is printing ${e['callCount'] ?? 'tons of'} messages to an invisible log. It's like someone narrating everything they do — it slows things down.`,
+      prompt: `My page is spamming the browser console with ${e['callCount'] ?? 'too many'} messages. Can you find and remove unnecessary console.log statements? Keep only actual error logging.`,
     }),
   },
 
   'memory-leak': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Memory Leak',
-      explanation: `Heap at ${issue.evidence['currentMB'] ?? 'unknown'}MB with steady growth (${issue.evidence['heapGrowthPct'] ?? 'unknown'}%). Uncollected references accumulating — will cause jank, crashes on long sessions.`,
-      prompt: `Memory leak detected — heap at ${issue.evidence['currentMB'] ?? '?'}MB and growing (${issue.evidence['heapGrowthPct'] ?? '?'}% growth).
+      explanation: `Heap at ${e['currentMB'] ?? 'unknown'}MB with steady growth (${e['heapGrowthPct'] ?? 'unknown'}%). Uncollected references accumulating — will cause jank, crashes on long sessions.`,
+      prompt: `Memory leak detected — heap at ${e['currentMB'] ?? '?'}MB and growing (${e['heapGrowthPct'] ?? '?'}% growth).
 
 Audit for:
 1. useEffect without cleanup (addEventListener, setInterval, subscriptions)
@@ -114,20 +230,20 @@ Audit for:
 4. WebSocket/SSE connections not closed on unmount
 5. Detached DOM nodes held by JavaScript references
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Memory keeps growing',
-      explanation: `Your page is using more and more memory over time (${issue.evidence['currentMB'] ?? 'a lot of'}MB and climbing). Like leaving all the lights on in every room — eventually something breaks.`,
+      explanation: `Your page is using more and more memory over time (${e['currentMB'] ?? 'a lot of'}MB and climbing). Like leaving all the lights on in every room — eventually something breaks.`,
       prompt: `My page has a memory leak — it keeps using more memory the longer it runs. Can you check for things that get created but never cleaned up? Look for event listeners, timers, or data that keeps growing without being cleared.`,
     }),
   },
 
   'layout-thrashing': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Layout Thrashing',
-      explanation: `${issue.evidence['shiftCount'] ?? 'Multiple'} forced layout recalculations from interleaved read/write DOM operations. Each forced reflow blocks the main thread.`,
-      prompt: `Layout thrashing detected — ${issue.evidence['shiftCount'] ?? 'multiple'} forced reflows.
+      explanation: `${e['shiftCount'] ?? 'Multiple'} forced layout recalculations from interleaved read/write DOM operations. Each forced reflow blocks the main thread.`,
+      prompt: `Layout thrashing detected — ${e['shiftCount'] ?? 'multiple'} forced reflows.
 
 Fix:
 1. Batch DOM reads before writes (never interleave)
@@ -136,9 +252,9 @@ Fix:
 4. Add \`contain: layout\` CSS to isolate recalculation scope
 5. Avoid reading offsetHeight/getBoundingClientRect in loops
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (_issue) => ({
+    vibe: (_e) => ({
       title: 'Page layout keeps recalculating',
       explanation: 'Your page is measuring and moving elements at the same time, over and over. Imagine rearranging furniture while measuring the room — you have to re-measure after every move.',
       prompt: `My page has layout thrashing — it's reading and writing to the page layout in a way that causes constant recalculations. Can you find where this is happening and batch the reads and writes separately? Use CSS transforms instead of changing positions directly.`,
@@ -146,11 +262,15 @@ Evidence: ${JSON.stringify(issue.evidence)}`,
   },
 
   'unoptimized-images': {
-    technical: (issue) => ({
-      title: `Unoptimized: ${getImageName(issue.evidence)}`,
-      explanation: `Image \`${getImageName(issue.evidence)}\` missing optimization. ${issue.evidence['issue'] ?? 'Missing dimensions, lazy loading, or modern format.'}`,
-      prompt: `Unoptimized image detected: \`${issue.evidence['src'] ?? 'unknown'}\`
-Issue: ${issue.evidence['issue'] ?? 'needs optimization'}
+    technical: (e) => {
+      const label = imageLabel(e.src, { w: e.naturalWidth, h: e.naturalHeight })
+      const problems = Array.isArray(e.problems) ? e.problems : []
+      const count = typeof e.count === 'number' && e.count > 1 ? e.count : 1
+      return {
+        title: `Unoptimized image: ${label}${count > 1 ? ` (×${count})` : ''}`,
+        explanation: `${capitalizeFirst(label)} ${problems.length > 0 ? `has ${problems.length} issue${problems.length > 1 ? 's' : ''}: ${problems.join(', ')}` : 'needs optimization'}${count > 1 ? ` — and ${count - 1} more like it` : ''}.`,
+        prompt: `Unoptimized image detected: \`${e.src}\`${count > 1 ? ` (and ${count - 1} more with the same problems)` : ''}
+Problems: ${problems.join(', ') || 'needs optimization'}
 
 Fix:
 1. Add explicit width and height attributes to prevent layout shifts
@@ -159,24 +279,27 @@ Fix:
 4. Use srcset and sizes for responsive images
 5. Ensure image dimensions match display size (2x max for retina)
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
-    }),
-    vibe: (issue) => {
-      const name = getImageName(issue.evidence)
-      const details = issue.evidence['issue'] as string | undefined
+Evidence: ${JSON.stringify(e)}`,
+      }
+    },
+    vibe: (e) => {
+      const label = imageLabel(e.src, { w: e.naturalWidth, h: e.naturalHeight })
+      const list = Array.isArray(e.problems) ? e.problems : []
+      const fixes = list.length > 0 ? list.map(humanizeImageProblem).join(', ') : 'be optimized'
+      const count = typeof e.count === 'number' && e.count > 1 ? e.count : 1
       return {
-        title: `${name} needs optimization`,
-        explanation: `"${name}" isn't set up properly.${details ? ` Problem: ${details}.` : ''} It might be causing the page to jump around as it loads, or it's bigger than it needs to be.`,
-        prompt: `I have an image "${name}" (${issue.evidence['src'] ?? 'unknown'}) that needs optimization. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
+        title: `${capitalizeFirst(label)} needs optimization${count > 1 ? ` (×${count})` : ''}`,
+        explanation: `${count > 1 ? `${count} images like this one aren't` : `"${label}" isn't`} set up properly — ${count > 1 ? 'they need' : 'it needs'} you to ${fixes}. That can make the page jump around as it loads or weigh more than it should.`,
+        prompt: `I have an image "${label}" (${e.src})${count > 1 ? ` — and ${count - 1} more with the same problems` : ''} that needs optimization${list.length > 0 ? ` (${list.join(', ')})` : ''}. Can you add proper width and height, enable lazy loading, and convert it to a modern format like WebP?`,
       }
     },
   },
 
   'large-images': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Large Image',
-      explanation: `Image \`${issue.evidence['src'] ?? 'unknown'}\` is ${issue.evidence['transferSizeKB'] ?? '?'}KB — significantly above recommended size for web delivery.`,
-      prompt: `Large image detected: \`${issue.evidence['src'] ?? 'unknown'}\` at ${issue.evidence['transferSizeKB'] ?? '?'}KB.
+      explanation: `Image \`${e['src'] ?? 'unknown'}\` is ${e['transferSizeKB'] ?? '?'}KB — significantly above recommended size for web delivery.`,
+      prompt: `Large image detected: \`${e['src'] ?? 'unknown'}\` at ${e['transferSizeKB'] ?? '?'}KB.
 
 Optimize:
 1. Compress with sharp/squoosh or an image CDN
@@ -185,29 +308,29 @@ Optimize:
 4. Use responsive srcset for different viewport sizes
 5. Consider lazy loading if below the fold
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => {
-      const name = getImageName(issue.evidence)
-      const sizeKB = issue.evidence['transferSizeKB'] ?? '?'
-      const natW = issue.evidence['naturalWidth'] ?? '?'
-      const natH = issue.evidence['naturalHeight'] ?? '?'
-      const renW = issue.evidence['renderedWidth'] ?? '?'
-      const renH = issue.evidence['renderedHeight'] ?? '?'
+    vibe: (e) => {
+      const sizeKB = e['transferSizeKB'] ?? '?'
+      const natW = e['naturalWidth'] ?? '?'
+      const natH = e['naturalHeight'] ?? '?'
+      const renW = e['renderedWidth'] ?? '?'
+      const renH = e['renderedHeight'] ?? '?'
+      const label = imageLabel(e['src'] ?? '', { w: natW, h: natH })
       return {
-        title: `${name} is ${sizeKB}KB`,
-        explanation: `"${name}" is ${sizeKB}KB (${natW}×${natH} pixels displayed at ${renW}×${renH}). That's way too heavy — it makes your page load slowly.`,
-        prompt: `I have an image "${name}" (${issue.evidence['src'] ?? 'unknown'}) that's ${sizeKB}KB. It's ${natW}×${natH} pixels but displayed at only ${renW}×${renH}. Can you compress it, resize it to what's actually displayed, and convert it to a modern format?`,
+        title: `${capitalizeFirst(label)} is ${sizeKB}KB`,
+        explanation: `"${label}" is ${sizeKB}KB (${natW}×${natH} pixels displayed at ${renW}×${renH}). That's way too heavy — it makes your page load slowly.`,
+        prompt: `I have an image "${label}" (${e['src'] ?? 'unknown'}) that's ${sizeKB}KB. It's ${natW}×${natH} pixels but displayed at only ${renW}×${renH}. Can you compress it, resize it to what's actually displayed, and convert it to a modern format?`,
       }
     },
   },
 
   'long-task-attribution': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Long Task',
-      explanation: `Task blocked main thread for ${issue.evidence['duration'] ?? '?'}ms. Source: ${issue.evidence['sourceURL'] ?? 'unknown'}. Causes input delay and frame drops.`,
-      prompt: `Long task detected — ${issue.evidence['duration'] ?? '?'}ms blocking the main thread.
-Source: ${issue.evidence['sourceURL'] ?? 'unknown'}
+      explanation: `Task blocked main thread for ${e['totalBlockingMs'] ?? '?'}ms. Source: ${e['sourceURL'] ?? 'unknown'}. Causes input delay and frame drops.`,
+      prompt: `Long task detected — ${e['totalBlockingMs'] ?? '?'}ms blocking the main thread.
+Source: ${e['sourceURL'] ?? 'unknown'}
 
 Fix:
 1. Profile with Chrome DevTools Performance tab to identify the slow function
@@ -216,20 +339,20 @@ Fix:
 4. Memoize expensive calculations (useMemo/React.memo)
 5. Defer non-critical work with requestIdleCallback
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Something is freezing the page',
-      explanation: `A piece of code took ${issue.evidence['duration'] ?? 'too long'}ms to run, freezing your page during that time. It's like one person hogging the checkout lane — nothing else can happen until they're done.`,
-      prompt: `Something is making my page freeze for ${issue.evidence['duration'] ?? 'a long time'}ms. Can you find what's taking so long and break it into smaller pieces so the page stays responsive?`,
+      explanation: `A piece of code took ${e['totalBlockingMs'] ?? 'too long'}ms to run, freezing your page during that time. It's like one person hogging the checkout lane — nothing else can happen until they're done.`,
+      prompt: `Something is making my page freeze for ${e['totalBlockingMs'] ?? 'a long time'}ms. Can you find what's taking so long and break it into smaller pieces so the page stays responsive?`,
     }),
   },
 
   'resource-bloat': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Resource Bloat',
-      explanation: `Large ${issue.evidence['type'] ?? 'resource'} at ${issue.evidence['transferSizeKB'] ?? '?'}KB. Bloated bundles increase load time and compete for bandwidth.`,
-      prompt: `Resource bloat: \`${issue.evidence['url'] ?? 'unknown'}\` is ${issue.evidence['transferSizeKB'] ?? '?'}KB.
+      explanation: `Large ${e['type'] ?? 'resource'} at ${e['transferSizeKB'] ?? '?'}KB. Bloated bundles increase load time and compete for bandwidth.`,
+      prompt: `Resource bloat: \`${e['url'] ?? 'unknown'}\` is ${e['transferSizeKB'] ?? '?'}KB.
 
 Fix:
 1. Run bundle analyzer (vite-bundle-visualizer, source-map-explorer)
@@ -238,20 +361,20 @@ Fix:
 4. Remove unused dependencies
 5. Ensure gzip/brotli compression on server
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Page is downloading too much code',
-      explanation: `Your page loaded a ${issue.evidence['transferSizeKB'] ?? 'huge'}KB file. That's a lot of code — much of it probably unused. It makes your page take longer to start.`,
-      prompt: `My page is loading a very large file (${issue.evidence['transferSizeKB'] ?? 'too large'}KB). Can you check if we're importing more than we need, and split the code so we only load what's necessary for each page?`,
+      explanation: `Your page loaded a ${e['transferSizeKB'] ?? 'huge'}KB file. That's a lot of code — much of it probably unused. It makes your page take longer to start.`,
+      prompt: `My page is loading a very large file (${e['transferSizeKB'] ?? 'too large'}KB). Can you check if we're importing more than we need, and split the code so we only load what's necessary for each page?`,
     }),
   },
 
   'web-essentials': {
-    technical: (issue) => ({
+    technical: (e) => ({
       title: 'Web Essential Missing',
-      explanation: `${issue.evidence['check'] ?? 'A basic HTML requirement'} is missing. These fundamentals affect SEO, accessibility, and browser behavior.`,
-      prompt: `Web essential missing: ${issue.evidence['check'] ?? 'unknown'}
+      explanation: `${e['check'] ?? 'A basic HTML requirement'} is missing. These fundamentals affect SEO, accessibility, and browser behavior.`,
+      prompt: `Web essential missing: ${e['check'] ?? 'unknown'}
 
 Fix the HTML document head:
 1. Add <meta charset="UTF-8">
@@ -261,23 +384,23 @@ Fix the HTML document head:
 5. Add <link rel="icon" href="/favicon.ico">
 6. Add <meta name="description" content="...">
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
+    vibe: (e) => ({
       title: 'Basic page setup missing',
       explanation: `Your page is missing some basic setup that every website needs. Without it, search engines can't understand your site properly and it might look weird on phones.`,
-      prompt: `My page is missing some basic HTML setup (${issue.evidence['check'] ?? 'some essentials'}). Can you make sure the page has a proper title, viewport settings, language attribute, and favicon?`,
+      prompt: `My page is missing some basic HTML setup (${e['check'] ?? 'some essentials'}). Can you make sure the page has a proper title, viewport settings, language attribute, and favicon?`,
     }),
   },
 
   'heavy-library': {
-    technical: (issue) => ({
-      title: `${issue.evidence['library'] ?? 'Heavy Library'} Detected`,
-      explanation: `${issue.evidence['library'] ?? 'A heavy library'} (${issue.evidence['bundleSizeKB'] ?? '?'}KB gzip) found. ${(issue.evidence['knownIssues'] as string[] | undefined)?.join('. ') ?? 'Known to cause performance issues.'}`,
-      prompt: `Heavy library detected: ${issue.evidence['library'] ?? 'unknown'} (${issue.evidence['packageName'] ?? 'unknown'}, ${issue.evidence['bundleSizeKB'] ?? '?'}KB gzip).
+    technical: (e) => ({
+      title: `${e['library'] ?? 'Heavy Library'} Detected`,
+      explanation: `${e['library'] ?? 'A heavy library'} (${e['bundleSizeKB'] ?? '?'}KB gzip) found. ${(e['knownIssues'] as string[] | undefined)?.join('. ') ?? 'Known to cause performance issues.'}`,
+      prompt: `Heavy library detected: ${e['library'] ?? 'unknown'} (${e['packageName'] ?? 'unknown'}, ${e['bundleSizeKB'] ?? '?'}KB gzip).
 
 Known performance risks:
-${((issue.evidence['knownIssues'] as string[] | undefined) ?? []).map((i) => `- ${i}`).join('\n')}
+${((e['knownIssues'] as string[] | undefined) ?? []).map((i) => `- ${i}`).join('\n')}
 
 Audit this library's usage:
 1. Check if the library is tree-shaken properly (using named imports)
@@ -286,42 +409,94 @@ Audit this library's usage:
 4. Ensure animations/effects are paused when not visible
 5. Check for duplicate instances or redundant initialization
 
-Evidence: ${JSON.stringify(issue.evidence)}`,
+Evidence: ${JSON.stringify(e)}`,
     }),
-    vibe: (issue) => ({
-      title: `${issue.evidence['library'] ?? 'A heavy library'} is loaded`,
-      explanation: `${issue.evidence['vibeDescription'] ?? `Your page includes ${issue.evidence['library'] ?? 'a large library'} which adds ${issue.evidence['bundleSizeKB'] ?? 'a lot of'}KB to your page.`}`,
-      prompt: `My page is using ${issue.evidence['library'] ?? 'a heavy library'} which could be causing performance issues. Can you check:
+    vibe: (e) => ({
+      title: `${e['library'] ?? 'A heavy library'} is loaded`,
+      explanation: `${e['vibeDescription'] ?? `Your page includes ${e['library'] ?? 'a large library'} which adds ${e['bundleSizeKB'] ?? 'a lot of'}KB to your page.`}`,
+      prompt: `My page is using ${e['library'] ?? 'a heavy library'} which could be causing performance issues. Can you check:
 - Are we using this library efficiently?
 - Are there lighter alternatives?
 - Is everything being cleaned up properly when components are removed?
 - Can we load it only when actually needed?`,
     }),
   },
+
+  'seo': {
+    technical: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `${issue.title}${e.detail ? ` (${e.detail})` : ''}
+
+${issue.description}
+
+Fix: ${seoFix(e.check)}
+
+Evidence: ${JSON.stringify(e)}`,
+    }),
+    vibe: (e, issue) => {
+      const copy = seoVibe(e.check)
+      const title = copy?.title ?? issue.title
+      return {
+        title,
+        explanation: copy?.explanation ?? issue.description,
+        prompt: `My page has a discoverability problem — ${title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${seoFix(e.check)}`,
+      }
+    },
+  },
+
+  'aeo': {
+    technical: (e, issue) => ({
+      title: issue.title,
+      explanation: issue.description,
+      prompt: `${issue.title}${e.detail ? ` (${e.detail})` : ''}
+
+${issue.description}
+
+Fix: ${aeoFix(e.check)}
+
+Evidence: ${JSON.stringify(e)}`,
+    }),
+    vibe: (e, issue) => {
+      const copy = aeoVibe(e.check)
+      const title = copy?.title ?? issue.title
+      return {
+        title,
+        explanation: copy?.explanation ?? issue.description,
+        prompt: `My page isn't ready for AI assistants — ${title.toLowerCase()}${e.detail ? ` (${e.detail})` : ''}. ${aeoFix(e.check)}`,
+      }
+    },
+  },
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export const getSuggestion = (issue: VibeIssue, mode: SuggestionMode = 'technical'): Suggestion => {
-  const template = templates[issue.detector]
+  // Single cast is the runtime detector → typed-evidence trust boundary; each
+  // template body above is fully type-checked against its own EvidenceFor shape.
+  const byName = templates as unknown as Record<
+    string,
+    { technical: (e: Record<string, unknown>, i: VibeIssue) => Suggestion; vibe: (e: Record<string, unknown>, i: VibeIssue) => Suggestion }
+  >
+  const template = byName[issue.detector]
 
   if (!template) {
     return {
       title: issue.title,
       explanation: issue.description,
-      prompt: `Fix this performance issue: ${issue.title}\n\n${issue.description}\n\nEvidence: ${JSON.stringify(issue.evidence)}`,
+      prompt: `Fix this issue: ${issue.title}\n\n${issue.description}\n\nEvidence: ${JSON.stringify(issue.evidence)}`,
     }
   }
 
-  return template[mode](issue)
+  return template[mode](issue.evidence, issue)
 }
 
 export const getAgentPrompt = (issues: readonly VibeIssue[], mode: SuggestionMode = 'technical'): string => {
   if (issues.length === 0) return ''
 
   const header = mode === 'technical'
-    ? '# Performance Issues Detected by Vibe Check\n\nFix the following performance issues in priority order:\n'
-    : '# Performance Problems Found\n\nMy page has some performance problems. Please fix them:\n'
+    ? '# Issues detected by vibe check\n\nFix the following in priority order (performance, search visibility, and AI readiness):\n'
+    : "# Issues found on your page\n\nHere's what to fix, most important first:\n"
 
   const issuePrompts = issues.map((issue, i) => {
     const suggestion = getSuggestion(issue, mode)

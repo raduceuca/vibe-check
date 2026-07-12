@@ -37,6 +37,63 @@ const Nav = () => {
   )
 }
 
+// ── What's New band (showcases the 0.2.0 improvements) ──────────────────────
+
+const NewCard = ({ tag, title, body }: { tag: string; title: string; body: string }) => (
+  <div style={{
+    padding: '16px 18px', borderRadius: 12,
+    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+  }}>
+    <div style={{ fontSize: 11, fontWeight: 600, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+      {tag}
+    </div>
+    <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 6, letterSpacing: '-0.01em' }}>{title}</div>
+    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.55 }}>{body}</div>
+  </div>
+)
+
+const WhatsNew = () => (
+  <section style={{
+    padding: '36px 40px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+    background: 'rgba(255,255,255,0.015)',
+  }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        vibe-check 0.2.0
+      </span>
+      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>what&apos;s new</span>
+    </div>
+    <h2 style={{ fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+      Sharper signal, honest status, zero footprint
+    </h2>
+    <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', margin: '0 0 24px', maxWidth: 620, lineHeight: 1.6 }}>
+      The page below is intentionally full of performance anti-patterns. Open the panel (bottom-right) to see these improvements live.
+    </p>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <NewCard
+        tag="Settings tab"
+        title="Live MCP status"
+        body="The connection dot now reflects real beacon delivery — inactive → connecting → active — instead of just 'a URL is set'."
+      />
+      <NewCard
+        tag="Agent tab"
+        title="Accurate AI fixes"
+        body="Fix suggestions read each detector's real evidence, so the agent gets actual numbers instead of 'unknown MB and growing'."
+      />
+      <NewCard
+        tag="Under the hood"
+        title="Never hijacks console"
+        body="Monitoring restores your console.* exactly on stop — no dead wrapper left behind, even after toggling the panel repeatedly."
+      />
+      <NewCard
+        tag="Type-safe"
+        title="Drift-proof contract"
+        body="A shared protocol package makes a detector and its fix-suggestion disagreeing a compile error, not a silent bug."
+      />
+    </div>
+  </section>
+)
+
 // ── Hero with oversized background image ────────────────────────────────────
 
 const Hero = () => (
@@ -381,6 +438,7 @@ const App = () => (
   <div style={{ fontFamily: FONT, color: '#e5e5e5', minHeight: '100vh', background: '#050505', marginLeft: 180 }}>
     <Sidebar />
     <Nav />
+    <WhatsNew />
     <Hero />
     <LogoBar />
     <Showcase />
@@ -389,7 +447,10 @@ const App = () => (
     <Features />
     <Testimonials />
     <CTA />
-    <VibeCheck enabled position="bottom-right" />
+    {/* Wired to the local MCP server so the panel's connection status is live
+        (Settings tab) and beacon delivery actually happens. Start it with:
+        node packages/mcp/dist/index.js  (or: npx @wcgw/vibe-check-mcp) */}
+    <VibeCheck enabled position="bottom-right" beaconUrl="http://127.0.0.1:4200" />
   </div>
 )
 

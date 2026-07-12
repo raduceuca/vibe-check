@@ -1,8 +1,10 @@
-import type { CSSProperties } from 'react'
+import { memo } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
 import { PROACTIVE_PROMPTS } from '@wcgw/vibe-check-core'
-import { T, sectionHeaderStyle } from '../tokens.js'
+import { T } from '../tokens.js'
 import { CopyButton } from './ui/CopyButton.js'
+import { SectionHeader } from './ui/SectionHeader.js'
+import { rowFrame } from './ui/Row.js'
 
 interface PromptsPanelProps {
   readonly mode: SuggestionMode
@@ -10,22 +12,16 @@ interface PromptsPanelProps {
   readonly onCopy: (text: string, id: string) => Promise<boolean>
 }
 
-const cardStyle: CSSProperties = {
-  padding: '10px 12px',
-  borderRadius: 8,
-  background: 'rgba(255,255,255,0.02)',
-  border: '1px solid rgba(255,255,255,0.05)',
-  marginBottom: 6,
-  transition: 'all 0.2s ease',
-}
+// Reuse the shared list-row frame instead of re-implementing padding + divider.
+const cardStyle = rowFrame
 
-export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
+export const PromptsPanel = memo(({ mode, copiedId, onCopy }: PromptsPanelProps) => (
   <div style={{ paddingTop: 4 }}>
-    <div style={sectionHeaderStyle}>
+    <SectionHeader>
       {mode === 'vibe' ? 'Ask Your AI To...' : 'Proactive Prompts'}
-    </div>
+    </SectionHeader>
 
-    <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+    <div>
       {PROACTIVE_PROMPTS.map((prompt) => (
         <div key={prompt.id} style={cardStyle}>
           <div style={{
@@ -37,7 +33,7 @@ export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
             <span style={{
               fontSize: 14,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.8)',
+              color: T.text,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -63,4 +59,4 @@ export const PromptsPanel = ({ mode, copiedId, onCopy }: PromptsPanelProps) => (
       ))}
     </div>
   </div>
-)
+))

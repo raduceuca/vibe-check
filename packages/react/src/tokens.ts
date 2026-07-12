@@ -1,39 +1,43 @@
 // ── Shared design tokens for the vibe-check widget ──────────────────────────
-// Pure neutrals, no color tint. 14px minimum text. High contrast.
+// Thin JS accessor over the --wcgw-* CSS variables (the single source of truth,
+// declared per theme in VibeCheck's injected stylesheet). Kept in sync with that
+// scale; values flip with the theme via --wcgw-fg. Semantic tokens first; reach
+// for the raw --wcgw-fg tint only for one-off alphas.
 
 export const T = {
-  // Backgrounds — pure neutral, no blue/green tint
-  bg: 'rgba(12,12,12,0.97)',
-  bgSubtle: 'rgba(255,255,255,0.03)',
-  bgHover: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.08)',
-  borderSubtle: 'rgba(255,255,255,0.05)',
+  // Surfaces
+  bg: 'var(--wcgw-bg)',
+  bgSubtle: 'var(--wcgw-surface)',
+  bgHover: 'var(--wcgw-surface-hover)',
+  border: 'var(--wcgw-border)',
+  borderSubtle: 'var(--wcgw-border-subtle)',
+  borderStrong: 'var(--wcgw-border-strong)',
 
-  // Text — high contrast, always readable
-  text: 'rgba(255,255,255,0.92)',
-  textSecondary: 'rgba(255,255,255,0.6)',
-  textTertiary: 'rgba(255,255,255,0.4)',
-  textMuted: 'rgba(255,255,255,0.35)',
+  // Text ladder — four steps, high contrast (labels stay legible, not ghosted)
+  text: 'var(--wcgw-text)',
+  textSecondary: 'var(--wcgw-text-secondary)',
+  textTertiary: 'var(--wcgw-text-tertiary)',
+  textMuted: 'var(--wcgw-text-muted)',
 
-  // Status — only for semantic indicators
-  green: '#4ade80',
-  yellow: '#facc15',
-  orange: '#fb923c',
-  red: '#ef4444',
-  blue: '#60a5fa',
+  // Status — semantic indicators only (theme-tuned per mode)
+  green: 'var(--wcgw-sev-success)',
+  yellow: 'var(--wcgw-sev-warning)',
+  orange: 'var(--wcgw-sev-error)',
+  red: 'var(--wcgw-sev-critical)',
+  blue: 'var(--wcgw-sev-info)',
 
-  // Radii (4px scale)
-  radiusXs: 4,
-  radiusSm: 6,
-  radiusMd: 8,
-  radiusLg: 12,
-  radiusXl: 18,
-  radiusPill: 24,
+  // Radii
+  radiusXs: 'var(--wcgw-radius-xs)',
+  radiusSm: 'var(--wcgw-radius-sm)',
+  radiusMd: 'var(--wcgw-radius-md)',
+  radiusLg: 'var(--wcgw-radius-lg)',
+  radiusXl: 'var(--wcgw-radius-xl)',
+  radiusPill: 'var(--wcgw-radius-pill)',
 
-  // Shadows
-  shadowSm: '0 2px 8px rgba(0,0,0,0.3)',
-  shadowMd: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04)',
-  shadowLg: '0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04)',
+  // Shadows (base var + a hairline ring for definition on any host bg)
+  shadowSm: 'var(--wcgw-shadow-sm)',
+  shadowMd: 'var(--wcgw-shadow-md), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
+  shadowLg: 'var(--wcgw-shadow-lg), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)',
 
   // Z-index scale (high values to sit above host page)
   zOverlay: 2147483630,
@@ -41,19 +45,19 @@ export const T = {
   zPopover: 2147483640,
   zPanel: 2147483645,
 
+  // Motion — one ease + three duration steps. Components compose transitions
+  // from these instead of copy-pasting `cubic-bezier(0.4,0,0.2,1)` and ad-hoc
+  // durations, so timing tunes in one place.
+  ease: 'var(--wcgw-ease)',
+  durationFast: 'var(--wcgw-duration-fast)',
+  durationNormal: 'var(--wcgw-duration-normal)',
+  durationSlow: 'var(--wcgw-duration-slow)',
+
   // Font
-  font: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif',
-  fontMono: 'ui-monospace, "SF Mono", "Cascadia Code", monospace',
+  font: 'var(--wcgw-font-sans)',
+  fontMono: 'var(--wcgw-font-mono)',
   fontSize: 14,
+
+  // Spacing — a 4px grid (--wcgw-space-1..6 = 4/8/12/16/20/24).
+  space: (n: 1 | 2 | 3 | 4 | 5 | 6): string => `var(--wcgw-space-${n})`,
 } as const
-
-// ── Shared styles ───────────────────────────────────────────────────────────
-
-export const sectionHeaderStyle = {
-  fontSize: 14,
-  fontWeight: 500 as const,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: T.textTertiary,
-  marginBottom: 8,
-}

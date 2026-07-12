@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import type { VibeCheckEngine, VibeIssue } from '@wcgw/vibe-check-core'
+import type { VibeEngine, VibeIssue } from '@wcgw/vibe-check-core'
 import { useVibeCheckEngine } from '../context.js'
 
 const EMPTY_ISSUES: readonly VibeIssue[] = []
 
 export const useDetectedIssues = (
-  engine?: VibeCheckEngine | null
+  engine?: VibeEngine | null
 ): readonly VibeIssue[] => {
   const contextEngine = useVibeCheckEngine()
   const resolvedEngine = engine ?? contextEngine
