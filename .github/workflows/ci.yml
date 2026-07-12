@@ -43,7 +43,7 @@ jobs:
         run: pnpm --filter @wcgw/vibe-check size
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter @wcgw/vibe-check-mcp-roundtrip exec playwright install --with-deps chromium
 
       - name: Packaged MCP round-trip
         run: pnpm test:e2e:mcp
