@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BeaconClient } from '../beaconClient.js'
-import type { VibeSnapshot } from '../../types.js'
+import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../../types.js'
 import {
   EMPTY_FRAME_RATE_STATS,
   EMPTY_LONG_FRAME_STATS,
@@ -17,6 +17,18 @@ const createMockSnapshot = (): VibeSnapshot => ({
   resources: EMPTY_RESOURCE_STATS,
   issues: [],
   domNodeCount: 100,
+})
+
+const createMockIssue = (): VibeIssue => ({
+  id: 'dom-1',
+  detector: 'dom-bloat',
+  severity: 'warning',
+  title: 'DOM has 900 nodes',
+  description: 'Too many nodes',
+  evidence: { nodeCount: 900 },
+  timestamp: 1,
+  acknowledged: false,
+  resolved: false,
 })
 
 // Delivery goes through fetch so the outcome is observable (res.ok drives the
@@ -69,12 +81,15 @@ describe('BeaconClient', () => {
 
     const client = new BeaconClient({ url: 'http://localhost:4200', intervalMs: 2000 })
     client.start(vi.fn(createMockSnapshot))
+    const snapshotCallCount = () => mockFetch.mock.calls.filter(
+      ([url]) => String(url).endsWith('/api/snapshot'),
+    ).length
 
-    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(snapshotCallCount()).toBe(1)
     vi.advanceTimersByTime(2000)
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(snapshotCallCount()).toBe(2)
     vi.advanceTimersByTime(2000)
-    expect(mockFetch).toHaveBeenCalledTimes(3)
+    expect(snapshotCallCount()).toBe(3)
 
     client.stop()
   })
@@ -181,5 +196,94 @@ describe('BeaconClient', () => {
     expect(typeof client.getStatus().lastAttemptAt).toBe('number')
 
     client.stop()
+  })
+
+  it('wraps snapshots with stable project and browser instance identity', () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    setFetch(mockFetch)
+    const client = new BeaconClient({
+      url: 'http://localhost:4200',
+      intervalMs: 2000,
+      projectId: 'my-project',
+    })
+
+    client.start(createMockSnapshot)
+    const firstInit = mockFetch.mock.calls[0]![1] as RequestInit
+    const first = JSON.parse(String(firstInit.body)) as ProjectSnapshotEnvelope
+    client.sendNow()
+    const secondInit = mockFetch.mock.calls[1]![1] as RequestInit
+    const second = JSON.parse(String(secondInit.body)) as ProjectSnapshotEnvelope
+
+    expect(first.projectId).toBe('my-project')
+    expect(first.instanceId).toBeTruthy()
+    expect(first.instanceId).toBe(second.instanceId)
+    expect(first.snapshot.domNodeCount).toBe(100)
+    client.stop()
+  })
+
+  it('polls and exposes the real project agent status', async () => {
+    vi.useRealTimers()
+    const projectStatus = {
+      projectId: 'project-a',
+      state: 'watching' as const,
+      queueDepth: 0,
+      leaseExpiresAt: Date.now() + 15_000,
+      conflictAt: null,
+    }
+    setFetch(vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      return url.endsWith('/status')
+        ? new Response(JSON.stringify(projectStatus), { status: 200 })
+        : new Response(JSON.stringify({ received: true }), { status: 200 })
+    }))
+    const client = new BeaconClient({
+      url: 'http://localhost:4200',
+      intervalMs: 60_000,
+      projectId: 'project-a',
+    })
+
+    client.start(createMockSnapshot)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(client.getStatus()).toMatchObject({
+      projectId: 'project-a',
+      lastOk: true,
+      projectStatus,
+      statusError: null,
+    })
+    client.stop()
+  })
+
+  it('dispatches an issue immediately and preserves structured failure codes', async () => {
+    vi.useRealTimers()
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        code: 'dispatched',
+        projectId: 'project-a',
+        queueDepth: 0,
+      }), { status: 200 }))
+      .mockRejectedValueOnce(new Error('offline'))
+    setFetch(mockFetch)
+    const client = new BeaconClient({
+      url: 'http://localhost:4200',
+      intervalMs: 2000,
+      projectId: 'project-a',
+    })
+
+    await expect(client.dispatchIssue(createMockIssue())).resolves.toMatchObject({
+      ok: true,
+      code: 'dispatched',
+    })
+    const body = JSON.parse(String((mockFetch.mock.calls[0]![1] as RequestInit).body)) as {
+      projectId: string
+      issue: VibeIssue
+    }
+    expect(body).toMatchObject({ projectId: 'project-a', issue: { id: 'dom-1' } })
+
+    await expect(client.dispatchIssue(createMockIssue())).resolves.toMatchObject({
+      ok: false,
+      code: 'hub-offline',
+    })
   })
 })

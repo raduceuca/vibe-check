@@ -89,6 +89,7 @@ export const EMPTY_RESOURCE_STATS: ResourceStats = {
 export interface VibeCheckConfig {
   readonly enabled: boolean
   readonly beaconUrl?: string
+  readonly projectId?: string
   readonly beaconIntervalMs: number
   readonly detectors: {
     readonly domBloat: boolean

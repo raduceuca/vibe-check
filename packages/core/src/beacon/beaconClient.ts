@@ -1,76 +1,155 @@
-import type { VibeSnapshot } from '../types.js'
+import type {
+  DispatchIssueRequest,
+  DispatchIssueResponse,
+  ProjectSnapshotEnvelope,
+  ProjectStatus,
+  VibeIssue,
+  VibeSnapshot,
+} from '../types.js'
 
 export interface BeaconClientConfig {
   readonly url: string
   readonly intervalMs: number
+  readonly projectId?: string
 }
 
-// Real delivery status, so the UI/agent can tell whether snapshots are actually
-// reaching the MCP server rather than just "a URL is configured".
 export interface BeaconStatus {
   readonly configured: boolean
-  // Timestamp of the most recent send attempt (null before the first send).
+  readonly projectId: string
+  readonly instanceId: string
   readonly lastAttemptAt: number | null
-  // Outcome of the most recent attempt: true if delivered/queued, false if it
-  // failed, null if no attempt has completed yet.
   readonly lastOk: boolean | null
+  readonly projectStatus: ProjectStatus | null
+  readonly statusError: 'hub-offline' | null
+}
+
+const STATUS_INTERVAL_MS = 2_000
+
+const defaultProjectId = (): string =>
+  typeof window !== 'undefined' && window.location.origin !== 'null'
+    ? window.location.origin
+    : 'unknown-project'
+
+const createInstanceId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `instance-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 export class BeaconClient {
   private readonly config: BeaconClientConfig
+  private readonly projectId: string
+  private readonly instanceId = createInstanceId()
   private intervalId: ReturnType<typeof setInterval> | undefined = undefined
+  private statusIntervalId: ReturnType<typeof setInterval> | undefined = undefined
   private getSnapshot: (() => VibeSnapshot) | null = null
   private lastAttemptAt: number | null = null
   private lastOk: boolean | null = null
+  private projectStatus: ProjectStatus | null = null
+  private statusError: 'hub-offline' | null = null
 
   constructor(config: BeaconClientConfig) {
     this.config = config
+    this.projectId = config.projectId ?? defaultProjectId()
   }
 
   getStatus(): BeaconStatus {
     return {
       configured: true,
+      projectId: this.projectId,
+      instanceId: this.instanceId,
       lastAttemptAt: this.lastAttemptAt,
       lastOk: this.lastOk,
+      projectStatus: this.projectStatus,
+      statusError: this.statusError,
     }
   }
 
   start(getSnapshot: () => VibeSnapshot): void {
     this.getSnapshot = getSnapshot
-    this.intervalId = setInterval(() => {
-      this.send()
-    }, this.config.intervalMs)
-    // Send immediately on start
+    this.intervalId = setInterval(() => this.send(), this.config.intervalMs)
+    this.statusIntervalId = setInterval(() => { void this.refreshStatus() }, STATUS_INTERVAL_MS)
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.handleVisibility)
     this.send()
   }
 
   stop(): void {
-    if (this.intervalId !== undefined) {
-      clearInterval(this.intervalId)
-      this.intervalId = undefined
-    }
+    if (this.intervalId !== undefined) clearInterval(this.intervalId)
+    if (this.statusIntervalId !== undefined) clearInterval(this.statusIntervalId)
+    this.intervalId = undefined
+    this.statusIntervalId = undefined
     this.getSnapshot = null
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.handleVisibility)
   }
 
   sendNow(): void {
     this.send()
   }
 
+  async dispatchIssue(issue: VibeIssue): Promise<DispatchIssueResponse> {
+    if (typeof fetch === 'undefined') return this.dispatchFailure('hub-offline')
+    const request: DispatchIssueRequest = {
+      projectId: this.projectId,
+      instanceId: this.instanceId,
+      issue,
+    }
+    try {
+      const response = await fetch(
+        `${this.config.url}/api/projects/${encodeURIComponent(this.projectId)}/dispatch`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request),
+        },
+      )
+      const body = await response.json() as DispatchIssueResponse
+      return body
+    } catch {
+      return this.dispatchFailure('hub-offline')
+    }
+  }
+
+  private readonly handleVisibility = (): void => {
+    if (!document.hidden) void this.refreshStatus()
+  }
+
+  private dispatchFailure(code: DispatchIssueResponse['code']): DispatchIssueResponse {
+    return { ok: false, code, projectId: this.projectId, queueDepth: 0 }
+  }
+
+  private envelope(snapshot: VibeSnapshot): ProjectSnapshotEnvelope {
+    return {
+      projectId: this.projectId,
+      instanceId: this.instanceId,
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      title: typeof document !== 'undefined' ? document.title : '',
+      snapshot,
+    }
+  }
+
+  private async refreshStatus(): Promise<void> {
+    if (typeof fetch === 'undefined') return
+    if (typeof document !== 'undefined' && document.hidden) return
+    try {
+      const response = await fetch(
+        `${this.config.url}/api/projects/${encodeURIComponent(this.projectId)}/status`,
+      )
+      if (!response.ok) throw new Error(`status ${response.status}`)
+      this.projectStatus = await response.json() as ProjectStatus
+      this.statusError = null
+    } catch {
+      this.statusError = 'hub-offline'
+    }
+  }
+
   private send(): void {
     if (this.getSnapshot === null) return
-
-    const snapshot = this.getSnapshot()
+    const payload = JSON.stringify(this.envelope(this.getSnapshot()))
     const endpoint = `${this.config.url}/api/snapshot`
-    const payload = JSON.stringify(snapshot)
     this.lastAttemptAt = Date.now()
 
     try {
-      // Deliver via fetch so the outcome is *observable*: lastOk reflects a real
-      // server response (res.ok), not merely that the payload was accepted for
-      // sending. This is what keeps the connection indicator honest —
-      // navigator.sendBeacon returns true whenever the UA queues the blob, even
-      // when nothing is listening on the port, which made the status always green.
-      // fetch(keepalive) delivers reliably during unload in modern browsers too.
       if (typeof fetch !== 'undefined') {
         fetch(endpoint, {
           method: 'POST',
@@ -78,29 +157,25 @@ export class BeaconClient {
           body: payload,
           keepalive: true,
         })
-          .then((res) => { this.lastOk = res.ok })
+          .then((response) => {
+            this.lastOk = response.ok
+            if (response.ok) void this.refreshStatus()
+          })
           .catch(() => {
-            // Record the failure (the UI surfaces it) but never throw —
-            // monitoring must not break the host app.
             this.lastOk = false
+            this.statusError = 'hub-offline'
           })
         return
       }
 
-      // Legacy fallback (no fetch): sendBeacon can only confirm the UA queued the
-      // payload, never that it reached the server — so we cannot honestly claim
-      // success. Deliver best-effort and leave lastOk unknown (null) so the
-      // indicator shows "connecting", never a false "connected".
       if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        const blob = new Blob([payload], { type: 'application/json' })
-        navigator.sendBeacon(endpoint, blob)
+        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }))
         return
       }
-
       this.lastOk = false
     } catch {
-      // Silently ignore — monitoring must never break the host app
       this.lastOk = false
+      this.statusError = 'hub-offline'
     }
   }
 }

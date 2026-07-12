@@ -95,4 +95,13 @@ describe('createScriptedEngine', () => {
     const engine = createScriptedEngine(scenario)
     expect(engine.getBeaconStatus()).toBeNull()
   })
+
+  it('cannot dispatch scripted issues to an agent', async () => {
+    const engine = createScriptedEngine(scenario)
+    await expect(engine.dispatchIssue(makeIssue('scripted'))).resolves.toMatchObject({
+      ok: false,
+      code: 'unconfigured',
+      projectId: 'scripted',
+    })
+  })
 })
