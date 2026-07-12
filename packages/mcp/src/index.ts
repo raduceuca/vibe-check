@@ -1,58 +1,51 @@
-// Entry point for npx @wcgw/vibe-check-mcp
-
+import { randomUUID } from 'node:crypto'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { createStore, updateSnapshot, type VibeStore } from './store.js'
-import { createHttpServer } from './httpServer.js'
+import { parseCliConfig } from './cli.js'
+import { createHubClient } from './hubClient.js'
+import { createHubServer } from './hubServer.js'
+import { createLeaseManager } from './leaseManager.js'
 import { createMcpServer } from './mcpServer.js'
-import type { VibeSnapshot } from './types.js'
 
-const DEFAULT_PORT = 4200
-// Bind to loopback by default. This is an unauthenticated dev tool that stores
-// browser telemetry and serves it to an AI agent; binding all interfaces would
-// expose it to the whole LAN and to fake-snapshot injection. Override with
-// VIBE_CHECK_HOST only for trusted setups (e.g. a container bridge).
-const DEFAULT_HOST = '127.0.0.1'
+declare const __VIBE_CHECK_VERSION__: string
 
 const main = async (): Promise<void> => {
-  const rawPort = parseInt(process.env['VIBE_CHECK_PORT'] ?? String(DEFAULT_PORT), 10)
-  const port = Number.isNaN(rawPort) || rawPort < 1 || rawPort > 65535 ? DEFAULT_PORT : rawPort
-  const host = process.env['VIBE_CHECK_HOST'] ?? DEFAULT_HOST
+  const config = parseCliConfig(process.argv.slice(2), process.env)
 
-  let store: VibeStore = createStore()
-
-  const getStore = (): VibeStore => store
-  const setStore = (newStore: VibeStore): void => { store = newStore }
-
-  const httpContext = createHttpServer((snapshot: VibeSnapshot) => {
-    store = updateSnapshot(store, snapshot)
-  })
-
-  const mcpContext = createMcpServer(getStore, setStore)
-
-  httpContext.onSnapshot((snapshot) => {
-    mcpContext.notifySnapshot(snapshot)
-  })
-
-  httpContext.server.listen(port, host, () => {
-    process.stderr.write(`[vibe-check] HTTP server listening on http://${host}:${port}\n`)
-  })
-
-  const transport = new StdioServerTransport()
-  await mcpContext.server.connect(transport)
-
-  process.stderr.write('[vibe-check] MCP server connected via stdio\n')
-
-  const shutdown = (): void => {
-    process.stderr.write('[vibe-check] Shutting down...\n')
-    httpContext.server.close()
-    process.exit(0)
+  if (config.role === 'hub') {
+    const hub = createHubServer({ version: __VIBE_CHECK_VERSION__ })
+    hub.server.listen(config.port, config.host, () => {
+      process.stderr.write(`[vibe-check] Hub listening on http://${config.host}:${config.port}\n`)
+    })
+    const shutdown = async (): Promise<void> => {
+      await hub.close()
+      process.exit(0)
+    }
+    process.on('SIGINT', () => { void shutdown() })
+    process.on('SIGTERM', () => { void shutdown() })
+    return
   }
 
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+  const client = createHubClient(config.hubUrl)
+  await client.health()
+  const leases = createLeaseManager(client, randomUUID())
+  const mcp = createMcpServer(client, leases, __VIBE_CHECK_VERSION__)
+  await mcp.server.connect(new StdioServerTransport())
+  process.stderr.write(`[vibe-check] MCP bridge connected to ${config.hubUrl}\n`)
+
+  let shuttingDown = false
+  const shutdown = async (): Promise<void> => {
+    if (shuttingDown) return
+    shuttingDown = true
+    await leases.stop()
+    await mcp.server.close()
+    process.exit(0)
+  }
+  process.on('SIGINT', () => { void shutdown() })
+  process.on('SIGTERM', () => { void shutdown() })
+  process.stdin.on('close', () => { void shutdown() })
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`[vibe-check] Fatal error: ${error}\n`)
+  process.stderr.write(`[vibe-check] Fatal error: ${error instanceof Error ? error.message : String(error)}\n`)
   process.exit(1)
 })

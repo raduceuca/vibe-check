@@ -1,4 +1,13 @@
 import { defineConfig } from 'tsup'
+import { readFileSync } from 'node:fs'
+
+const packageJson = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { readonly version: string }
+
+const define = {
+  __VIBE_CHECK_VERSION__: JSON.stringify(packageJson.version),
+}
 
 export default defineConfig([
   {
@@ -12,6 +21,7 @@ export default defineConfig([
     banner: {
       js: '#!/usr/bin/env node',
     },
+    define,
   },
   {
     entry: ['src/lib.ts'],
@@ -20,5 +30,6 @@ export default defineConfig([
     sourcemap: true,
     external: ['@modelcontextprotocol/sdk', 'zod'],
     noExternal: ['@wcgw/vibe-check-protocol'],
+    define,
   },
 ])
