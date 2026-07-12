@@ -27,7 +27,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc -p tsconfig.lint.json",
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {

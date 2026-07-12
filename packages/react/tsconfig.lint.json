@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "baseUrl": ".",
+    "paths": {
+      "@wcgw/vibe-check-core": ["../core/src/index.ts"],
+      "@wcgw/vibe-check-protocol": ["../protocol/src/index.ts"]
+    }
+  }
+}

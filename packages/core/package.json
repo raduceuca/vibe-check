@@ -24,7 +24,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc -p tsconfig.lint.json",
     "prepublishOnly": "pnpm build && pnpm test"
   },
   "keywords": ["performance", "monitoring", "web-vitals", "vibe-coding", "ai-coding"],
