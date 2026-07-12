@@ -19,6 +19,7 @@ the collapsed pill or the expanded panel.
 | `position` | `Position` | `'bottom-right'` | Corner to dock to. |
 | `panels` | `readonly PanelType[]` | `['fps','vitals','memory','console','issues']` | Which monitor panels show. |
 | `beaconUrl` | `string` | — | POST snapshots here (your MCP server). Omit to run local-only. |
+| `projectId` | `string` | page origin | Stable routing key for snapshots, dispatches, and agent ownership. Set explicitly when running parallel projects. |
 | `onIssue` | `(issue: VibeIssue) => void` | — | Called as issues are detected. |
 | `engine` | `VibeEngine \| null` | `null` | Drive a provided engine (e.g. `createScriptedEngine`) instead of a live one. |
 | `startCollapsed` | `boolean` | `false` | Start as the floating pill. |
@@ -27,7 +28,7 @@ the collapsed pill or the expanded panel.
 ```tsx
 import { VibeCheck } from '@wcgw/vibe-check'
 
-<VibeCheck position="bottom-right" beaconUrl="http://localhost:4200" />
+<VibeCheck position="bottom-right" beaconUrl="http://127.0.0.1:4200" projectId="my-project" />
 ```
 
 `Position` is `'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`.
@@ -46,7 +47,7 @@ collapsed pill.
 ```tsx
 import { PerfToggle } from '@wcgw/vibe-check'
 
-<PerfToggle vibeCheckProps={{ beaconUrl: 'http://localhost:4200' }} />
+<PerfToggle vibeCheckProps={{ beaconUrl: 'http://127.0.0.1:4200', projectId: 'my-project' }} />
 ```
 
 <Callout title="Default shortcut">

@@ -25,7 +25,7 @@ const VibeCheck = dynamic(
 )
 
 export function VibeWidget() {
-  return <VibeCheck position="bottom-right" beaconUrl="http://localhost:4200" />
+  return <VibeCheck position="bottom-right" beaconUrl="http://127.0.0.1:4200" projectId="my-project" />
 }
 ```
 
@@ -71,7 +71,7 @@ Point `beaconUrl` at your running MCP server (default `http://localhost:4200`)
 and start it so your agent can read the data:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp
+npx -y @wcgw/vibe-check-mcp hub
 ```
 
 See [AI Agent Setup](/docs/ai-agents/overview) to wire it into Claude Code,

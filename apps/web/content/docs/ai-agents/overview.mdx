@@ -1,55 +1,60 @@
 ---
-title: Overview
-description: The six MCP tools your agent gets, and how one process serves both the browser and the agent.
+title: Agent integration overview
+description: How the shared hub, per-client MCP bridge, project routing, and exclusive watcher lease work.
 ---
 
-`@wcgw/vibe-check-mcp` is what turns a wall of metrics into something your coding
-agent can act on. Run it once — `npx -y @wcgw/vibe-check-mcp` — and it starts two
-things in a single process:
+VibeCheck uses two local process roles:
 
-- an **HTTP receiver** on `localhost:4200` that accepts snapshots from the
-  browser beacon, and
-- a **stdio MCP server** that exposes six tools to your agent.
-
-Snapshots come in the front door over HTTP, land in an immutable store, and go
-out the side door to your agent when it calls a tool.
+- one long-running **hub** receives browser snapshots and button dispatches for
+  every local project; and
+- each MCP client launches a stdio **bridge** that connects tools to that hub.
 
 ```text
-browser beacon ──HTTP──▶ HTTP receiver ──▶ VibeStore ──▶ MCP tools ──stdio──▶ agent
+project A widget ─┐                    ┌─ bridge ─ agent A
+project B widget ─┴─ shared hub :4200 ─┴─ bridge ─ agent B
 ```
 
-## The six tools
+Because only the hub binds port 4200, opening another agent client does not cause
+the port collisions common to single-process browser/MCP integrations.
 
-| Tool | Purpose | Key arguments |
-| --- | --- | --- |
-| `get_performance_snapshot` | The latest full snapshot: FPS, vitals, memory, resources, issues. | none |
-| `get_detected_issues` | Active (not acknowledged/resolved) issues. | `severity?`, `detector?` |
-| `get_fix_suggestions` | Cause + step-by-step fix + code for one issue. | `issue_id` |
-| `watch_performance` | Block until the next snapshot arrives — verify a fix landed. | `timeout_seconds?` (1–300, default 30) |
-| `acknowledge_issue` | Mark an issue seen; drops it from the active list. | `issue_id` |
-| `resolve_issue` | Mark an issue fixed; drops it from the active list. | `issue_id` |
+## Routing and ownership
 
-Full parameter and return shapes are in the
-[MCP tools reference](/docs/reference/mcp-tools).
+Snapshots, issue queues, histories, and leases are keyed by `projectId`. One
+agent session can watch one project, and one project can have one healthy
+watcher. A second watcher gets `lease-conflict`; it never steals the queue.
 
-## A typical agent loop
+The lease is heartbeated every 5 seconds, reports stale after 10 seconds, and
+expires after 15 seconds. Use `release_project` to move immediately.
 
-1. `get_detected_issues` — what's wrong right now?
-2. `get_fix_suggestions` for the worst one — how do I fix it?
-3. Edit the code.
-4. `watch_performance` — did the next snapshot clear it?
-5. `resolve_issue` once it's gone.
+## The nine tools
 
-## Set up your client
+| Tool | Purpose |
+|---|---|
+| `list_projects` | Discover active project IDs and watcher state. |
+| `get_performance_snapshot` | Read one project's latest metrics. |
+| `get_detected_issues` | Read one project's active issues. |
+| `get_fix_suggestions` | Get a fix guide for one issue. |
+| `watch_performance` | Claim a project and wait for its next snapshot. |
+| `watch_for_issue` | Claim a project and wait for a widget dispatch. |
+| `acknowledge_issue` | Acknowledge an issue. |
+| `resolve_issue` | Resolve an issue. |
+| `release_project` | Release this session's lease. |
+
+If exactly one project is active, `project_id` is optional. When several are
+active, project-scoped tools fail with `project-ambiguous` until the agent passes
+one explicitly.
+
+## Widget-driven loop
+
+1. The agent calls `list_projects` and `watch_for_issue`.
+2. The widget reports **Agent connected**.
+3. The user clicks **Send to agent** on an issue.
+4. The tool returns the issue and fix suggestion; the widget marks it sent.
+5. The agent fixes the code and calls `resolve_issue`.
+6. The agent watches again or calls `release_project`.
 
 <Cards>
-  <Card title="Claude Code" href="/docs/ai-agents/claude-code" description="One command: claude mcp add." />
-  <Card title="Cursor" href="/docs/ai-agents/cursor" description=".cursor/mcp.json." />
-  <Card title="Other clients" href="/docs/ai-agents/other-clients" description="Claude Desktop, Windsurf, and the universal config." />
+  <Card title="Claude Code" href="/docs/ai-agents/claude-code" description="Register the connect bridge." />
+  <Card title="Cursor" href="/docs/ai-agents/cursor" description="Configure the same bridge command." />
+  <Card title="Tool reference" href="/docs/reference/mcp-tools" description="Parameters, responses, and HTTP routes." />
 </Cards>
-
-<Callout title="The browser side is separate">
-  The MCP server only receives and serves data — it never measures anything. You
-  still need the widget (or a headless engine) running in your app with its
-  `beaconUrl` pointed at the server. See [Integration](/docs/integration).
-</Callout>

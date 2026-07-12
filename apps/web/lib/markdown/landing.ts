@@ -40,13 +40,16 @@ Drop in the widget:
 
     import { VibeCheck } from '@wcgw/vibe-check'
 
-    {process.env.NODE_ENV !== 'production' && <VibeCheck />}
+    {process.env.NODE_ENV !== 'production' && (
+      <VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="my-project" />
+    )}
 
 Connect your coding agent over MCP:
 
-    claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp
+    npx -y @wcgw/vibe-check-mcp hub
+    claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 
-Six MCP tools, an \`llms.txt\`, and a Claude skill ship in the box. Zero runtime deps in core · open source · MIT.
+Nine project-scoped MCP tools, an \`llms.txt\`, and a Claude skill ship in the box. Zero runtime deps in core · open source · MIT.
 
 ## Links
 

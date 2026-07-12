@@ -24,7 +24,7 @@ let engine: VibeCheckEngine | null = null
 let unsubscribe: (() => void) | null = null
 
 onMounted(() => {
-  engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+  engine = new VibeCheckEngine({ beaconUrl: 'http://127.0.0.1:4200', projectId: 'my-project' })
   unsubscribe = engine.onSnapshot((snap: VibeSnapshot) => {
     fps.value = snap.frameRate.fps
     issueCount.value = snap.issues.length
@@ -55,7 +55,7 @@ onUnmounted(() => {
   let issueCount = 0
 
   onMount(() => {
-    const engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+    const engine = new VibeCheckEngine({ beaconUrl: 'http://127.0.0.1:4200', projectId: 'my-project' })
     const unsubscribe = engine.onSnapshot((snap: VibeSnapshot) => {
       fps = snap.frameRate.fps
       issueCount = snap.issues.length

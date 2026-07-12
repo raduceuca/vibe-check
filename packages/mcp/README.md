@@ -1,200 +1,228 @@
 # @wcgw/vibe-check-mcp
 
-MCP server that bridges browser performance metrics to AI agents. Receives snapshots from the browser via HTTP and exposes them through 6 MCP tools so any MCP-aware agent can read live perf data and get fix suggestions.
+Local hub and MCP bridge for VibeCheck. Browser widgets send project-tagged
+snapshots to one long-running hub. Each AI-agent client launches a small stdio
+bridge that connects to that hub.
 
-## Installation
+This split matters: starting another agent session no longer tries to bind a
+second HTTP server to port 4200, and several dev servers remain isolated by
+`projectId`.
+
+## From nothing to a widget-to-agent dispatch
+
+You need Node.js 20+ and an MCP-capable coding agent.
+
+### 1. Install the React widget
 
 ```bash
-npm install @wcgw/vibe-check-mcp
+npm install -D @wcgw/vibe-check
 ```
 
-Or run directly without installing:
+Mount it only in development and choose a stable project ID:
+
+```tsx
+import { PerfToggle } from '@wcgw/vibe-check'
+
+export const App = () => (
+  <>
+    <YourApp />
+    {import.meta.env.DEV && (
+      <PerfToggle vibeCheckProps={{
+        beaconUrl: 'http://127.0.0.1:4200',
+        projectId: 'my-storefront',
+      }} />
+    )}
+  </>
+)
+```
+
+Without `beaconUrl`, the widget is deliberately local-only: collectors, panels,
+annotations, and clipboard prompts work, but it cannot communicate with an agent.
+
+### 2. Start one local hub
+
+Run this in its own terminal and leave it running:
 
 ```bash
-npx @wcgw/vibe-check-mcp
+npx -y @wcgw/vibe-check-mcp hub
 ```
 
-## How it works
+Expected output:
 
-```
-Browser (vibe-check widget)  --POST /api/snapshot-->  HTTP server
-                                                          |
-                                                      VibeStore
-                                                          |
-AI agent  <--stdio MCP transport--  MCP server  <---------+
+```text
+[vibe-check] Hub listening on http://127.0.0.1:4200
 ```
 
-The server runs two transports simultaneously:
-- **HTTP** on port `4200` (configurable via `VIBE_CHECK_PORT`) — receives snapshots from the browser widget and serves an SSE stream
-- **stdio** — MCP protocol for AI agent communication
+The widget first reports **Waiting for an agent**. That means browser-to-hub
+communication works; no agent session owns the project yet.
 
-## AI agent setup
+### 3. Add the MCP bridge to your agent
 
-Pick the row for your tool. All of them spawn the server via `npx` so you don't need to install anything globally.
+For Claude Code:
 
-| Agent | Setup |
-|---|---|
-| **Claude Code** | `claude mcp add vibe-check -- npx @wcgw/vibe-check-mcp` |
-| **Claude Desktop** | Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (mac) — see JSON below |
-| **Cursor** | Settings → MCP → Add new server — paste the JSON below |
-| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` — paste the JSON below |
-| **Cline** | Cline Settings → MCP Servers — paste the JSON below |
-| **Continue** | Add under `mcpServers` in `~/.continue/config.yaml` |
-| **Zed** | `settings.json` → `context_servers` — paste the JSON below |
+```bash
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+```
 
-The standard `mcpServers` JSON snippet (works for everything except the Claude Code one-liner above):
+For clients that accept `mcpServers` JSON:
 
 ```json
 {
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["@wcgw/vibe-check-mcp"]
+      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
     }
   }
 }
 ```
 
-Then in your app, install the React widget and point it at the same port:
+Restart the agent client after editing its MCP configuration. The bridge expects
+the hub at `http://127.0.0.1:4200`; set `VIBE_CHECK_HUB_URL` when the hub uses a
+different local port.
+
+### 4. Claim the project and wait
+
+Ask the agent:
+
+```text
+Call list_projects, then watch_for_issue for project my-storefront.
+```
+
+`watch_for_issue` acquires the project's exclusive watcher lease and waits. The
+widget changes to **Agent connected**. While processing a delivered issue it may
+show **Agent working**.
+
+### 5. Send a real detected issue
+
+Open the widget's **Agent** tab, expand an issue, and click **Send to agent**.
+The pending `watch_for_issue` tool call returns:
+
+- the exact structured issue selected in the browser;
+- its project ID and dispatch timestamp; and
+- a detector-specific fix suggestion.
+
+The widget moves the issue to *sent* only after the hub confirms the dispatch.
+**Copy prompt** is a separate clipboard-only action and never claims delivery.
+
+## Multiple projects and agent sessions
+
+Use one hub for all local dev servers. Give each widget a different stable ID:
 
 ```tsx
-import { PerfToggle } from '@wcgw/vibe-check'
+// localhost:3000
+<VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="storefront" />
 
-<PerfToggle vibeCheckProps={{ beaconUrl: 'http://localhost:4200' }} />
+// localhost:5173
+<VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="admin-console" />
 ```
+
+The hub keeps snapshots, issue histories, dispatch queues, and watcher leases per
+project. Agent session A can watch `storefront` while session B watches
+`admin-console`; neither can read or consume the other's dispatches.
+
+The ownership rules are intentional:
+
+- one agent session may watch one project at a time;
+- one project may have one active agent watcher;
+- a second watcher for the same project receives `lease-conflict`;
+- the widget keeps showing the original watcher as connected and adds a warning
+  that the second agent was rejected;
+- leases are heartbeated every 5 seconds, become stale after 10 seconds, and are
+  released after 15 seconds without a heartbeat;
+- `release_project` releases ownership immediately.
+
+When several projects are active, pass `project_id` to project-scoped tools. If
+exactly one is active, it may be omitted. This fail-closed behavior prevents an
+agent from silently selecting the wrong dev server.
 
 ## MCP tools
 
-| Tool | Arguments | Description |
+| Tool | Main arguments | Purpose |
 |---|---|---|
-| `get_performance_snapshot` | — | Current frame rate, Web Vitals, memory, resources, console stats, DOM count, and active issues. |
-| `get_detected_issues` | `severity?`, `detector?` | Active (not acknowledged or resolved) issues. Filterable. |
-| `get_fix_suggestions` | `issue_id` | Markdown fix guide for one issue: causes, step-by-step fix, code examples. |
-| `watch_performance` | `timeout_seconds` (1–300, default 30) | Long-poll for the next snapshot — useful after applying a fix. |
-| `acknowledge_issue` | `issue_id` | Hides the issue from `get_detected_issues`. |
-| `resolve_issue` | `issue_id` | Marks the issue as fixed. |
+| `list_projects` | — | List active project IDs, page URLs, last-seen times, issue counts, queue depth, and watcher state. |
+| `get_performance_snapshot` | `project_id?` | Read the latest snapshot for one project. |
+| `get_detected_issues` | `project_id?`, `severity?`, `detector?` | Read active issues for one project. |
+| `get_fix_suggestions` | `project_id?`, `issue_id` | Get the detector-specific fix guide for one issue. |
+| `watch_performance` | `project_id?`, `timeout_seconds?` | Claim a project and wait for its next snapshot. |
+| `watch_for_issue` | `project_id?`, `timeout_seconds?` | Claim a project and wait for a widget button dispatch. |
+| `acknowledge_issue` | `project_id?`, `issue_id` | Acknowledge an issue in one project. |
+| `resolve_issue` | `project_id?`, `issue_id` | Resolve an issue in one project. |
+| `release_project` | — | Release this bridge session's current lease. |
 
-### Example: `get_performance_snapshot` response
+## Browser HTTP API
 
-```json
-{
-  "timestamp": 1745000000000,
-  "frameRate": {
-    "fps": 58,
-    "avgFrameTime": 17.2,
-    "maxFrameTime": 42.1,
-    "droppedFrames": 3,
-    "smoothness": 95.1
-  },
-  "longFrames": {
-    "count": 1,
-    "entries": [],
-    "worstFrame": 64
-  },
-  "webVitals": {
-    "lcp": { "value": 1820, "rating": "good" },
-    "inp": { "value": 145, "rating": "good" },
-    "cls": { "value": 0.04, "rating": "good" }
-  },
-  "memory": {
-    "jsHeapSizeMB": 38,
-    "totalHeapSizeMB": 92,
-    "usedPct": 41
-  },
-  "resources": {
-    "totalTransferKB": 612,
-    "jsTransferKB": 380,
-    "cssTransferKB": 42,
-    "imageTransferKB": 180,
-    "fontTransferKB": 10,
-    "resourceCount": 28,
-    "largeResources": []
-  },
-  "console": {
-    "logCount": 4,
-    "warnCount": 0,
-    "errorCount": 0,
-    "totalCount": 4
-  },
-  "domNodeCount": 412,
-  "issues": [
-    {
-      "id": "issue_a91b...",
-      "detector": "heavy-library",
-      "severity": "warning",
-      "title": "Moment.js detected (75KB)",
-      "description": "Date library \"Moment.js\" found on page...",
-      "evidence": { "library": "Moment.js", "bundleSizeKB": 75 },
-      "timestamp": 1745000000000,
-      "acknowledged": false,
-      "resolved": false
-    }
-  ]
-}
-```
+The public browser routes allow CORS and accept only browser-facing operations:
 
-When `latestSnapshot` is null (browser hasn't sent anything yet), tools return `{ "error": "No snapshot available yet..." }` instead — agents should handle that as "ask the user to load the page" rather than as a hard failure.
-
-## HTTP endpoints
-
-| Endpoint | Method | Description |
+| Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/snapshot` | POST | Receive a performance snapshot from the browser (1 MiB body cap). |
-| `/api/stream` | GET | SSE stream of live snapshots (max 10 concurrent connections). |
-| `/api/health` | GET | Health check — returns `{ "status": "ok" }`. |
+| `/api/health` | GET | Hub readiness and version. |
+| `/api/snapshot` | POST | Receive a `ProjectSnapshotEnvelope`. |
+| `/api/projects/:projectId/status` | GET | Widget-visible watcher, queue, and conflict state. |
+| `/api/projects/:projectId/dispatch` | POST | Queue a selected issue for the owning watcher. |
 
-CORS is wide open (`Access-Control-Allow-Origin: *`) so any local dev server can POST to it.
+Bridge-only routes live under `/internal`. Requests with a browser `Origin`
+header are rejected there, so a page cannot acquire leases or read another
+project through the private API.
 
 ## Configuration
 
-| Environment variable | Default | Description |
-|---|---|---|
-| `VIBE_CHECK_PORT` | `4200` | HTTP server port. Anything outside `1–65535` falls back to the default. |
+| Process | Environment variable | Default | Purpose |
+|---|---|---|---|
+| `hub` | `VIBE_CHECK_HOST` | `127.0.0.1` | Hub bind address. |
+| `hub` | `VIBE_CHECK_PORT` | `4200` | Hub port. |
+| `connect` | `VIBE_CHECK_HUB_URL` | `http://127.0.0.1:4200` | Hub used by the stdio bridge. |
 
-## Programmatic usage
+For a port override, update all three places together:
 
-If you want to embed the server in your own Node process instead of running the bin:
-
-```typescript
-import {
-  createStore,
-  updateSnapshot,
-  createHttpServer,
-  createMcpServer,
-  type VibeStore,
-} from '@wcgw/vibe-check-mcp'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-
-let store: VibeStore = createStore()
-
-const httpContext = createHttpServer((snapshot) => {
-  store = updateSnapshot(store, snapshot)
-})
-
-const mcpContext = createMcpServer(
-  () => store,
-  (next) => { store = next },
-)
-
-// Fan snapshots out to MCP `watch_performance` waiters.
-httpContext.onSnapshot((snapshot) => {
-  mcpContext.notifySnapshot(snapshot)
-})
-
-httpContext.server.listen(4200)
-
-const transport = new StdioServerTransport()
-await mcpContext.server.connect(transport)
+```bash
+VIBE_CHECK_PORT=4210 npx -y @wcgw/vibe-check-mcp hub
+VIBE_CHECK_HUB_URL=http://127.0.0.1:4210 npx -y @wcgw/vibe-check-mcp connect
 ```
 
-This mirrors what the bundled `npx @wcgw/vibe-check-mcp` bin does internally.
+```tsx
+<VibeCheck beaconUrl="http://127.0.0.1:4210" projectId="my-storefront" />
+```
+
+## Programmatic composition
+
+```ts
+import {
+  createHubClient,
+  createHubServer,
+  createLeaseManager,
+  createMcpServer,
+} from '@wcgw/vibe-check-mcp'
+
+const hub = createHubServer({ version: '0.2.0' })
+hub.server.listen(4200, '127.0.0.1')
+
+const client = createHubClient('http://127.0.0.1:4200')
+const leases = createLeaseManager(client, crypto.randomUUID())
+const mcp = createMcpServer(client, leases, '0.2.0')
+```
+
+The CLI's `connect` mode also attaches `StdioServerTransport` and releases its
+lease on shutdown.
 
 ## Troubleshooting
 
-- **"No snapshot available yet"** — the browser widget hasn't POSTed anything. Load the page that has `<PerfToggle />` or `<VibeCheck beaconUrl="..." />` mounted, and make sure the URL matches `http://localhost:4200` (or whatever `VIBE_CHECK_PORT` you set).
-- **`EADDRINUSE` on port 4200** — another process owns the port. Set `VIBE_CHECK_PORT=4201` (or anything free) in the env where the MCP server runs, and update `beaconUrl` in your widget to match.
-- **Agent reports "tool not found"** — the MCP server didn't connect. Check the agent's MCP logs; for Claude Code: `claude mcp list` should show `vibe-check ✓`. Re-run the `claude mcp add` command if it doesn't.
-- **CORS error in the browser** — shouldn't happen (CORS is wide open), but if you've put a proxy in front of the MCP server make sure it forwards `OPTIONS` preflights and the `Access-Control-Allow-*` response headers.
+- **MCP not configured** — no `beaconUrl` reached the widget. Add both
+  `beaconUrl` and a stable `projectId`.
+- **MCP server offline** — the widget cannot reach the hub. Start `... hub`, check
+  `/api/health`, and make sure the hostname and port match exactly.
+- **Waiting for an agent** — browser-to-hub works. In an agent session, call
+  `watch_for_issue` for the displayed project.
+- **Agent disconnected** — the lease heartbeat stopped. Restart/reconnect the MCP
+  client and call `watch_for_issue` again after the 15-second expiry.
+- **Second agent was rejected** — another healthy session owns that project.
+  Continue in the owning session, or call `release_project` there before moving.
+- **`project-ambiguous`** — more than one dev server is active. Call
+  `list_projects` and pass the intended `project_id`.
+- **`EADDRINUSE` on 4200** — a hub may already be running; reuse it. Otherwise
+  choose one alternate port and update the hub, bridge, and widget together.
+- **Bridge fails during startup** — `connect` intentionally fails if the hub is
+  unavailable. Start the hub first, then restart the agent client.
 
 ## License
 

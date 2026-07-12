@@ -38,7 +38,8 @@ unsubscribe()
 ```typescript
 const engine = new VibeCheckEngine({
   // Send snapshots to an MCP server
-  beaconUrl: 'http://localhost:4200',
+  beaconUrl: 'http://127.0.0.1:4200',
+  projectId: 'my-project',
 })
 ```
 
@@ -134,7 +135,10 @@ engine below.
 ```ts
 import { VibeCheckEngine } from '@wcgw/vibe-check-core'
 
-const engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+const engine = new VibeCheckEngine({
+  beaconUrl: 'http://127.0.0.1:4200',
+  projectId: 'my-project',
+})
 engine.onSnapshot((s) => {
   console.log(s.frameRate.fps, s.issues.length)
 })

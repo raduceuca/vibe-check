@@ -121,7 +121,7 @@ export const ArchitectureDiagram = () => (
         w={182}
         h={54}
         kicker="AI agent"
-        label="reads 6 MCP tools"
+        label="reads 9 MCP tools"
         detail="over stdio"
       />
       <Arrow x1={453} y1={204} x2={453} y2={246} />
