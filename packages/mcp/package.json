@@ -2,7 +2,7 @@
   "name": "@wcgw/vibe-check-mcp",
   "version": "0.2.0",
   "type": "module",
-  "description": "MCP server for vibe-check performance monitoring — bridges browser metrics to AI agents",
+  "description": "Project-isolated local hub and MCP bridge for VibeCheck browser issues",
   "main": "./dist/lib.cjs",
   "module": "./dist/lib.js",
   "types": "./dist/lib.d.ts",

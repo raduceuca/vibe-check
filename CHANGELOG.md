@@ -14,6 +14,23 @@ This release closes that gap.
 
 ### New
 
+- **Real widget-to-agent dispatch.** The Agent panel now has a distinct
+  **Send to agent** action backed by `watch_for_issue`; clipboard copies no
+  longer masquerade as delivery, and an issue moves to *sent* only after the
+  hub confirms it.
+- **Shared local hub + stdio bridge roles.** One `vibe-check-mcp hub` process
+  receives every browser project while each MCP client spawns `connect`, so
+  parallel agent sessions no longer compete to bind port 4200.
+- **Project isolation and exclusive watchers.** Snapshots, queues, histories,
+  and leases are keyed by stable project ID. One agent watches one project; a
+  rejected second watcher is reported without replacing the owner.
+- **Nine project-scoped MCP tools.** `list_projects`, `watch_for_issue`, and
+  `release_project` join the existing snapshot, issue, suggestion, watch, and
+  lifecycle tools. Ambiguous multi-project requests fail closed.
+- **Packaged Chromium proof.** The release gate packs the npm artifacts,
+  installs two clean Vite consumers, triggers the real DOM-bloat detector,
+  clicks the widget, verifies exact MCP delivery and project isolation, rejects
+  a conflicting watcher, and proves ownership handoff.
 - **`@wcgw/vibe-check-protocol`** — a new package holding the typed evidence
   contract (`VibeSnapshot`, `VibeIssue`, `DetectorName`, …) shared across core
   and mcp instead of each re-declaring the shape.
@@ -24,6 +41,9 @@ This release closes that gap.
 
 ### Fixed
 
+- **Truthful agent state.** The widget distinguishes unconfigured, hub offline,
+  waiting, connected, working, stale, queue-full, and watcher-conflict states,
+  with recovery instructions for each.
 - **Honest connection status.** The beacon now delivers snapshots via `fetch`
   and drives the indicator from a real server response (`res.ok`); a queued
   `navigator.sendBeacon` no longer reports a false "connected" when nothing is
