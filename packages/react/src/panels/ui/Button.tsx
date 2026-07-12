@@ -31,14 +31,18 @@ interface ButtonProps {
   readonly icon?: ReactNode
   readonly ariaLabel?: string
   readonly title?: string
+  readonly disabled?: boolean
+  readonly testId?: string
 }
 
 export const Button = ({
-  children, onClick, variant = 'ghost', size = 'md', fullWidth, icon, ariaLabel, title,
+  children, onClick, variant = 'ghost', size = 'md', fullWidth, icon, ariaLabel, title, disabled, testId,
 }: ButtonProps) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
+    data-testid={testId}
     aria-label={ariaLabel}
     title={title}
     style={{
@@ -50,7 +54,8 @@ export const Button = ({
       fontSize: 14,
       fontWeight: 500,
       fontFamily: 'inherit',
-      cursor: 'pointer',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.55 : 1,
       width: fullWidth ? '100%' : undefined,
       transition: `background ${T.durationNormal} ${T.ease}, border-color ${T.durationNormal} ${T.ease}, color ${T.durationNormal} ${T.ease}`,
       ...SIZE[size],

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, memo, type CSSProperties } from 'react'
-import type { VibeIssue, BeaconStatus, VibeEngine } from '@wcgw/vibe-check-core'
+import type { VibeIssue, BeaconStatus, DispatchIssueResponse, VibeEngine } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
 import { usePreferences } from './hooks/usePreferences.js'
@@ -25,6 +25,7 @@ export interface VibeCheckProps {
   readonly position?: Position
   readonly panels?: readonly PanelType[]
   readonly beaconUrl?: string
+  readonly projectId?: string
   readonly onIssue?: (issue: VibeIssue) => void
   // Drive a provided engine (e.g. createScriptedEngine(...)) instead of a live
   // one — for deterministic scripted demos. Omit for normal behaviour.
@@ -50,7 +51,7 @@ const DEFAULT_PANELS: readonly PanelType[] = ['fps', 'vitals', 'memory', 'consol
 export const VibeCheck = memo(({
   enabled = true, position = 'bottom-right',
   panels = DEFAULT_PANELS,
-  beaconUrl, onIssue,
+  beaconUrl, projectId, onIssue,
   engine: providedEngine = null,
   startCollapsed = false,
   storageKey,
@@ -58,11 +59,11 @@ export const VibeCheck = memo(({
   useAnimations()
   const [collapsed, setCollapsed] = useState(startCollapsed)
   const [activeView, setActiveView] = useState<ViewTab>('monitor')
-  const config = useMemo(() => beaconUrl ? { beaconUrl } : undefined, [beaconUrl])
+  const config = useMemo(() => beaconUrl ? { beaconUrl, projectId } : undefined, [beaconUrl, projectId])
   const { engine, snapshot } = useVibeCheck(config, enabled, providedEngine)
   const { prefs, updatePrefs, toggleMode } = usePreferences(storageKey)
   const { copiedId, copy } = useClipboard()
-  const { tracked, markSent, markSentBatch, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
+  const { tracked, markSent, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
   const mode = prefs.mode
 
   // ── Focus management ───────────────────────────────────────────────────────
@@ -100,10 +101,15 @@ export const VibeCheck = memo(({
     if (prefs.clearOnSend) updatePrefs({ annotationsVisible: false })
   }, [markSent, prefs.clearOnSend, updatePrefs])
 
-  const handleMarkSentBatch = useCallback((issueIds: readonly string[]) => {
-    markSentBatch(issueIds)
-    if (prefs.clearOnSend) updatePrefs({ annotationsVisible: false })
-  }, [markSentBatch, prefs.clearOnSend, updatePrefs])
+  const handleDispatch = useCallback((issue: VibeIssue): Promise<DispatchIssueResponse> => {
+    if (engine) return engine.dispatchIssue(issue)
+    return Promise.resolve({
+      ok: false,
+      code: 'unconfigured',
+      projectId: projectId ?? 'unknown-project',
+      queueDepth: 0,
+    })
+  }, [engine, projectId])
 
   const reportedRef = useRef(new Set<string>())
   useEffect(() => {
@@ -143,7 +149,6 @@ export const VibeCheck = memo(({
       theme={prefs.theme}
       copiedId={copiedId}
       onCopy={copy}
-      onMarkSent={handleMarkSent}
       onMarkResolved={markResolved}
     />
   )
@@ -220,8 +225,9 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
+                beaconStatus={beaconStatus}
+                onDispatch={handleDispatch}
                 onMarkSent={handleMarkSent}
-                onMarkSentBatch={handleMarkSentBatch}
                 onMarkResolved={markResolved}
                 onClearResolved={clearResolved}
               />
@@ -242,7 +248,6 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
-                onMarkSent={handleMarkSent}
               />
             </div>
           )}
@@ -261,7 +266,6 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
-                onMarkSent={handleMarkSent}
               />
             </div>
           )}

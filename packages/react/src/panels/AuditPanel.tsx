@@ -30,25 +30,22 @@ interface AuditPanelProps {
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
-  readonly onMarkSent: (issueId: string) => void
 }
 
 const AuditRow = ({
-  tracked, mode, copiedId, onCopy, onMarkSent,
+  tracked, mode, copiedId, onCopy,
 }: {
   readonly tracked: TrackedIssue
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
-  readonly onMarkSent: (issueId: string) => void
 }) => {
   const { issue } = tracked
   const suggestion = getSuggestionCached(issue, mode)
   const detail = typeof issue.evidence['detail'] === 'string' ? (issue.evidence['detail'] as string) : ''
 
   const handleCopy = async () => {
-    const ok = await onCopy(suggestion.prompt, issue.id)
-    if (ok && tracked.status === 'new') onMarkSent(issue.id)
+    await onCopy(suggestion.prompt, issue.id)
   }
 
   return (
@@ -71,7 +68,7 @@ const AuditRow = ({
         <CopyButton
           copied={copiedId === issue.id}
           onClick={handleCopy}
-          label={tracked.status === 'new' ? 'copy & send' : 'copy'}
+          label="copy prompt"
         />
       </div>
     </Row>
@@ -80,7 +77,7 @@ const AuditRow = ({
 
 export const AuditPanel = memo(({
   tracked, detector, heading, vibeHeading, subtitle, vibeSubtitle,
-  emptyLabel, vibeEmptyLabel, mode, copiedId, onCopy, onMarkSent,
+  emptyLabel, vibeEmptyLabel, mode, copiedId, onCopy,
 }: AuditPanelProps) => {
   const findings = tracked.filter((t) => t.issue.detector === detector && t.status !== 'resolved')
 
@@ -121,7 +118,7 @@ export const AuditPanel = memo(({
           {findings.map((t) => (
             <AuditRow
               key={t.issue.id} tracked={t} mode={mode}
-              copiedId={copiedId} onCopy={onCopy} onMarkSent={onMarkSent}
+              copiedId={copiedId} onCopy={onCopy}
             />
           ))}
         </div>
