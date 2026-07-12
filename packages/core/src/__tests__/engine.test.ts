@@ -40,6 +40,26 @@ afterEach(() => {
 })
 
 describe('VibeCheckEngine', () => {
+  it('reports an unconfigured dispatch when no beacon is enabled', async () => {
+    const engine = new VibeCheckEngine()
+    const issue = {
+      id: 'dom-1',
+      detector: 'dom-bloat' as const,
+      severity: 'warning' as const,
+      title: 'DOM issue',
+      description: 'Too many nodes',
+      evidence: { nodeCount: 900 },
+      timestamp: 1,
+      acknowledged: false,
+      resolved: false,
+    }
+
+    await expect(engine.dispatchIssue(issue)).resolves.toMatchObject({
+      ok: false,
+      code: 'unconfigured',
+    })
+  })
+
   it('creates with default config', () => {
     const engine = new VibeCheckEngine()
     expect(engine.isRunning()).toBe(false)

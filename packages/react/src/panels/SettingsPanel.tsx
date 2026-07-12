@@ -6,6 +6,7 @@ import { sectionLabelStyle } from './ui/SectionHeader.js'
 import type { VibeCheckPreferences } from '../store/preferences.js'
 import { ToggleRow } from './ui/ToggleRow.js'
 import { ModeToggle } from './ui/ModeToggle.js'
+import { AgentConnectionStatus } from './AgentConnectionStatus.js'
 
 interface SettingsPanelProps {
   readonly prefs: VibeCheckPreferences
@@ -15,21 +16,6 @@ interface SettingsPanelProps {
   readonly beaconUrl?: string
   readonly beaconStatus?: BeaconStatus | null
   readonly onClearAll: () => void
-}
-
-// Honest tri-state derived from real delivery, not just Boolean(beaconUrl):
-// - 'inactive'   no beaconUrl configured
-// - 'pending'    configured, but no delivery confirmed yet (or last failed)
-// - 'active'     last snapshot reached the server
-type ConnectionState = 'inactive' | 'pending' | 'active'
-
-const deriveConnectionState = (
-  beaconUrl: string | undefined,
-  status: BeaconStatus | null | undefined,
-): ConnectionState => {
-  if (!beaconUrl) return 'inactive'
-  if (status && status.lastOk === true) return 'active'
-  return 'pending'
 }
 
 const sectionTitle: CSSProperties = {
@@ -44,21 +30,6 @@ const firstSection: CSSProperties = {
   marginBottom: 8,
 }
 
-const DOT_COLOR: Record<ConnectionState, string> = {
-  inactive: 'rgba(var(--wcgw-fg),0.15)',
-  pending: 'var(--wcgw-sev-warning)',
-  active: 'var(--wcgw-sev-success)',
-}
-
-const mcpDotStyle = (state: ConnectionState): CSSProperties => ({
-  width: 7,
-  height: 7,
-  borderRadius: T.radiusPill,
-  background: DOT_COLOR[state],
-  boxShadow: state === 'active' ? `0 0 6px color-mix(in srgb, var(--wcgw-sev-success) 40%, transparent)` : 'none',
-  flexShrink: 0,
-})
-
 const infoRowStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -68,18 +39,6 @@ const infoRowStyle: CSSProperties = {
 }
 
 export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
-  const connection = deriveConnectionState(beaconUrl, beaconStatus)
-  const statusLabel: Record<ConnectionState, string> = {
-    inactive: mode === 'vibe' ? 'not connected' : 'inactive',
-    pending: mode === 'vibe' ? 'waiting for data' : 'no data yet',
-    active: mode === 'vibe' ? 'connected' : 'active',
-  }
-  const statusColor: Record<ConnectionState, string> = {
-    inactive: T.textMuted,
-    pending: 'var(--wcgw-sev-warning)',
-    active: 'var(--wcgw-sev-success)',
-  }
-
   return (
     <div style={{ paddingTop: 4 }}>
       <div style={firstSection}>
@@ -117,45 +76,7 @@ export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beacon
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'AI Connection' : 'MCP Status'}
       </div>
-      <div style={infoRowStyle}>
-        <span style={{ color: T.textSecondary }}>
-          {mode === 'vibe' ? 'Connected to AI tools' : 'MCP server'}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={mcpDotStyle(connection)} />
-          <span style={{
-            fontSize: 14,
-            color: statusColor[connection],
-            fontWeight: 500,
-          }}>
-            {statusLabel[connection]}
-          </span>
-        </div>
-      </div>
-      {connection === 'inactive' && (
-        <div style={{
-          fontSize: 14,
-          color: T.textTertiary,
-          marginTop: 6,
-          lineHeight: 1.5,
-        }}>
-          {mode === 'vibe'
-            ? 'Not linked to your AI tools yet — use the copy buttons for now. To link them, run `npx @wcgw/vibe-check-mcp` and add it to your AI tool’s MCP settings.'
-            : 'No beaconUrl configured. Pass beaconUrl to <VibeCheck> and run @wcgw/vibe-check-mcp to stream snapshots.'}
-        </div>
-      )}
-      {connection === 'pending' && (
-        <div style={{
-          fontSize: 14,
-          color: T.textTertiary,
-          marginTop: 6,
-          lineHeight: 1.5,
-        }}>
-          {mode === 'vibe'
-            ? 'Waiting to reach your AI tools. If this stays here, check that the vibe-check MCP server is running.'
-            : `No snapshot delivered yet. Verify the MCP server is running and reachable at ${beaconUrl}.`}
-        </div>
-      )}
+      <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}

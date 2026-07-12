@@ -61,7 +61,8 @@ The constructor takes a `Partial<VibeCheckConfig>`, merged over `DEFAULT_CONFIG`
 
 ```ts
 const engine = new VibeCheckEngine({
-  beaconUrl: 'http://localhost:4200', // enable delivery to the MCP server
+  beaconUrl: 'http://127.0.0.1:4200', // enable delivery to the local hub
+  projectId: 'my-project',            // isolate routing from other dev servers
   beaconIntervalMs: 2000,             // default
   detectors: {
     memoryLeak: false,                // disable a single detector

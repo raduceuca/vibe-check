@@ -1,98 +1,70 @@
 ---
-title: MCP tools & HTTP API
-description: The six MCP tools, their parameters and returns, plus the HTTP endpoints and env vars.
+title: MCP tools & hub API
+description: Reference for project-scoped MCP tools, browser routes, leases, and configuration.
 ---
 
-`@wcgw/vibe-check-mcp` runs one process that is both a stdio MCP server (six
-tools for your agent) and an HTTP server (the beacon receiver + SSE stream).
-Every tool returns its payload as JSON text; the shapes below are that payload.
+Run `npx -y @wcgw/vibe-check-mcp hub` once. MCP clients spawn
+`npx -y @wcgw/vibe-check-mcp connect` and expose the tools below.
 
-## MCP tools
+## Project selection
 
-### `get_performance_snapshot`
+Every project-scoped tool accepts optional `project_id: string`. It may be
+omitted only when exactly one active project exists or the session already owns
+a lease. Multiple active projects without a selection return
+`project-ambiguous`; an unknown value returns `project-not-found`.
 
-The latest full snapshot. No parameters.
+## Tools
 
-- **Returns** — the `VibeSnapshot` JSON, or `{ "error": "No snapshot available yet. The browser widget has not sent any data." }` if none has arrived.
+| Tool | Parameters | Returns |
+|---|---|---|
+| `list_projects` | — | Active project summaries with URL, last seen, issue count, queue depth, and agent state. |
+| `get_performance_snapshot` | `project_id?` | Latest `VibeSnapshot`, or `no-snapshot`. |
+| `get_detected_issues` | `project_id?`, `severity?`, `detector?` | `{ count, issues }` for one project. |
+| `get_fix_suggestions` | `project_id?`, `issue_id` | Markdown suggestion, or `issue-not-found`. |
+| `watch_performance` | `project_id?`, `timeout_seconds?` (1–300, default 30) | Acquires the lease and returns the next project snapshot, or `watch-timeout`. |
+| `watch_for_issue` | `project_id?`, `timeout_seconds?` (1–300, default 30) | Acquires the lease and returns one queued widget dispatch plus its suggestion, or `watch-timeout`. |
+| `acknowledge_issue` | `project_id?`, `issue_id` | `{ acknowledged: true, projectId, issue_id }`. |
+| `resolve_issue` | `project_id?`, `issue_id` | `{ resolved: true, projectId, issue_id }`. |
+| `release_project` | — | Releases the current session's lease. |
 
-### `get_detected_issues`
+One session cannot select a different project while it owns a lease; the result
+is `session-already-watching`. A healthy owner blocks another session with
+`lease-conflict`.
 
-Active issues only — anything acknowledged or resolved is filtered out.
+## Browser API
 
-| Parameter | Type | Notes |
-| --- | --- | --- |
-| `severity` | `'info' \| 'warning' \| 'error' \| 'critical'` (optional) | Filter by severity. |
-| `detector` | `string` (optional) | Filter by detector name, e.g. `dom-bloat`. |
+| Route | Method | Response |
+|---|---|---|
+| `/api/health` | GET | `{ status: "ok", service: "vibe-check-hub", version }`. |
+| `/api/snapshot` | POST | Accepts `{ projectId, instanceId, pageUrl, snapshot }`; returns `{ received: true, projectId }`. |
+| `/api/projects/:projectId/status` | GET | `{ projectId, state, queueDepth, leaseExpiresAt, conflictAt }`. |
+| `/api/projects/:projectId/dispatch` | POST | Accepts `{ projectId, instanceId, issue }`; returns a `DispatchIssueResponse`. |
 
-- **Returns** — `{ "count": number, "issues": VibeIssue[] }`.
+Browser routes allow CORS. `/internal/*` is reserved for the local bridge and
+rejects requests carrying a browser `Origin` header.
 
-### `get_fix_suggestions`
+Dispatch result codes are `dispatched`, `unconfigured`, `hub-offline`,
+`agent-not-watching`, `queue-full`, `invalid-issue`, and `failed`. The per-project
+queue holds at most 10 issues.
 
-Cause, step-by-step fix, and code for one issue.
+## Lease timing
 
-| Parameter | Type | Notes |
-| --- | --- | --- |
-| `issue_id` | `string` (required) | The issue's `id`. Searched in the latest snapshot and the 100-issue history. |
+| Event | Timing |
+|---|---|
+| Bridge heartbeat | every 5 seconds |
+| Widget reports watcher stale | after 10 seconds |
+| Lease expires and may be reclaimed | after 15 seconds |
+| Conflict warning retained | 30 seconds |
 
-- **Returns** — a markdown suggestion, or `{ "error": "Issue with id \"…\" not found." }`.
+## Environment
 
-### `watch_performance`
+| Role | Variable | Default |
+|---|---|---|
+| `hub` | `VIBE_CHECK_HOST` | `127.0.0.1` |
+| `hub` | `VIBE_CHECK_PORT` | `4200` |
+| `connect` | `VIBE_CHECK_HUB_URL` | `http://127.0.0.1:4200` |
 
-Blocks until the next snapshot arrives — use it to confirm a fix took effect.
-
-| Parameter | Type | Notes |
-| --- | --- | --- |
-| `timeout_seconds` | `number` 1–300 (default `30`) | How long to wait. |
-
-- **Returns** — the next `VibeSnapshot` JSON, or `{ "error": "No snapshot received within N seconds" }` on timeout.
-
-### `acknowledge_issue`
-
-Mark an issue seen; it drops out of `get_detected_issues`.
-
-| Parameter | Type | Notes |
-| --- | --- | --- |
-| `issue_id` | `string` (required) | The issue's `id`. |
-
-- **Returns** — `{ "acknowledged": true, "issue_id": "…" }`, or a not-found error.
-
-### `resolve_issue`
-
-Mark an issue fixed; it drops out of `get_detected_issues`.
-
-| Parameter | Type | Notes |
-| --- | --- | --- |
-| `issue_id` | `string` (required) | The issue's `id`. |
-
-- **Returns** — `{ "resolved": true, "issue_id": "…" }`, or a not-found error.
-
-## HTTP API
-
-The HTTP server listens on `http://127.0.0.1:4200` by default. CORS is open
-(`Access-Control-Allow-Origin: *`) so a browser on any localhost origin can
-reach it; `OPTIONS` preflights return `204`.
-
-| Route | Method | Purpose | Response |
-| --- | --- | --- | --- |
-| `/api/snapshot` | POST | Receive a `VibeSnapshot` from the browser beacon (validated with zod; max 1 MB body). | `200 { "received": true }`, or `400 { "error": "Invalid snapshot format" }` / `{ "error": "Invalid JSON body" }`. |
-| `/api/stream` | GET (SSE) | Stream snapshots as they arrive. Opens with `data: {"connected":true}`, then one `data:` event per snapshot. Max 10 concurrent connections. | `text/event-stream`, or `503 { "error": "Too many SSE connections" }`. |
-| `/api/health` | GET | Liveness check. | `200 { "status": "ok" }`. |
-
-```bash
-curl http://localhost:4200/api/health
-# {"status":"ok"}
-```
-
-## Environment variables
-
-| Variable | Default | Notes |
-| --- | --- | --- |
-| `VIBE_CHECK_PORT` | `4200` | Listen port. Invalid or out-of-range values fall back to `4200`. |
-| `VIBE_CHECK_HOST` | `127.0.0.1` | Bind address. Loopback-only by default. |
-
-<Callout type="warn" title="Keep it on loopback">
-  The server is an unauthenticated dev tool that stores browser telemetry and
-  serves it to an AI agent. It binds to `127.0.0.1` on purpose — only override
-  `VIBE_CHECK_HOST` for trusted setups (e.g. a container bridge), never a public
-  interface.
+<Callout type="warn" title="Keep the hub local">
+  It is an unauthenticated development service. The default loopback bind is
+  intentional; do not expose it to a public interface.
 </Callout>

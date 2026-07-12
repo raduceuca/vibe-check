@@ -23,6 +23,20 @@ export type {
   Detector,
   IssueEvidenceMap,
   EvidenceFor,
+  AgentConnectionState,
+  DispatchResultCode,
+  ProjectSnapshotEnvelope,
+  ProjectSummary,
+  ProjectStatus,
+  DispatchIssueRequest,
+  DispatchIssueResponse,
+  QueuedIssue,
+  LeaseResult,
+} from '@wcgw/vibe-check-protocol'
+
+export {
+  AGENT_CONNECTION_STATES,
+  DISPATCH_RESULT_CODES,
 } from '@wcgw/vibe-check-protocol'
 
 import type {
@@ -75,6 +89,7 @@ export const EMPTY_RESOURCE_STATS: ResourceStats = {
 export interface VibeCheckConfig {
   readonly enabled: boolean
   readonly beaconUrl?: string
+  readonly projectId?: string
   readonly beaconIntervalMs: number
   readonly detectors: {
     readonly domBloat: boolean

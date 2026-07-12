@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace libraries for app type-checks
+        run: pnpm --filter @wcgw/vibe-check-protocol --filter @wcgw/vibe-check-core --filter @wcgw/vibe-check build
+
+      - name: Type-check packages and apps
+        run: |
+          pnpm lint
+          pnpm --filter web lint
+          pnpm --filter @wcgw/vibe-check-scan-worker lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: React size budget
+        run: pnpm --filter @wcgw/vibe-check size
+
+      - name: Install Chromium
+        run: pnpm --filter @wcgw/vibe-check-mcp-roundtrip exec playwright install --with-deps chromium
+
+      - name: Packaged MCP round-trip
+        run: pnpm test:e2e:mcp
+
+      - name: Publish dry run
+        run: pnpm publish:dry
+
+      - name: Upload E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-roundtrip-diagnostics
+          path: e2e/mcp-roundtrip/test-results
+          if-no-files-found: ignore

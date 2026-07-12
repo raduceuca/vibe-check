@@ -12,7 +12,7 @@ All UI is inline-styled (no CSS files), renders at a high z-index, ships a dark 
 | Tab | What it shows |
 |---|---|
 | **Monitor** | Live FPS lifeline (avg/worst frame time), Web Vitals (LCP/INP/CLS), memory, console error/warn/log counts, SEO + AEO score chips, and a quick list of active problems. |
-| **Agent** | The fix queue — every detected problem with a copy-for-your-AI prompt, split across *to fix / sent / fixed*. "copy & send" copies the prompt and moves the item to *sent*. |
+| **Agent** | The fix queue — every detected problem split across *to fix / sent / fixed*. Copying is clipboard-only. Sending delivers to the connected watcher and moves the item only after confirmation. |
 | **SEO** | Search-visibility audit — a 0–100 score over the SEO criteria, each failing check expandable with a fix prompt. |
 | **AEO** | AI-answer-readiness audit (Answer Engine Optimization) — same shape as SEO, scored over the AEO criteria. |
 | **Prompts** | A library of proactive prompts to ask your AI agent, each copy-to-clipboard. |
@@ -33,7 +33,7 @@ npm install -D @wcgw/vibe-check
 
 Peer dependencies: `react >= 18`, `react-dom >= 18`
 
-## Complete setup (3 steps)
+## Complete setup
 
 ### 1. Drop the widget into your app
 
@@ -45,7 +45,10 @@ function App() {
     <>
       <YourApp />
       {import.meta.env.DEV && (
-        <PerfToggle vibeCheckProps={{ beaconUrl: 'http://localhost:4200' }} />
+        <PerfToggle vibeCheckProps={{
+          beaconUrl: 'http://127.0.0.1:4200',
+          projectId: 'my-storefront',
+        }} />
       )}
     </>
   )
@@ -54,11 +57,20 @@ function App() {
 
 On first run the widget shows a small **collapsed pill** in the corner (so you can see it's working). Click it to expand, or press **Alt+Shift+V** to hide/show it.
 
-### 2. Wire the MCP server into your AI agent
+### 2. Start the local hub
+
+Keep this process running alongside your dev server. One hub supports all your
+local projects.
+
+```bash
+npx -y @wcgw/vibe-check-mcp hub
+```
+
+### 3. Wire the bridge into your AI agent
 
 ```bash
 # Claude Code
-claude mcp add vibe-check -- npx @wcgw/vibe-check-mcp
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
 Or add it to the agent's `mcpServers` config (Cursor, Windsurf, Cline, Continue, Claude Desktop, Zed):
@@ -68,19 +80,27 @@ Or add it to the agent's `mcpServers` config (Cursor, Windsurf, Cline, Continue,
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["@wcgw/vibe-check-mcp"]
+      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
     }
   }
 }
 ```
 
-### 3. Start your dev server and ask your agent
+Restart the agent client after changing its MCP configuration.
+
+### 4. Watch, then send
 
 ```
-What's vibe-check seeing right now? Anything we should fix?
+List the active VibeCheck projects, then watch my-storefront for an issue.
 ```
 
-Your agent will call `get_performance_snapshot`, `get_detected_issues`, and `get_fix_suggestions` and walk you through the fixes.
+The agent calls `list_projects` and `watch_for_issue`. When the widget says
+**Agent connected**, expand a detected issue and click **Send to agent**. The
+agent receives that issue and a fix suggestion in the pending tool result.
+
+Only one agent may watch a project at a time. A second watcher is rejected and
+the widget warns you, while the original watcher stays connected. Give parallel
+dev servers different `projectId` values; they may share the same hub and port.
 
 ## Components
 
@@ -93,7 +113,8 @@ Keyboard-toggled wrapper. Renders the widget as a collapsed pill on first run; t
   shortcut="alt+shift+v"              // Default — an uncontested combo. Supports ctrl/shift/alt/meta+key
   vibeCheckProps={{
     position: 'bottom-right',
-    beaconUrl: 'http://localhost:4200',
+    beaconUrl: 'http://127.0.0.1:4200',
+    projectId: 'my-storefront',
   }}
 />
 ```
@@ -109,7 +130,8 @@ The full overlay widget.
   enabled={true}                                       // Start/stop monitoring
   position="bottom-right"                              // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
   panels={['fps', 'vitals', 'memory', 'console', 'issues']}
-  beaconUrl="http://localhost:4200"                    // Optional: send data to MCP server
+  beaconUrl="http://127.0.0.1:4200"                   // Optional: send data to local hub
+  projectId="my-storefront"                           // Stable ID; required when several projects run
   startCollapsed={false}                               // Start as the collapsed pill instead of the open panel
   storageKey="vibe-check:preferences"                  // Optional: per-instance localStorage bucket (multiple embeds)
   engine={undefined}                                   // Optional: drive a provided engine (see "Scripted demos")
@@ -194,13 +216,21 @@ Available hooks:
 
 ## AI agent integration
 
-The widget POSTs snapshots to the MCP server's HTTP endpoint (`POST /api/snapshot`). The MCP server then exposes 6 tools to your agent:
+The widget POSTs project-tagged snapshots to the local hub and dispatches a
+button-selected issue to that project's queue. The stdio bridge exposes 9 tools:
 
+- `list_projects` — active projects and watcher state
 - `get_performance_snapshot` — current frame rate, vitals, memory, issues
 - `get_detected_issues` — filterable by severity / detector
 - `get_fix_suggestions` — markdown fix guide for one issue
-- `watch_performance` — long-poll for the next snapshot
+- `watch_performance` — claim a project and long-poll for its next snapshot
+- `watch_for_issue` — claim a project and wait for a widget dispatch
 - `acknowledge_issue` / `resolve_issue` — close the loop after a fix
+- `release_project` — explicitly release the current session's project lease
+
+If exactly one project is active, `project_id` is optional. With multiple active
+projects the tools require it, preventing data from one dev server from leaking
+into another session.
 
 See [`@wcgw/vibe-check-mcp`](https://www.npmjs.com/package/@wcgw/vibe-check-mcp) for full setup across Claude Code, Cursor, Windsurf, Cline, Continue, and Claude Desktop.
 

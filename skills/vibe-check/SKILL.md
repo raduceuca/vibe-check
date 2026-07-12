@@ -22,7 +22,9 @@ npm install @wcgw/vibe-check -D
 import { VibeCheck } from '@wcgw/vibe-check'
 
 // In your app root:
-{import.meta.env.DEV && <VibeCheck beaconUrl="http://localhost:4200" />}
+{import.meta.env.DEV && (
+  <VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="my-project" />
+)}
 ```
 
 Or use the keyboard toggle (Ctrl+Shift+P):
@@ -30,14 +32,22 @@ Or use the keyboard toggle (Ctrl+Shift+P):
 ```tsx
 import { PerfToggle } from '@wcgw/vibe-check'
 
-{import.meta.env.DEV && <PerfToggle vibeCheckProps={{ beaconUrl: 'http://localhost:4200' }} />}
+{import.meta.env.DEV && <PerfToggle vibeCheckProps={{
+  beaconUrl: 'http://127.0.0.1:4200',
+  projectId: 'my-project',
+}} />}
 ```
 
-### 3. Start the MCP server
+### 3. Start the local hub, then register the MCP bridge
 
 ```bash
-claude mcp add vibe-check -- npx @wcgw/vibe-check-mcp
+npx -y @wcgw/vibe-check-mcp hub
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
+
+The hub is one long-running process shared by local projects. The MCP bridge is
+spawned by each agent client and never binds the browser port. Restart the agent
+client after registration.
 
 ## What It Detects
 
@@ -113,24 +123,30 @@ The `seo`, `aeo`, and `web-essentials` detectors each emit one issue per failed 
 
 When the MCP server is running, these tools are available to AI agents:
 
+- **`list_projects`** — List active project IDs and watcher state
 - **`get_performance_snapshot`** — Current FPS, Web Vitals, memory, DOM count, issues
 - **`get_detected_issues`** — Filter active issues by severity or detector
 - **`get_fix_suggestions`** — Get structured fix guide with code examples for a specific issue
 - **`watch_performance`** — Monitor for new issues over N seconds
+- **`watch_for_issue`** — Claim one project and wait for a widget button dispatch
 - **`acknowledge_issue`** — Mark issue as seen
 - **`resolve_issue`** — Mark issue as fixed
+- **`release_project`** — Release this session's project lease
 
 ## Workflow
 
 The typical workflow is:
 
-1. You write or generate code
-2. The widget detects performance issues in the browser
-3. The MCP server relays issues to your AI agent
-4. The agent reads the fix suggestion and applies the fix
-5. The agent marks the issue as resolved
+1. Call `list_projects` and choose the requested project.
+2. Call `watch_for_issue` with its `project_id`; this acquires its exclusive lease.
+3. Tell the user the widget should now say **Agent connected** and ask them to
+   click **Send to agent** on a detected issue.
+4. Use the returned issue and suggestion to inspect and fix the project.
+5. Call `resolve_issue`, then continue `watch_for_issue` or `release_project`.
 
-Use `get_detected_issues` to see what's wrong, then `get_fix_suggestions` for actionable steps.
+Never claim a copied prompt was delivered. Only a successful `watch_for_issue`
+result confirms widget-to-agent communication. If `lease-conflict` is returned,
+explain that another session owns the project; do not retry in a loop.
 
 ## Configuration
 
@@ -139,7 +155,8 @@ Use `get_detected_issues` to see what's wrong, then `get_fix_suggestions` for ac
   enabled={true}
   position="bottom-right"
   panels={['fps', 'vitals', 'memory', 'issues']}
-  beaconUrl="http://localhost:4200"
+  beaconUrl="http://127.0.0.1:4200"
+  projectId="my-project"
   onIssue={(issue) => console.warn('Vibe issue:', issue)}
 />
 ```

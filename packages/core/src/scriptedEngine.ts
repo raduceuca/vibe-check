@@ -1,4 +1,4 @@
-import type { VibeSnapshot, VibeIssue } from './types.js'
+import type { DispatchIssueResponse, VibeSnapshot, VibeIssue } from './types.js'
 import {
   EMPTY_FRAME_RATE_STATS,
   EMPTY_LONG_FRAME_STATS,
@@ -138,6 +138,15 @@ export const createScriptedEngine = (scenario: ScriptedScenario): VibeEngine => 
 
     getBeaconStatus(): BeaconStatus | null {
       return null
+    },
+
+    dispatchIssue(): Promise<DispatchIssueResponse> {
+      return Promise.resolve({
+        ok: false,
+        code: 'unconfigured',
+        projectId: 'scripted',
+        queueDepth: 0,
+      })
     },
   }
 }

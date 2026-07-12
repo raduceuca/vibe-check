@@ -17,7 +17,6 @@ interface AnnotationOverlayProps {
   readonly theme: 'dark' | 'light'
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
-  readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
 }
 
@@ -157,14 +156,13 @@ const buildGroups = (
 // ── Marker badge ────────────────────────────────────────────────────────────
 
 const Marker = ({
-  group, index, mode, copiedId, onCopy, onMarkSent, onMarkResolved, expanded, onToggle,
+  group, index, mode, copiedId, onCopy, onMarkResolved, expanded, onToggle,
 }: {
   readonly group: AnnotationGroup
   readonly index: number
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
-  readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
   readonly expanded: boolean
   readonly onToggle: () => void
@@ -273,8 +271,7 @@ const Marker = ({
           {group.issues.map((t, i) => {
             const suggestion = getSuggestionCached(t.issue, mode)
             const handleCopy = async () => {
-              const success = await onCopy(suggestion.prompt, t.issue.id)
-              if (success && t.status === 'new') onMarkSent(t.issue.id)
+              await onCopy(suggestion.prompt, t.issue.id)
             }
 
             return (
@@ -317,7 +314,7 @@ const Marker = ({
 // ── Main Overlay ────────────────────────────────────────────────────────────
 
 export const AnnotationOverlay = memo(({
-  tracked, visible, mode, theme, copiedId, onCopy, onMarkSent, onMarkResolved,
+  tracked, visible, mode, theme, copiedId, onCopy, onMarkResolved,
 }: AnnotationOverlayProps) => {
   const [groups, setGroups] = useState<readonly AnnotationGroup[]>([])
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
@@ -462,7 +459,6 @@ export const AnnotationOverlay = memo(({
           mode={mode}
           copiedId={copiedId}
           onCopy={onCopy}
-          onMarkSent={onMarkSent}
           onMarkResolved={onMarkResolved}
           expanded={expandedIdx === i}
           onToggle={() => setExpandedIdx(expandedIdx === i ? null : i)}

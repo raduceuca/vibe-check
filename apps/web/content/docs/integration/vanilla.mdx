@@ -50,7 +50,8 @@ subscribe or render at all:
 import { VibeCheckEngine } from '@wcgw/vibe-check-core'
 
 const engine = new VibeCheckEngine({
-  beaconUrl: 'http://localhost:4200',
+  beaconUrl: 'http://127.0.0.1:4200',
+  projectId: 'my-project',
   beaconIntervalMs: 2000, // default
 })
 engine.start()

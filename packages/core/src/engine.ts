@@ -9,6 +9,7 @@ import type {
   HeapMemory,
   ResourceStats,
   ConsoleStats,
+  DispatchIssueResponse,
 } from './types.js'
 import {
   EMPTY_FRAME_RATE_STATS,
@@ -54,6 +55,7 @@ export interface VibeEngine {
   onSnapshot(callback: SnapshotCallback): () => void
   isRunning(): boolean
   getBeaconStatus(): BeaconStatus | null
+  dispatchIssue(issue: VibeIssue): Promise<DispatchIssueResponse>
 }
 
 export class VibeCheckEngine implements VibeEngine {
@@ -163,6 +165,7 @@ export class VibeCheckEngine implements VibeEngine {
       this.beaconClient = new BeaconClient({
         url: this.config.beaconUrl,
         intervalMs: this.config.beaconIntervalMs,
+        projectId: this.config.projectId,
       })
       this.beaconClient.start(() => this.getSnapshot())
     }
@@ -287,5 +290,15 @@ export class VibeCheckEngine implements VibeEngine {
   // Real delivery status of the beacon, or null when no beaconUrl is configured.
   getBeaconStatus(): BeaconStatus | null {
     return this.beaconClient?.getStatus() ?? null
+  }
+
+  dispatchIssue(issue: VibeIssue): Promise<DispatchIssueResponse> {
+    if (this.beaconClient) return this.beaconClient.dispatchIssue(issue)
+    return Promise.resolve({
+      ok: false,
+      code: 'unconfigured',
+      projectId: this.config.projectId ?? '',
+      queueDepth: 0,
+    })
   }
 }

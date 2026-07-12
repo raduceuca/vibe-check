@@ -1,86 +1,97 @@
 ---
 title: Quickstart
-description: Five minutes — drop in the React widget, start the MCP server, and let your coding agent read the issues.
+description: Go from an unconfigured React app to a real widget-to-agent issue dispatch.
 ---
 
-This gets you a live performance overlay and an AI agent that can read snapshots
-and suggest fixes. Six steps, one code block each.
+This tutorial proves the entire local round trip: browser → hub → one watching
+agent session. You need Node.js 20+, React 18+, and an MCP-capable coding agent.
 
-<Callout title="Prerequisites">
-  A React 18+ app and a coding agent that speaks MCP (Claude Code, Cursor, or
-  Claude Desktop). Working in another framework? See the
-  [Vanilla / headless guide](/docs/integration).
-</Callout>
-
-## 1. Install
+## 1. Install and mount the widget
 
 ```bash
-pnpm add @wcgw/vibe-check
+pnpm add -D @wcgw/vibe-check
 ```
 
-## 2. Drop in the widget
-
-Render it once near your app root. Gate it out of production so it never ships
-to real users.
-
 ```tsx
-import { VibeCheck } from '@wcgw/vibe-check'
+import { PerfToggle } from '@wcgw/vibe-check'
 
 export function Root() {
   return (
     <>
       <App />
-      {process.env.NODE_ENV !== 'production' && <VibeCheck />}
+      {process.env.NODE_ENV !== 'production' && (
+        <PerfToggle vibeCheckProps={{
+          beaconUrl: 'http://127.0.0.1:4200',
+          projectId: 'my-storefront',
+        }} />
+      )}
     </>
   )
 }
 ```
 
-## 3. Run & open the overlay
+Use a stable `projectId`, not a random value. It is the routing key that keeps
+parallel dev servers separate.
 
-Start your dev server. The panel appears bottom-right — or gate it behind
-`Alt+Shift+V` with `<PerfToggle />` instead of `<VibeCheck />`. You should see
-live FPS, web vitals, memory, and any detected issues.
+## 2. Start your app and the hub
 
-## 4. Start the MCP server
-
-Run it so your agent has somewhere to read from. It listens on
-`http://localhost:4200` and receives snapshots from the widget's beacon.
+Run your normal dev command. In a second terminal, start one hub and keep it
+running:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp
+npx -y @wcgw/vibe-check-mcp hub
 ```
 
-## 5. Connect your coding agent
+Expand the widget with its pill or **Alt+Shift+V**. Its Agent tab should say
+**Waiting for an agent**. That state proves the widget reached the hub.
 
-One process is both the stdio MCP server (for the agent) and the HTTP receiver
-(for the browser beacon).
+## 3. Register the bridge
+
+For Claude Code:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-Using another client? Every MCP client accepts the same config block:
+Other clients use the same spawned command:
 
 ```json
 {
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp"]
+      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
     }
   }
 }
 ```
 
-## 6. Ask your agent
+Restart the agent client after changing MCP configuration. The bridge connects
+to the already-running hub; it does not open another browser port.
+
+## 4. Make one agent watch the project
+
+Ask the agent:
 
 ```text
-What performance issues is VibeCheck detecting right now?
+Call list_projects, then watch_for_issue for project my-storefront.
 ```
 
-<Callout type="success" title="You're set">
-  You now have a live overlay and an agent that can read snapshots and suggest
-  fixes. Point the widget at your real MCP server with the `beaconUrl` prop, or
-  read the [React integration guide](/docs/integration) for the full props tour.
+The tool call remains pending. The widget should now say **Agent connected**.
+This is an exclusive lease: another agent attempting to watch `my-storefront`
+is rejected and the widget shows a conflict warning.
+
+## 5. Click Send to agent
+
+Wait for any issue to appear, open **Agent**, expand it, and click **Send to
+agent**. The pending tool call returns the exact issue and a fix suggestion.
+Only this confirmed response moves the item to *sent*.
+
+<Callout type="success" title="Round trip complete">
+  The widget and agent exchanged a real issue. Copy prompt remains a separate
+  clipboard fallback; it never claims that an agent received anything.
 </Callout>
+
+If the status does not match a step, use [Troubleshooting](/docs/troubleshooting).
+For multiple dev servers, give each one a different `projectId` and keep using
+the same hub.

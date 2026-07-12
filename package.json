@@ -4,9 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --filter '!@wcgw/vibe-check-mcp-roundtrip' test",
     "test:watch": "pnpm -r test:watch",
     "test:coverage": "vitest run --coverage",
+    "test:e2e:mcp": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip test",
     "lint": "pnpm -r --filter \"./packages/*\" lint",
     "gen:docs": "node packages/core/scripts/gen-detector-reference.mjs",
     "clean": "pnpm -r exec rm -rf dist",

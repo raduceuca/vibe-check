@@ -450,7 +450,12 @@ const App = () => (
     {/* Wired to the local MCP server so the panel's connection status is live
         (Settings tab) and beacon delivery actually happens. Start it with:
         node packages/mcp/dist/index.js  (or: npx @wcgw/vibe-check-mcp) */}
-    <VibeCheck enabled position="bottom-right" beaconUrl="http://127.0.0.1:4200" />
+    <VibeCheck
+      enabled
+      position="bottom-right"
+      beaconUrl="http://127.0.0.1:4200"
+      projectId="vibe-check-demo"
+    />
   </div>
 )
 

@@ -13,13 +13,15 @@ client isn't Claude Code or Cursor, use the block below.
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp"]
+      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
     }
   }
 }
 ```
 
-The command is identical everywhere — only the file it goes in differs.
+The command is identical everywhere — only the file it goes in differs. Start
+one shared hub separately with `npx -y @wcgw/vibe-check-mcp hub` before launching
+the client.
 
 ## Claude Desktop
 
@@ -47,9 +49,8 @@ curl http://localhost:4200/api/health   # → {"status":"ok"}
 ```
 
 <Callout type="warn" title="Troubleshooting">
-  If the server won't load, run `npx -y @wcgw/vibe-check-mcp` in a terminal to
-  surface the error, and double-check the JSON is valid (no trailing commas).
-  Remember to fully restart the client after editing its config. If it loads but
-  the agent sees no data, confirm your app's widget is beaconing to
-  `http://localhost:4200`. See [Troubleshooting](/docs/troubleshooting).
+  If the bridge won't load, confirm the hub is running and double-check the JSON
+  is valid. Remember to fully restart the client after editing its config. If it
+  loads but lists no projects, confirm the widget has the matching `beaconUrl`
+  and a stable `projectId`. See [Troubleshooting](/docs/troubleshooting).
 </Callout>

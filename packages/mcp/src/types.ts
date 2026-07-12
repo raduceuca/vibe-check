@@ -14,6 +14,20 @@ export type {
   VibeSnapshot,
   IssueEvidenceMap,
   EvidenceFor,
+  AgentConnectionState,
+  DispatchResultCode,
+  ProjectSnapshotEnvelope,
+  ProjectSummary,
+  ProjectStatus,
+  DispatchIssueRequest,
+  DispatchIssueResponse,
+  QueuedIssue,
+  LeaseResult,
+} from '@wcgw/vibe-check-protocol'
+
+export {
+  AGENT_CONNECTION_STATES,
+  DISPATCH_RESULT_CODES,
 } from '@wcgw/vibe-check-protocol'
 
 export type {

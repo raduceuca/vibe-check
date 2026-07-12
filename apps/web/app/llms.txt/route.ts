@@ -55,7 +55,7 @@ export const GET = (): Response => {
     [
       `- [Full markdown corpus](${absoluteUrl('/llms-full.txt')}): every doc and fix guide concatenated into one file.`,
       `- [Sitemap](${absoluteUrl('/sitemap.xml')}): every canonical URL on the site.`,
-      `- [MCP server card](${absoluteUrl('/.well-known/mcp.json')}): the agent interface (six tools) VibeCheck exposes.`,
+      `- [MCP server card](${absoluteUrl('/.well-known/mcp.json')}): the project-scoped agent interface (nine tools) VibeCheck exposes.`,
     ].join('\n'),
   )
 

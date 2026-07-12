@@ -225,8 +225,9 @@ const LandingPage = () => (
         </p>
         <PipelineDiagram />
         <p className="vc-p" style={{ marginTop: 18 }}>
-          Here is that loop as your agent sees it — a caught issue read over MCP,
-          a proposed diff, and the issue resolved. Play it:
+          Here is an illustrative local loop as your agent sees it — a caught
+          issue dispatched over MCP, a proposed diff, and the issue resolved.
+          The public demo widget itself stays local-only. Play it:
         </p>
         <AgentRoundTrip />
         <p className="vc-p" style={{ color: 'var(--vc-ink-3)', fontSize: 14, marginTop: 12 }}>
@@ -242,14 +243,23 @@ const LandingPage = () => (
         <pre className="vc-pre">
 {`import { VibeCheck } from '@wcgw/vibe-check'
 
-{process.env.NODE_ENV !== 'production' && <VibeCheck />}`}
+{process.env.NODE_ENV !== 'production' && (
+  <VibeCheck
+    beaconUrl="http://127.0.0.1:4200"
+    projectId="my-project"
+  />
+)}`}
         </pre>
         <h3 className="vc-h3">Connect your coding agent</h3>
         <pre className="vc-pre">
-{`claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp`}
+{`# Run once in a terminal
+npx -y @wcgw/vibe-check-mcp hub
+
+# Register the bridge with your agent
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect`}
         </pre>
         <p className="vc-p" style={{ marginTop: 8 }}>
-          Six MCP tools, an <span className="vc-code">llms.txt</span>, and a
+          Nine project-scoped MCP tools, an <span className="vc-code">llms.txt</span>, and a
           Claude skill ship in the box.{' '}
           <Link className="vc-link" href="/docs/quickstart">
             Read the 5-minute quickstart →

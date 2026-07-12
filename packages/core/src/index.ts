@@ -20,6 +20,15 @@ export type {
   Detector,
   IssueEvidenceMap,
   EvidenceFor,
+  AgentConnectionState,
+  DispatchResultCode,
+  ProjectSnapshotEnvelope,
+  ProjectSummary,
+  ProjectStatus,
+  DispatchIssueRequest,
+  DispatchIssueResponse,
+  QueuedIssue,
+  LeaseResult,
 } from './types.js'
 
 export {
@@ -29,6 +38,8 @@ export {
   EMPTY_RESOURCE_STATS,
   EMPTY_CONSOLE_STATS,
   DEFAULT_CONFIG,
+  AGENT_CONNECTION_STATES,
+  DISPATCH_RESULT_CODES,
 } from './types.js'
 
 // Engine

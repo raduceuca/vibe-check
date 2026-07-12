@@ -6,15 +6,16 @@ panel (bottom-right, or **Ctrl+Shift+P**) and watch it light up.
 
 ## Run it
 
-Two commands, two terminals:
+Start the demo and the shared hub in separate terminals:
 
 ```bash
-pnpm dev                     # from this demo/ folder — starts the page on http://localhost:5173
-npx @wcgw/vibe-check-mcp      # the MCP server on :4200, so the Settings dot goes live and an agent can read issues
+pnpm dev                                # from demo/ — http://localhost:5173
+npx -y @wcgw/vibe-check-mcp hub         # shared local hub on 127.0.0.1:4200
 ```
 
-The page beacons snapshots to `http://127.0.0.1:4200`; without the MCP server the
-widget still works, but the Settings connection dot stays inactive.
+The page uses project ID `vibe-check-demo` and beacons to
+`http://127.0.0.1:4200`. Without the hub the widget still measures locally, but
+its agent status reports that the MCP server is offline.
 
 ## What the page does wrong (and which detector catches it)
 
@@ -47,7 +48,13 @@ For on-demand extras beyond the baked-in issues:
 
 ## Agent round-trip
 
-With the MCP server running, point your AI agent at it
-(`claude mcp add vibe-check -- npx @wcgw/vibe-check-mcp`), then use the **Agent**
-tab's "copy & send" prompts — or have the agent call `get_detected_issues` and
-`get_fix_suggestions` directly against the live page.
+Register the bridge once, then restart your agent client:
+
+```bash
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+```
+
+Ask the agent to call `watch_for_issue` with `project_id: "vibe-check-demo"`.
+When the widget says **Agent connected**, open **Agent**, expand a detected
+issue, and click **Send to agent**. The pending tool call returns that issue and
+its fix guide. **Copy prompt** remains a clipboard-only fallback.

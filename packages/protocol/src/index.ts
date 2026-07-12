@@ -262,6 +262,79 @@ export interface VibeSnapshot {
   readonly domNodeCount: number
 }
 
+// ── Local hub / agent routing contract ─────────────────────────────────────
+
+export const AGENT_CONNECTION_STATES = ['no-agent', 'watching', 'busy', 'stale'] as const
+export type AgentConnectionState = (typeof AGENT_CONNECTION_STATES)[number]
+
+export const DISPATCH_RESULT_CODES = [
+  'dispatched',
+  'unconfigured',
+  'hub-offline',
+  'agent-not-watching',
+  'queue-full',
+  'invalid-issue',
+  'failed',
+] as const
+export type DispatchResultCode = (typeof DISPATCH_RESULT_CODES)[number]
+
+export interface ProjectSnapshotEnvelope {
+  readonly projectId: string
+  readonly instanceId: string
+  readonly origin: string
+  readonly title: string
+  readonly snapshot: VibeSnapshot
+}
+
+export interface ProjectSummary {
+  readonly projectId: string
+  readonly origin: string
+  readonly title: string
+  readonly instanceCount: number
+  readonly lastSeenAt: number
+  readonly agentState: AgentConnectionState
+}
+
+export interface ProjectStatus {
+  readonly projectId: string
+  readonly state: AgentConnectionState
+  readonly queueDepth: number
+  readonly leaseExpiresAt: number | null
+  readonly conflictAt: number | null
+}
+
+export interface DispatchIssueRequest {
+  readonly projectId: string
+  readonly instanceId: string
+  readonly issue: VibeIssue
+}
+
+export interface DispatchIssueResponse {
+  readonly ok: boolean
+  readonly code: DispatchResultCode
+  readonly projectId: string
+  readonly queueDepth: number
+}
+
+export interface QueuedIssue {
+  readonly projectId: string
+  readonly issue: VibeIssue
+  readonly snapshot: VibeSnapshot
+  readonly dispatchedAt: number
+}
+
+export type LeaseResult =
+  | {
+      readonly ok: true
+      readonly projectId: string
+      readonly expiresAt: number
+    }
+  | {
+      readonly ok: false
+      readonly code: 'project-not-found' | 'lease-conflict' | 'session-already-watching'
+      readonly projectId: string
+    }
+
 // ── Collector / Detector contracts (extension points) ───────────────────────
 
 export interface Collector<T> {

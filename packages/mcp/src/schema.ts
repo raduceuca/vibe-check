@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { DETECTOR_NAMES, SEVERITIES } from '@wcgw/vibe-check-protocol'
-import type { DetectorName, Severity, VibeSnapshot } from './types.js'
+import type {
+  DetectorName,
+  DispatchIssueRequest,
+  ProjectSnapshotEnvelope,
+  Severity,
+  VibeSnapshot,
+} from './types.js'
 
 // The /api/snapshot endpoint is unauthenticated, and an issue's text fields are
 // later serialized verbatim into the AI agent's context via the MCP tools. So
@@ -12,9 +18,10 @@ const MAX_ISSUES = 500
 const MAX_STRING_LEN = 2000
 
 const boundedString = z.string().max(MAX_STRING_LEN)
+const idSchema = z.string().trim().min(1).max(MAX_STRING_LEN)
 
-const issueSchema = z.object({
-  id: boundedString,
+export const issueSchema = z.object({
+  id: idSchema,
   detector: z.enum([...DETECTOR_NAMES] as [DetectorName, ...DetectorName[]]),
   severity: z.enum([...SEVERITIES] as [Severity, ...Severity[]]),
   title: boundedString,
@@ -38,8 +45,50 @@ const snapshotSchema = z
   })
   .passthrough()
 
+export const projectSnapshotEnvelopeSchema = z.object({
+  projectId: idSchema,
+  instanceId: idSchema,
+  origin: boundedString,
+  title: boundedString,
+  snapshot: snapshotSchema,
+})
+
+export const dispatchIssueRequestSchema = z.object({
+  projectId: idSchema,
+  instanceId: idSchema,
+  issue: issueSchema,
+})
+
+export const leaseRequestSchema = z.object({ sessionId: idSchema })
+export const waitRequestSchema = z.object({
+  sessionId: idSchema,
+  timeoutSeconds: z.number().min(1).max(300),
+})
+
 // Returns the validated snapshot, or null if the payload is malformed/oversized.
 export const parseSnapshot = (data: unknown): VibeSnapshot | null => {
   const result = snapshotSchema.safeParse(data)
   return result.success ? (data as VibeSnapshot) : null
+}
+
+export const parseProjectSnapshotEnvelope = (data: unknown): ProjectSnapshotEnvelope | null => {
+  const result = projectSnapshotEnvelopeSchema.safeParse(data)
+  return result.success ? (result.data as unknown as ProjectSnapshotEnvelope) : null
+}
+
+export const parseDispatchIssueRequest = (data: unknown): DispatchIssueRequest | null => {
+  const result = dispatchIssueRequestSchema.safeParse(data)
+  return result.success ? (result.data as DispatchIssueRequest) : null
+}
+
+export const parseLeaseRequest = (data: unknown): { readonly sessionId: string } | null => {
+  const result = leaseRequestSchema.safeParse(data)
+  return result.success ? result.data : null
+}
+
+export const parseWaitRequest = (
+  data: unknown,
+): { readonly sessionId: string; readonly timeoutSeconds: number } | null => {
+  const result = waitRequestSchema.safeParse(data)
+  return result.success ? result.data : null
 }

@@ -22,8 +22,8 @@ side and the agent side never share a runtime, only a wire contract.
 | --- | --- | --- |
 | `@wcgw/vibe-check-core` | Collectors, detectors, `VibeCheckEngine`, `BeaconClient`. | Zero. |
 | `@wcgw/vibe-check` | React overlay (`<VibeCheck />`, `<PerfToggle />`) + hooks. | React 18+ (peer). |
-| `@wcgw/vibe-check-mcp` | HTTP receiver + MCP server exposing six tools. | `@modelcontextprotocol/sdk`, `zod`. |
-| `@wcgw/vibe-check-protocol` | The wire contract: `VibeSnapshot`, `VibeIssue`, the enums. | Zero. Internal — bundled into the others, never shipped alone. |
+| `@wcgw/vibe-check-mcp` | Shared HTTP hub + stdio bridge exposing nine project-scoped tools. | `@modelcontextprotocol/sdk`, `zod`. |
+| `@wcgw/vibe-check-protocol` | Snapshots, issues, project envelopes, dispatch results, and lease states. | Zero. Internal — bundled into the others. |
 
 ## The decoupling seam
 
@@ -46,9 +46,9 @@ between browser and agent a compile error rather than a silent bug.
 - **In the browser** — collectors measure the page, detectors analyze each
   snapshot into issues, the engine orchestrates them, and the beacon (when a
   `beaconUrl` is configured) ships snapshots out.
-- **On your machine** — the MCP server holds the latest snapshot in an immutable
-  `VibeStore` and answers your agent's tool calls. A single process runs both the
-  HTTP receiver and the stdio MCP transport.
+- **On your machine** — one hub holds isolated project stores, queues, and
+  leases. Each agent client spawns a stdio bridge that talks to that hub. Only
+  the hub binds the browser port.
 
 ## Keep reading
 

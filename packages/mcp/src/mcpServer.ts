@@ -1,210 +1,208 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { DETECTOR_NAMES, SEVERITIES } from '@wcgw/vibe-check-protocol'
+import type { HubClient } from './hubClient.js'
+import { HubClientError } from './hubClient.js'
+import type { LeaseManager } from './leaseManager.js'
 import { getSuggestion } from './suggestions/index.js'
-import { acknowledgeIssue, resolveIssue, type VibeStore } from './store.js'
-import type { VibeIssue, VibeSnapshot } from './types.js'
 
-const VERSION = '0.1.0'
+const projectIdSchema = z.string().optional().describe('Project ID from list_projects; optional when exactly one project is active')
 
-type SnapshotWaiter = (snapshot: VibeSnapshot) => void
+const jsonResult = (payload: unknown, isError = false) => ({
+  content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
+  ...(isError ? { isError: true } : {}),
+})
 
-const findIssueById = (store: VibeStore, id: string): VibeIssue | undefined => {
-  // Scan in-place — no intermediate concatenated array.
-  const current = store.latestSnapshot?.issues
-  if (current) {
-    for (let i = 0; i < current.length; i++) {
-      if (current[i]!.id === id) return current[i]
+const textResult = (text: string) => ({
+  content: [{ type: 'text' as const, text }],
+})
+
+type ProjectResolution =
+  | { readonly ok: true; readonly projectId: string }
+  | { readonly ok: false; readonly payload: unknown }
+
+const resolveProject = async (
+  client: HubClient,
+  leases: LeaseManager,
+  requested: string | undefined,
+): Promise<ProjectResolution> => {
+  const projects = await client.listProjects()
+  const owned = leases.currentProjectId()
+  if (owned && requested && requested !== owned) {
+    return {
+      ok: false,
+      payload: {
+        error: 'This agent is already watching another project',
+        code: 'session-already-watching',
+        projectId: owned,
+      },
     }
   }
-  const history = store.issueHistory
-  for (let i = 0; i < history.length; i++) {
-    if (history[i]!.id === id) return history[i]
+  if (owned) return { ok: true, projectId: owned }
+  if (requested) {
+    return projects.some((project) => project.projectId === requested)
+      ? { ok: true, projectId: requested }
+      : {
+          ok: false,
+          payload: { error: 'Project not found', code: 'project-not-found', projects },
+        }
   }
-  return undefined
+  if (projects.length === 1) return { ok: true, projectId: projects[0]!.projectId }
+  return {
+    ok: false,
+    payload: {
+      error: projects.length === 0
+        ? 'No active VibeCheck project. Open an app with the widget enabled.'
+        : 'Multiple VibeCheck projects are active. Pass project_id.',
+      code: projects.length === 0 ? 'no-projects' : 'project-ambiguous',
+      projects,
+    },
+  }
 }
+
+const hubErrorPayload = (error: unknown): unknown => error instanceof HubClientError
+  ? { error: error.message, code: error.code, details: error.body }
+  : { error: error instanceof Error ? error.message : String(error), code: 'hub-request-failed' }
 
 export interface McpServerContext {
   readonly server: McpServer
-  readonly notifySnapshot: (snapshot: VibeSnapshot) => void
 }
 
 export const createMcpServer = (
-  getStore: () => VibeStore,
-  setStore: (store: VibeStore) => void,
+  client: HubClient,
+  leases: LeaseManager,
+  version: string,
 ): McpServerContext => {
-  const server = new McpServer({
-    name: 'vibe-check',
-    version: VERSION,
-  })
+  const server = new McpServer({ name: 'vibe-check', version })
 
-  const snapshotWaiters = new Set<SnapshotWaiter>()
-
-  const notifySnapshot = (snapshot: VibeSnapshot): void => {
-    for (const waiter of snapshotWaiters) {
-      waiter(snapshot)
+  const withProject = async <T>(
+    requested: string | undefined,
+    callback: (projectId: string) => Promise<T>,
+  ): Promise<T | ReturnType<typeof jsonResult>> => {
+    try {
+      const resolution = await resolveProject(client, leases, requested)
+      if (!resolution.ok) return jsonResult(resolution.payload, true)
+      return await callback(resolution.projectId)
+    } catch (error) {
+      return jsonResult(hubErrorPayload(error), true)
     }
-    snapshotWaiters.clear()
   }
+
+  server.tool('list_projects', 'List active local VibeCheck projects and their agent state', {}, async () => {
+    try {
+      return jsonResult(await client.listProjects())
+    } catch (error) {
+      return jsonResult(hubErrorPayload(error), true)
+    }
+  })
 
   server.tool(
     'get_performance_snapshot',
-    'Get the latest browser performance snapshot including frame rate, web vitals, memory, resources, and detected issues',
-    {},
-    async () => {
-      const store = getStore()
-
-      if (!store.latestSnapshot) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({ error: 'No snapshot available yet. The browser widget has not sent any data.' }) }],
-        }
-      }
-
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(store.latestSnapshot, null, 2) }],
-      }
-    },
+    'Get the latest browser performance snapshot for one project',
+    { project_id: projectIdSchema },
+    async ({ project_id }) => withProject(project_id, async (projectId) => {
+      const snapshot = await client.getSnapshot(projectId)
+      return snapshot
+        ? jsonResult(snapshot)
+        : jsonResult({ error: 'No snapshot available yet.', code: 'no-snapshot', projectId }, true)
+    }),
   )
 
   server.tool(
     'get_detected_issues',
-    'Get active (not resolved or acknowledged) performance issues. Optionally filter by severity or detector name.',
+    'Get active issues for one project, optionally filtered',
     {
-      severity: z.enum(['info', 'warning', 'error', 'critical']).optional().describe('Filter by severity level'),
-      detector: z.string().optional().describe('Filter by detector name (e.g., dom-bloat, memory-leak)'),
+      project_id: projectIdSchema,
+      severity: z.enum([...SEVERITIES]).optional(),
+      detector: z.enum([...DETECTOR_NAMES]).optional(),
     },
-    async ({ severity, detector }) => {
-      const store = getStore()
-      const snapshot = store.latestSnapshot
-
-      if (!snapshot) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({ error: 'No snapshot available yet.' }) }],
-        }
-      }
-
-      const activeIssues = snapshot.issues.filter((issue) => {
-        if (store.acknowledgedIds.has(issue.id)) return false
-        if (store.resolvedIds.has(issue.id)) return false
-        if (severity && issue.severity !== severity) return false
-        if (detector && issue.detector !== detector) return false
-        return true
-      })
-
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ count: activeIssues.length, issues: activeIssues }, null, 2) }],
-      }
-    },
+    async ({ project_id, severity, detector }) => withProject(project_id, async (projectId) => {
+      const issues = await client.getDetectedIssues(projectId, { severity, detector })
+      return jsonResult({ count: issues.length, issues })
+    }),
   )
 
   server.tool(
     'get_fix_suggestions',
-    'Get detailed fix suggestions for a specific performance issue, including step-by-step instructions and code examples',
-    {
-      issue_id: z.string().describe('The ID of the issue to get suggestions for'),
-    },
-    async ({ issue_id }) => {
-      const store = getStore()
-      const issue = findIssueById(store, issue_id)
-
-      if (!issue) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({ error: `Issue with id "${issue_id}" not found.` }) }],
-        }
-      }
-
-      return {
-        content: [{ type: 'text' as const, text: getSuggestion(issue) }],
-      }
-    },
+    'Get a fix suggestion for one detected issue',
+    { project_id: projectIdSchema, issue_id: z.string() },
+    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
+      const issue = await client.getIssue(projectId, issue_id)
+      return issue
+        ? textResult(getSuggestion(issue))
+        : jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
+    }),
   )
 
   server.tool(
     'watch_performance',
-    'Wait for the next browser performance snapshot update and return it. Useful for monitoring changes after a fix.',
+    'Wait for the next snapshot for one project',
     {
-      timeout_seconds: z.number().min(1).max(300).default(30).describe('How long to wait for a new snapshot (1-300, default: 30)'),
+      project_id: projectIdSchema,
+      timeout_seconds: z.number().min(1).max(300).default(30),
     },
-    async ({ timeout_seconds }) => {
-      const timeoutMs = timeout_seconds * 1000
+    async ({ project_id, timeout_seconds }) => withProject(project_id, async (projectId) => {
+      const lease = await leases.acquire(projectId)
+      if (!lease.ok) return jsonResult(lease, true)
+      const snapshot = await client.waitForSnapshot(projectId, leases.sessionId, timeout_seconds)
+      return snapshot
+        ? jsonResult(snapshot)
+        : jsonResult({ error: `No snapshot received within ${timeout_seconds} seconds`, code: 'watch-timeout', projectId }, true)
+    }),
+  )
 
-      let waiterResolve: SnapshotWaiter | null = null
-
-      const result = await Promise.race([
-        new Promise<VibeSnapshot>((resolve) => {
-          waiterResolve = resolve
-          snapshotWaiters.add(resolve)
-        }),
-        new Promise<null>((_, reject) => {
-          setTimeout(() => {
-            if (waiterResolve) {
-              snapshotWaiters.delete(waiterResolve)
-            }
-            reject(new Error(`No snapshot received within ${timeout_seconds} seconds`))
-          }, timeoutMs)
-        }),
-      ]).catch((error: Error) => {
-        return { error: error.message }
+  server.tool(
+    'watch_for_issue',
+    'Claim one project and wait for an issue explicitly sent from its widget',
+    {
+      project_id: projectIdSchema,
+      timeout_seconds: z.number().min(1).max(300).default(30),
+    },
+    async ({ project_id, timeout_seconds }) => withProject(project_id, async (projectId) => {
+      const lease = await leases.acquire(projectId)
+      if (!lease.ok) return jsonResult(lease, true)
+      const queued = await client.waitForIssue(projectId, leases.sessionId, timeout_seconds)
+      if (!queued) {
+        return jsonResult({ error: `No issue sent within ${timeout_seconds} seconds`, code: 'watch-timeout', projectId }, true)
+      }
+      return jsonResult({
+        ...queued,
+        suggestion: getSuggestion(queued.issue),
+        receivedAt: Date.now(),
       })
-
-      if (result !== null && 'error' in result) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-        }
-      }
-
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-      }
-    },
+    }),
   )
 
   server.tool(
     'acknowledge_issue',
-    'Mark a performance issue as acknowledged. Acknowledged issues will not appear in get_detected_issues.',
-    {
-      issue_id: z.string().describe('The ID of the issue to acknowledge'),
-    },
-    async ({ issue_id }) => {
-      const store = getStore()
-      const issue = findIssueById(store, issue_id)
-
-      if (!issue) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({ error: `Issue with id "${issue_id}" not found.` }) }],
-        }
-      }
-
-      setStore(acknowledgeIssue(store, issue_id))
-
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ acknowledged: true, issue_id }) }],
-      }
-    },
+    'Acknowledge an issue in one project',
+    { project_id: projectIdSchema, issue_id: z.string() },
+    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
+      const issue = await client.getIssue(projectId, issue_id)
+      if (!issue) return jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
+      await client.acknowledgeIssue(projectId, issue_id)
+      return jsonResult({ acknowledged: true, projectId, issue_id })
+    }),
   )
 
   server.tool(
     'resolve_issue',
-    'Mark a performance issue as resolved. Resolved issues will not appear in get_detected_issues.',
-    {
-      issue_id: z.string().describe('The ID of the issue to resolve'),
-    },
-    async ({ issue_id }) => {
-      const store = getStore()
-      const issue = findIssueById(store, issue_id)
-
-      if (!issue) {
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify({ error: `Issue with id "${issue_id}" not found.` }) }],
-        }
-      }
-
-      setStore(resolveIssue(store, issue_id))
-
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ resolved: true, issue_id }) }],
-      }
-    },
+    'Resolve an issue in one project',
+    { project_id: projectIdSchema, issue_id: z.string() },
+    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
+      const issue = await client.getIssue(projectId, issue_id)
+      if (!issue) return jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
+      await client.resolveIssue(projectId, issue_id)
+      return jsonResult({ resolved: true, projectId, issue_id })
+    }),
   )
 
-  return { server, notifySnapshot }
+  server.tool('release_project', 'Release this agent session\'s project lease', {}, async () => {
+    const projectId = leases.currentProjectId()
+    if (!projectId) return jsonResult({ released: false, code: 'no-project-lease' }, true)
+    await leases.release()
+    return jsonResult({ released: true, projectId })
+  })
+
+  return { server }
 }

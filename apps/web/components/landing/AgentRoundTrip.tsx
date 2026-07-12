@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ── Scripted agent round-trip ────────────────────────────────────────────────
 // A terminal-style panel that plays the realistic symptom→fix exchange: VibeCheck
-// catches a layout-shift issue, the coding agent reads it over MCP
+// illustrates a DOM-bloat issue that a coding agent can receive over MCP
 // (get_detected_issues), asks for a fix (get_fix_suggestions → a real unified
-// diff that reserves space for the image), and closes the loop (resolve_issue).
+// and closes the loop (resolve_issue). This transcript is illustrative; the
+// public landing widget intentionally runs without a local beacon.
 //
 // Playback types the agent's half line-by-line; the caught issue is shown at rest
 // so the panel is never empty. Honors prefers-reduced-motion by rendering the
@@ -37,35 +38,31 @@ interface Row {
 const INTRO_COUNT = 3
 
 const ROWS: readonly Row[] = [
-  { kind: 'sys', text: '// VibeCheck is watching this page — a detector just fired' },
-  { kind: 'issue', prefix: '● ', text: 'layout-shift · error   CLS 0.24 — <img> in <Hero> loaded with no width/height' },
+  { kind: 'sys', text: '// Illustrative local session — the public demo is local-only' },
+  { kind: 'issue', prefix: '● ', text: 'dom-bloat · warning   1,240 nodes — <Testimonials> renders every card' },
   { kind: 'gap', text: '' },
-  { kind: 'cmd', prefix: 'claude ▸ ', text: "get_detected_issues({ detector: 'layout-shift' })", typed: true },
+  { kind: 'cmd', prefix: 'claude ▸ ', text: "watch_for_issue({ project_id: 'storefront' })", typed: true },
   { kind: 'out', text: '→ 1 issue' },
   { kind: 'out', text: '[' },
   { kind: 'out', text: '  {' },
-  { kind: 'out', text: '    "detector": "layout-shift",' },
-  { kind: 'out', text: '    "severity": "error",' },
-  { kind: 'out', text: '    "title": "Cumulative Layout Shift 0.24",' },
-  { kind: 'out', text: '    "evidence": { "value": 0.24, "element": "img.hero-img",' },
-  { kind: 'out', text: '                   "source": "components/Hero.tsx:14" }' },
+  { kind: 'out', text: '    "id": "dom-bloat:node-count",' },
+  { kind: 'out', text: '    "detector": "dom-bloat",' },
+  { kind: 'out', text: '    "severity": "warning",' },
+  { kind: 'out', text: '    "title": "Large DOM detected",' },
+  { kind: 'out', text: '    "evidence": { "nodeCount": 1240, "maxDepth": 18 }' },
   { kind: 'out', text: '  }' },
   { kind: 'out', text: ']' },
   { kind: 'gap', text: '' },
-  { kind: 'cmd', prefix: 'claude ▸ ', text: "get_fix_suggestions({ id: 'layout-shift-1' })", typed: true },
-  { kind: 'out', text: '→ reserve the image box so it can’t shift on load:' },
-  { kind: 'diff-meta', text: '--- a/components/Hero.tsx' },
-  { kind: 'diff-meta', text: '+++ b/components/Hero.tsx' },
-  { kind: 'diff-hunk', text: '@@ -11,6 +11,8 @@ export const Hero = () => (' },
-  { kind: 'diff-ctx', text: '       <img' },
-  { kind: 'diff-ctx', text: '         src="/hero.png"' },
-  { kind: 'diff-ctx', text: '         alt="Product screenshot"' },
-  { kind: 'diff-add', text: '+        width={1280}' },
-  { kind: 'diff-add', text: '+        height={720}' },
-  { kind: 'diff-ctx', text: '       />' },
+  { kind: 'cmd', prefix: 'claude ▸ ', text: "get_fix_suggestions({ project_id: 'storefront', issue_id: 'dom-bloat:node-count' })", typed: true },
+  { kind: 'out', text: '→ render only the visible testimonial window:' },
+  { kind: 'diff-meta', text: '--- a/components/Testimonials.tsx' },
+  { kind: 'diff-meta', text: '+++ b/components/Testimonials.tsx' },
+  { kind: 'diff-hunk', text: '@@ -18,3 +18,3 @@ export const Testimonials = () => (' },
+  { kind: 'diff-del', text: '-      {testimonials.map(renderCard)}' },
+  { kind: 'diff-add', text: '+      {visibleTestimonials.map(renderCard)}' },
   { kind: 'gap', text: '' },
-  { kind: 'cmd', prefix: 'claude ▸ ', text: "resolve_issue({ id: 'layout-shift-1' })", typed: true },
-  { kind: 'ok', prefix: '✓ ', text: 'resolved — CLS back to 0.00. VibeCheck is calm again.' },
+  { kind: 'cmd', prefix: 'claude ▸ ', text: "resolve_issue({ project_id: 'storefront', issue_id: 'dom-bloat:node-count' })", typed: true },
+  { kind: 'ok', prefix: '✓ ', text: 'resolved — DOM returned below the warning threshold.' },
 ]
 
 const CHAR_MS = 18

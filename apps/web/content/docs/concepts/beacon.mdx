@@ -7,8 +7,8 @@ import { BeaconRoundTrip } from '@/components/diagrams'
 
 The beacon is the one network hop in VibeCheck. When the engine has a
 `beaconUrl`, its `BeaconClient` serializes the current `VibeSnapshot` to JSON and
-POSTs it to `<beaconUrl>/api/snapshot` on an interval. That's the whole
-browser→agent bridge.
+wraps it with `projectId`, browser instance ID, and page URL, then POSTs the
+envelope to `<beaconUrl>/api/snapshot` on an interval.
 
 <BeaconRoundTrip />
 
@@ -17,11 +17,14 @@ browser→agent bridge.
 Pass `beaconUrl` to the widget (or to the engine directly):
 
 ```tsx
-<VibeCheck beaconUrl="http://localhost:4200" />
+<VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="my-storefront" />
 ```
 
 ```ts
-const engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+const engine = new VibeCheckEngine({
+  beaconUrl: 'http://127.0.0.1:4200',
+  projectId: 'my-storefront',
+})
 ```
 
 Without a `beaconUrl` the engine runs fully local — collectors and detectors
@@ -44,23 +47,26 @@ Settings panel renders it):
 
 ```ts
 interface BeaconStatus {
-  readonly configured: boolean          // true once a beaconUrl is set
-  readonly lastAttemptAt: number | null // ms timestamp of the last send
-  readonly lastOk: boolean | null       // true = delivered, false = failed,
-                                         // null = no completed attempt yet
+  readonly configured: boolean
+  readonly projectId: string
+  readonly instanceId: string
+  readonly lastAttemptAt: number | null
+  readonly lastOk: boolean | null
+  readonly projectStatus: ProjectStatus | null
+  readonly statusError: 'hub-offline' | null
 }
 ```
 
-`getBeaconStatus()` returns `null` when no `beaconUrl` is configured. In the UI
-those states read as inactive, connecting, or active.
+`projectStatus.state` is `no-agent`, `watching`, `busy`, or `stale`. The widget
+maps those states to waiting, connected, working, and disconnected instructions,
+and also surfaces a recently rejected second watcher.
 
 ## On the receiving end
 
-The MCP server's HTTP receiver accepts the POST at `/api/snapshot`, validates the
-body with a `zod` schema, folds it into the immutable `VibeStore`, and fans it
-out to any SSE listeners on `/api/stream`. Requests are capped at 1 MB and CORS
-is open (`Access-Control-Allow-Origin: *`) so the browser can reach a localhost
-port. See the [MCP tools & HTTP API reference](/docs/reference/mcp-tools#http-api).
+The hub accepts the envelope at `/api/snapshot`, validates it, and folds it into
+that project's immutable store. The widget polls the project status route and
+dispatches selected issues to its queue. Browser routes allow CORS; bridge-only
+`/internal` routes reject browser-originated requests.
 
 <Callout title="Cadence">
   The beacon POSTs every `beaconIntervalMs` (default **2s**), and fires once

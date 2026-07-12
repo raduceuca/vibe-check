@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { memo } from 'react'
-import type { SuggestionMode } from '@wcgw/vibe-check-core'
+import type { BeaconStatus, DispatchIssueResponse, SuggestionMode, VibeIssue } from '@wcgw/vibe-check-core'
 import { getAgentPrompt } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
@@ -11,14 +11,16 @@ import { Button } from './ui/Button.js'
 import { SectionHeader } from './ui/SectionHeader.js'
 import { EmptyState } from './ui/EmptyState.js'
 import { Tabs, type TabItem } from './ui/Tabs.js'
+import { AgentConnectionStatus } from './AgentConnectionStatus.js'
 
 interface AgentPanelProps {
   readonly tracked: readonly TrackedIssue[]
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
+  readonly beaconStatus: BeaconStatus | null
+  readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
-  readonly onMarkSentBatch: (issueIds: readonly string[]) => void
   readonly onMarkResolved: (issueId: string) => void
   readonly onClearResolved: () => void
 }
@@ -30,6 +32,8 @@ const IssueRow = ({
   mode,
   copiedId,
   onCopy,
+  beaconStatus,
+  onDispatch,
   onMarkSent,
   onMarkResolved,
 }: {
@@ -37,18 +41,38 @@ const IssueRow = ({
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
+  readonly beaconStatus: BeaconStatus | null
+  readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
 }) => {
+  const [delivery, setDelivery] = useState<DispatchIssueResponse['code'] | 'idle' | 'sending'>('idle')
   const { issue } = tracked
   const suggestion = getSuggestionCached(issue, mode)
   const isResolved = tracked.status === 'resolved'
 
-  const handleCopyAndMark = async () => {
-    const success = await onCopy(suggestion.prompt, issue.id)
-    if (success && tracked.status === 'new') {
-      onMarkSent(issue.id)
-    }
+  const handleCopy = async () => {
+    await onCopy(suggestion.prompt, issue.id)
+  }
+
+  const canDispatch = beaconStatus?.lastOk === true
+    && (beaconStatus.projectStatus?.state === 'watching' || beaconStatus.projectStatus?.state === 'busy')
+
+  const handleDispatch = async () => {
+    setDelivery('sending')
+    const result = await onDispatch(issue)
+    setDelivery(result.code)
+    if (result.ok) onMarkSent(issue.id)
+  }
+
+  const deliveryLabel: Partial<Record<typeof delivery, string>> = {
+    dispatched: 'sent',
+    'agent-not-watching': 'agent not watching',
+    'queue-full': 'queue full',
+    'hub-offline': 'MCP server offline',
+    'invalid-issue': 'invalid issue',
+    failed: 'send failed',
+    unconfigured: 'MCP not configured',
   }
 
   return (
@@ -79,8 +103,8 @@ const IssueRow = ({
           </span>
           <CopyButton
             copied={copiedId === issue.id}
-            onClick={handleCopyAndMark}
-            label={tracked.status === 'new' ? 'copy & send' : 'copy'}
+            onClick={handleCopy}
+            label="Copy prompt"
           />
         </div>
         <div style={{
@@ -94,7 +118,16 @@ const IssueRow = ({
       </div>
 
       {!isResolved && (
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button
+            size="sm"
+            disabled={!canDispatch || delivery === 'sending' || delivery === 'dispatched'}
+            onClick={(e) => { e.stopPropagation(); void handleDispatch() }}
+            testId={`vibe-check-send-${issue.id}`}
+            title={canDispatch ? 'Send this issue to the connected agent' : 'Connect one agent watcher before sending'}
+          >
+            {delivery === 'sending' ? 'Sending…' : delivery === 'dispatched' ? 'Sent' : 'Send to agent'}
+          </Button>
           <Button
             variant="success"
             size="sm"
@@ -107,6 +140,11 @@ const IssueRow = ({
           >
             {mode === 'vibe' ? 'mark as fixed' : 'resolve'}
           </Button>
+          {delivery !== 'idle' && delivery !== 'sending' && deliveryLabel[delivery] && (
+            <span role="status" style={{ color: delivery === 'dispatched' ? T.green : T.red, fontSize: 13 }}>
+              {deliveryLabel[delivery]}
+            </span>
+          )}
         </div>
       )}
     </Row>
@@ -114,7 +152,7 @@ const IssueRow = ({
 }
 
 export const AgentPanel = memo(({
-  tracked, mode, copiedId, onCopy, onMarkSent, onMarkSentBatch, onMarkResolved, onClearResolved,
+  tracked, mode, copiedId, onCopy, beaconStatus, onDispatch, onMarkSent, onMarkResolved, onClearResolved,
 }: AgentPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>('active')
 
@@ -135,16 +173,11 @@ export const AgentPanel = memo(({
     const issues = currentIssues.map((t) => t.issue)
     const prompt = getAgentPrompt(issues, mode)
     await onCopy(prompt, 'all')
-    const newIds = currentIssues
-      .filter((t) => t.status === 'new')
-      .map((t) => t.issue.id)
-    if (newIds.length > 0) {
-      onMarkSentBatch(newIds)
-    }
   }
 
   return (
     <div style={{ paddingTop: 4 }}>
+      <AgentConnectionStatus mode={mode} beaconUrl={beaconStatus?.configured ? 'configured' : undefined} status={beaconStatus} />
       <SectionHeader
         count={active.length}
         action={currentIssues.length > 0 ? (
@@ -185,7 +218,8 @@ export const AgentPanel = memo(({
           {currentIssues.map((t) => (
             <IssueRow
               key={t.issue.id} tracked={t} mode={mode} copiedId={copiedId}
-              onCopy={onCopy} onMarkSent={onMarkSent} onMarkResolved={onMarkResolved}
+              onCopy={onCopy} beaconStatus={beaconStatus} onDispatch={onDispatch}
+              onMarkSent={onMarkSent} onMarkResolved={onMarkResolved}
             />
           ))}
         </div>
