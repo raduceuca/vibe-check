@@ -7,6 +7,9 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "pnpm cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
     "postinstall": "fumadocs-mdx",
     "lint": "tsc --noEmit"
   },
@@ -23,6 +26,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.1",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/mdast": "^4.0.4",
     "@types/mdx": "^2.0.13",
@@ -32,6 +36,7 @@
     "mdast-util-directive": "^3.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.3.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "wrangler": "^4.110.0"
   }
 }

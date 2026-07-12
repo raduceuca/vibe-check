@@ -1,5 +1,6 @@
 import { createMDX } from 'fumadocs-mdx/next'
 import { dirname, join } from 'node:path'
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare'
 
 const withMDX = createMDX()
 
@@ -21,6 +22,14 @@ const config = {
     '@phosphor-icons/react',
     'liveline',
   ],
+}
+
+// Wire Cloudflare bindings into the local `next dev` server so getCloudflareContext()
+// works in development. Guarded to the dev server (NODE_ENV=development), so the
+// standard `next build --webpack` production build — used by CI and by the OpenNext
+// Worker build alike — is completely untouched.
+if (process.env.NODE_ENV === 'development') {
+  initOpenNextCloudflareForDev()
 }
 
 export default withMDX(config)

@@ -82,6 +82,18 @@ export const isBlockedIp = (ip: string): boolean => {
   return false
 }
 
+// Resolve a hostname to every A/AAAA address. Uses resolve4/resolve6 rather than
+// dns.lookup(): the Cloudflare Workers runtime implements these (backed by
+// DNS-over-HTTPS to 1.1.1.1) but throws "Not implemented" for lookup(). Node
+// resolves them the same way, so the guard behaves identically in dev and in
+// production. Each family is queried independently and never rejects the whole
+// call — a host with only A (or only AAAA) records is normal, so a per-family
+// "no records" error is tolerated as long as the other family yields something.
+const resolveHostIps = async (host: string): Promise<string[]> => {
+  const settled = await Promise.allSettled([dns.resolve4(host), dns.resolve6(host)])
+  return settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+}
+
 // Hostnames that never point anywhere public.
 const BLOCKED_HOST_NAMES: readonly string[] = ['localhost']
 const BLOCKED_HOST_SUFFIXES: readonly string[] = ['.local', '.localhost', '.internal']
@@ -135,17 +147,13 @@ export const guardUrl = async (url: URL): Promise<void> => {
     throw new ScanError(BLOCKED_MESSAGE)
   }
 
-  // Resolve and re-check every address the name maps to.
-  let addresses: { address: string }[]
-  try {
-    addresses = await dns.lookup(host, { all: true })
-  } catch {
-    throw new ScanError("Couldn't find that domain. Check the URL and try again.")
-  }
+  // Resolve and re-check every address the name maps to. Both families rejecting
+  // (or returning nothing) means the name doesn't resolve — a user-fixable miss.
+  const addresses = await resolveHostIps(host)
   if (addresses.length === 0) {
     throw new ScanError("Couldn't find that domain. Check the URL and try again.")
   }
-  for (const { address } of addresses) {
+  for (const address of addresses) {
     if (isBlockedIp(address)) throw new ScanError(BLOCKED_MESSAGE)
   }
 }

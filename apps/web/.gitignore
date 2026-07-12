@@ -9,6 +9,11 @@
 /out/
 next-env.d.ts
 
+# cloudflare (opennext adapter build output + local state)
+/.open-next/
+/.wrangler/
+cloudflare-env.d.ts
+
 # misc
 *.tsbuildinfo
 .DS_Store
