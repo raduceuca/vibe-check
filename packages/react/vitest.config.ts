@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
 
+const nodeMajor = Number.parseInt(process.versions.node.split('.')[0] ?? '0', 10)
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -12,7 +14,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    execArgv: ['--no-experimental-webstorage'],
+    execArgv: nodeMajor >= 25 ? ['--no-experimental-webstorage'] : [],
     include: ['src/**/*.test.{ts,tsx}'],
   },
 })
