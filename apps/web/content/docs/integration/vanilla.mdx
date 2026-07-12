@@ -1,0 +1,80 @@
+---
+title: Vanilla / headless
+description: The core engine with no framework at all.
+---
+
+`@wcgw/vibe-check-core` is plain TypeScript with zero runtime dependencies. Wire
+the engine up by hand, read snapshots however you like, and clean up when you're
+done.
+
+## Install
+
+```bash
+pnpm add @wcgw/vibe-check-core
+```
+
+## The full lifecycle
+
+```ts
+import { VibeCheckEngine } from '@wcgw/vibe-check-core'
+
+const engine = new VibeCheckEngine()
+engine.start()
+
+// Read the current snapshot at any time:
+const snapshot = engine.getSnapshot()
+console.info(snapshot.frameRate.fps, snapshot.domNodeCount)
+
+// Or subscribe to every tick (~every 500ms):
+const unsubscribe = engine.onSnapshot((snap) => {
+  console.info(snap.frameRate.fps, snap.issues.length)
+})
+
+// Always clean up:
+unsubscribe()
+engine.stop()
+```
+
+`getSnapshot()` returns the current `VibeSnapshot` — frame rate, long frames, web
+vitals, memory, resources, console counts, `domNodeCount`, and the current
+`issues` array. `onSnapshot` returns an unsubscribe function; `stop()` tears down
+every collector and detector and restores any patched globals.
+
+## Beacon-only mode
+
+To feed your AI agent without rendering anything, give the engine a `beaconUrl`.
+It POSTs snapshots to `<beaconUrl>/api/snapshot` on its own interval — you don't
+subscribe or render at all:
+
+```ts
+import { VibeCheckEngine } from '@wcgw/vibe-check-core'
+
+const engine = new VibeCheckEngine({
+  beaconUrl: 'http://localhost:4200',
+  beaconIntervalMs: 2000, // default
+})
+engine.start()
+
+// Stop when the page/session ends:
+window.addEventListener('pagehide', () => engine.stop())
+```
+
+## Feature detection is automatic
+
+The engine feature-detects browser APIs — `PerformanceObserver`, LoAF, layout
+shift, `performance.memory` — and simply skips collectors the host doesn't
+support. Missing metrics read as empty (or `null` for memory) rather than
+throwing. You can query support directly if you need to branch on it:
+
+```ts
+import {
+  hasLongAnimationFrame,
+  hasPerformanceMemory,
+} from '@wcgw/vibe-check-core'
+
+if (!hasPerformanceMemory()) {
+  // Non-Chromium: the memory-leak detector will stay quiet.
+}
+```
+
+See the [Core API reference](/docs/reference/core-api) for every export.

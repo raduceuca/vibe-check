@@ -1,0 +1,86 @@
+---
+title: Quickstart
+description: Five minutes — drop in the React widget, start the MCP server, and let your coding agent read the issues.
+---
+
+This gets you a live performance overlay and an AI agent that can read snapshots
+and suggest fixes. Six steps, one code block each.
+
+<Callout title="Prerequisites">
+  A React 18+ app and a coding agent that speaks MCP (Claude Code, Cursor, or
+  Claude Desktop). Working in another framework? See the
+  [Vanilla / headless guide](/docs/integration).
+</Callout>
+
+## 1. Install
+
+```bash
+pnpm add @wcgw/vibe-check
+```
+
+## 2. Drop in the widget
+
+Render it once near your app root. Gate it out of production so it never ships
+to real users.
+
+```tsx
+import { VibeCheck } from '@wcgw/vibe-check'
+
+export function Root() {
+  return (
+    <>
+      <App />
+      {process.env.NODE_ENV !== 'production' && <VibeCheck />}
+    </>
+  )
+}
+```
+
+## 3. Run & open the overlay
+
+Start your dev server. The panel appears bottom-right — or gate it behind
+`Alt+Shift+V` with `<PerfToggle />` instead of `<VibeCheck />`. You should see
+live FPS, web vitals, memory, and any detected issues.
+
+## 4. Start the MCP server
+
+Run it so your agent has somewhere to read from. It listens on
+`http://localhost:4200` and receives snapshots from the widget's beacon.
+
+```bash
+npx -y @wcgw/vibe-check-mcp
+```
+
+## 5. Connect your coding agent
+
+One process is both the stdio MCP server (for the agent) and the HTTP receiver
+(for the browser beacon).
+
+```bash
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp
+```
+
+Using another client? Every MCP client accepts the same config block:
+
+```json
+{
+  "mcpServers": {
+    "vibe-check": {
+      "command": "npx",
+      "args": ["-y", "@wcgw/vibe-check-mcp"]
+    }
+  }
+}
+```
+
+## 6. Ask your agent
+
+```text
+What performance issues is VibeCheck detecting right now?
+```
+
+<Callout type="success" title="You're set">
+  You now have a live overlay and an agent that can read snapshots and suggest
+  fixes. Point the widget at your real MCP server with the `beaconUrl` prop, or
+  read the [React integration guide](/docs/integration) for the full props tour.
+</Callout>

@@ -1,0 +1,22 @@
+{
+  "name": "@wcgw/vibe-check-scan-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "db:apply:local": "wrangler d1 migrations apply vibe-check-scan --local",
+    "db:apply:remote": "wrangler d1 migrations apply vibe-check-scan --remote"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^3.114.0"
+  }
+}

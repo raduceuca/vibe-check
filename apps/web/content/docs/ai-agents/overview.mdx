@@ -1,0 +1,55 @@
+---
+title: Overview
+description: The six MCP tools your agent gets, and how one process serves both the browser and the agent.
+---
+
+`@wcgw/vibe-check-mcp` is what turns a wall of metrics into something your coding
+agent can act on. Run it once — `npx -y @wcgw/vibe-check-mcp` — and it starts two
+things in a single process:
+
+- an **HTTP receiver** on `localhost:4200` that accepts snapshots from the
+  browser beacon, and
+- a **stdio MCP server** that exposes six tools to your agent.
+
+Snapshots come in the front door over HTTP, land in an immutable store, and go
+out the side door to your agent when it calls a tool.
+
+```text
+browser beacon ──HTTP──▶ HTTP receiver ──▶ VibeStore ──▶ MCP tools ──stdio──▶ agent
+```
+
+## The six tools
+
+| Tool | Purpose | Key arguments |
+| --- | --- | --- |
+| `get_performance_snapshot` | The latest full snapshot: FPS, vitals, memory, resources, issues. | none |
+| `get_detected_issues` | Active (not acknowledged/resolved) issues. | `severity?`, `detector?` |
+| `get_fix_suggestions` | Cause + step-by-step fix + code for one issue. | `issue_id` |
+| `watch_performance` | Block until the next snapshot arrives — verify a fix landed. | `timeout_seconds?` (1–300, default 30) |
+| `acknowledge_issue` | Mark an issue seen; drops it from the active list. | `issue_id` |
+| `resolve_issue` | Mark an issue fixed; drops it from the active list. | `issue_id` |
+
+Full parameter and return shapes are in the
+[MCP tools reference](/docs/reference/mcp-tools).
+
+## A typical agent loop
+
+1. `get_detected_issues` — what's wrong right now?
+2. `get_fix_suggestions` for the worst one — how do I fix it?
+3. Edit the code.
+4. `watch_performance` — did the next snapshot clear it?
+5. `resolve_issue` once it's gone.
+
+## Set up your client
+
+<Cards>
+  <Card title="Claude Code" href="/docs/ai-agents/claude-code" description="One command: claude mcp add." />
+  <Card title="Cursor" href="/docs/ai-agents/cursor" description=".cursor/mcp.json." />
+  <Card title="Other clients" href="/docs/ai-agents/other-clients" description="Claude Desktop, Windsurf, and the universal config." />
+</Cards>
+
+<Callout title="The browser side is separate">
+  The MCP server only receives and serves data — it never measures anything. You
+  still need the widget (or a headless engine) running in your app with its
+  `beaconUrl` pointed at the server. See [Integration](/docs/integration).
+</Callout>

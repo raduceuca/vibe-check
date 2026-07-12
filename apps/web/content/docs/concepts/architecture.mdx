@@ -1,0 +1,60 @@
+---
+title: Architecture
+description: How core, react, mcp, and the protocol package fit into one pipeline.
+---
+
+import { PipelineDiagram, ArchitectureDiagram } from '@/components/diagrams'
+
+VibeCheck is a short, one-directional pipeline. Metrics are measured in the
+browser, turned into issues, POSTed to a local server, and read back by your
+coding agent. Four packages divide that work along a single seam: the browser
+side and the agent side never share a runtime, only a wire contract.
+
+<ArchitectureDiagram />
+
+## The pipeline
+
+<PipelineDiagram />
+
+## The packages
+
+| Package | Role | Runtime deps |
+| --- | --- | --- |
+| `@wcgw/vibe-check-core` | Collectors, detectors, `VibeCheckEngine`, `BeaconClient`. | Zero. |
+| `@wcgw/vibe-check` | React overlay (`<VibeCheck />`, `<PerfToggle />`) + hooks. | React 18+ (peer). |
+| `@wcgw/vibe-check-mcp` | HTTP receiver + MCP server exposing six tools. | `@modelcontextprotocol/sdk`, `zod`. |
+| `@wcgw/vibe-check-protocol` | The wire contract: `VibeSnapshot`, `VibeIssue`, the enums. | Zero. Internal — bundled into the others, never shipped alone. |
+
+## The decoupling seam
+
+The MCP package does **not** import core. The browser produces a `VibeSnapshot`,
+serializes it to JSON, and POSTs it; the server parses and validates it back
+into the same shape. Both sides depend on `@wcgw/vibe-check-protocol` for that
+type — core imports it type-only (preserving its zero-runtime-deps promise),
+while mcp also imports the `DETECTOR_NAMES` and `SEVERITIES` const arrays to
+build its `zod` validation schema. Deriving both from one source makes drift
+between browser and agent a compile error rather than a silent bug.
+
+<Callout title="Why the split matters">
+  You can run any layer on its own: `core` headless with no UI, the React widget
+  with no MCP server, or the MCP server with any beacon pointed at it. Nothing
+  above requires the layer below to be present.
+</Callout>
+
+## What runs where
+
+- **In the browser** — collectors measure the page, detectors analyze each
+  snapshot into issues, the engine orchestrates them, and the beacon (when a
+  `beaconUrl` is configured) ships snapshots out.
+- **On your machine** — the MCP server holds the latest snapshot in an immutable
+  `VibeStore` and answers your agent's tool calls. A single process runs both the
+  HTTP receiver and the stdio MCP transport.
+
+## Keep reading
+
+<Cards>
+  <Card title="Collectors" href="/docs/concepts/collectors" description="The six browser measurements and the Collector interface." />
+  <Card title="Detectors & audits" href="/docs/concepts/detectors" description="How snapshots become issues." />
+  <Card title="The Engine" href="/docs/concepts/engine" description="Orchestration, config, and the scripted engine." />
+  <Card title="The Beacon" href="/docs/concepts/beacon" description="How snapshots reach the MCP server." />
+</Cards>

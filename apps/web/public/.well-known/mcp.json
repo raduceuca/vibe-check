@@ -1,0 +1,39 @@
+{
+  "name": "vibe-check",
+  "description": "MCP server for VibeCheck. Reads live browser performance snapshots and detected issues (jank, memory leaks, DOM bloat, layout shift, failing SEO/AEO audits) so a coding agent can see what it broke and fix it.",
+  "version": "0.1.0",
+  "homepage": "https://vibecheck.dev",
+  "documentation": "https://vibecheck.dev/docs",
+  "repository": "https://github.com/raduceuca/vibe-check",
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@wcgw/vibe-check-mcp"]
+  },
+  "tools": [
+    {
+      "name": "get_performance_snapshot",
+      "description": "Get the latest browser performance snapshot including frame rate, web vitals, memory, resources, and detected issues."
+    },
+    {
+      "name": "get_detected_issues",
+      "description": "Get active (not resolved or acknowledged) performance issues. Optionally filter by severity or detector name."
+    },
+    {
+      "name": "get_fix_suggestions",
+      "description": "Get detailed fix suggestions for a specific issue, including step-by-step instructions and code examples."
+    },
+    {
+      "name": "watch_performance",
+      "description": "Wait for the next browser performance snapshot update and return it. Useful for monitoring changes after a fix."
+    },
+    {
+      "name": "acknowledge_issue",
+      "description": "Mark a performance issue as acknowledged so it stops appearing in get_detected_issues."
+    },
+    {
+      "name": "resolve_issue",
+      "description": "Mark a performance issue as resolved so it stops appearing in get_detected_issues."
+    }
+  ]
+}

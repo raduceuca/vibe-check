@@ -1,0 +1,69 @@
+---
+title: The Beacon
+description: How snapshots leave the browser and reach the MCP server.
+---
+
+import { BeaconRoundTrip } from '@/components/diagrams'
+
+The beacon is the one network hop in VibeCheck. When the engine has a
+`beaconUrl`, its `BeaconClient` serializes the current `VibeSnapshot` to JSON and
+POSTs it to `<beaconUrl>/api/snapshot` on an interval. That's the whole
+browser→agent bridge.
+
+<BeaconRoundTrip />
+
+## Turning it on
+
+Pass `beaconUrl` to the widget (or to the engine directly):
+
+```tsx
+<VibeCheck beaconUrl="http://localhost:4200" />
+```
+
+```ts
+const engine = new VibeCheckEngine({ beaconUrl: 'http://localhost:4200' })
+```
+
+Without a `beaconUrl` the engine runs fully local — collectors and detectors
+work, the overlay updates, but nothing is sent anywhere.
+
+## Delivery, honestly
+
+`BeaconClient` delivers with `fetch(..., { keepalive: true })` rather than
+`navigator.sendBeacon`, on purpose: `sendBeacon` returns `true` the moment the
+browser *queues* the payload — even when nothing is listening on the port — which
+made the connection indicator lie. `fetch` lets the client read the real
+`response.ok`, so status reflects an actual server acknowledgement. It falls back
+to `sendBeacon` only when `fetch` is unavailable. Delivery failures are recorded
+and surfaced but never thrown — monitoring must never break the host app.
+
+## `BeaconStatus`
+
+The engine exposes the live delivery state via `getBeaconStatus()` (the widget's
+Settings panel renders it):
+
+```ts
+interface BeaconStatus {
+  readonly configured: boolean          // true once a beaconUrl is set
+  readonly lastAttemptAt: number | null // ms timestamp of the last send
+  readonly lastOk: boolean | null       // true = delivered, false = failed,
+                                         // null = no completed attempt yet
+}
+```
+
+`getBeaconStatus()` returns `null` when no `beaconUrl` is configured. In the UI
+those states read as inactive, connecting, or active.
+
+## On the receiving end
+
+The MCP server's HTTP receiver accepts the POST at `/api/snapshot`, validates the
+body with a `zod` schema, folds it into the immutable `VibeStore`, and fans it
+out to any SSE listeners on `/api/stream`. Requests are capped at 1 MB and CORS
+is open (`Access-Control-Allow-Origin: *`) so the browser can reach a localhost
+port. See the [MCP tools & HTTP API reference](/docs/reference/mcp-tools#http-api).
+
+<Callout title="Cadence">
+  The beacon POSTs every `beaconIntervalMs` (default **2s**), and fires once
+  immediately on `start()`. This is separate from the engine's 500ms
+  `onSnapshot` UI cadence.
+</Callout>

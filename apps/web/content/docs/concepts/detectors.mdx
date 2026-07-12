@@ -1,0 +1,78 @@
+---
+title: Detectors & audits
+description: The analyzers that turn snapshots into issues.
+---
+
+import { CollectorFlow } from '@/components/diagrams'
+
+Where collectors measure, detectors judge. Each detector watches for one class
+of problem — a bloated DOM, a growing heap, a duplicated request — and emits a
+`VibeIssue` when a threshold trips. Thirteen ship enabled by default.
+
+<CollectorFlow />
+
+## The `Detector` interface
+
+A detector is a factory function `create*Detector()` that returns an object
+implementing:
+
+```ts
+interface Detector {
+  readonly name: DetectorName
+  start(): void
+  stop(): void
+  getIssues(): readonly VibeIssue[]
+  clear(): void
+}
+```
+
+The engine calls `start()` on each enabled detector, then reads `getIssues()`
+from all of them every snapshot. `clear()` empties a detector's issue buffer.
+
+## Issues carry evidence
+
+Detectors create issues through a shared `createIssue()` helper, so every issue
+has the same shape — `id`, `detector`, `severity`, `title`, `description`,
+`evidence`, `timestamp`, plus `acknowledged` / `resolved` flags. The `evidence`
+object is typed per detector (see `IssueEvidenceMap` in the protocol), so a
+`dom-bloat` issue carries `{ nodeCount, maxDepth, selector }` while a
+`duplicate-requests` issue carries `{ url, method, count, windowMs }`. That
+evidence is what your agent reads to write a targeted fix.
+
+## The thirteen detectors
+
+Ten catch runtime and payload problems; three are audits that emit one issue per
+failed check.
+
+| Category | Detectors |
+| --- | --- |
+| Runtime | `dom-bloat`, `memory-leak`, `layout-thrashing`, `long-task-attribution`, `console-spam`, `duplicate-requests` |
+| Payload | `unoptimized-images`, `large-images`, `resource-bloat`, `heavy-library` |
+| Audits | `seo` (20 checks), `aeo` (9 checks), `web-essentials` (4 checks) |
+
+See the [Detector & audit reference](/docs/reference/detectors) for every
+threshold and check id, each cross-linked to a `/fix` guide.
+
+## Toggling detectors
+
+All thirteen are enabled by default. Turn any of them off through the engine's
+`detectors` config:
+
+```ts
+import { VibeCheckEngine } from '@wcgw/vibe-check-core'
+
+const engine = new VibeCheckEngine({
+  detectors: {
+    consoleSpam: false, // quiet a chatty dev build
+    seo: false,
+  },
+})
+engine.start()
+```
+
+<Callout title="Ordering is deliberate">
+  Some collectors and detectors monkey-patch the same globals (`console`,
+  `fetch`). The engine starts collectors before detectors and tears them down in
+  reverse, so each patch is unwound top-down and the host's real globals are
+  always restored.
+</Callout>

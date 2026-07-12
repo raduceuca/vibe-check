@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "---Getting Started---",
+    "index",
+    "quickstart",
+    "how-it-works",
+    "concepts",
+    "integration",
+    "ai-agents",
+    "reference",
+    "troubleshooting"
+  ]
+}

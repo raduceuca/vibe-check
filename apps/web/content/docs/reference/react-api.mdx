@@ -1,0 +1,158 @@
+---
+title: React components & hooks
+description: Every component, context, and hook exported from @wcgw/vibe-check.
+---
+
+Everything below is exported from `@wcgw/vibe-check`. It peer-depends on React
+18+ and uses inline styles only — no CSS import.
+
+## Components
+
+### `<VibeCheck>`
+
+The full overlay widget. Owns an engine, preferences, and issue state; renders
+the collapsed pill or the expanded panel.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | `true` | When `false`, the engine doesn't run. |
+| `position` | `Position` | `'bottom-right'` | Corner to dock to. |
+| `panels` | `readonly PanelType[]` | `['fps','vitals','memory','console','issues']` | Which monitor panels show. |
+| `beaconUrl` | `string` | — | POST snapshots here (your MCP server). Omit to run local-only. |
+| `onIssue` | `(issue: VibeIssue) => void` | — | Called as issues are detected. |
+| `engine` | `VibeEngine \| null` | `null` | Drive a provided engine (e.g. `createScriptedEngine`) instead of a live one. |
+| `startCollapsed` | `boolean` | `false` | Start as the floating pill. |
+| `storageKey` | `string` | — | Distinct `localStorage` bucket per embed, so multiple instances don't collide. |
+
+```tsx
+import { VibeCheck } from '@wcgw/vibe-check'
+
+<VibeCheck position="bottom-right" beaconUrl="http://localhost:4200" />
+```
+
+`Position` is `'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`.
+`PanelType` is `'fps' | 'vitals' | 'memory' | 'console' | 'issues'`.
+
+### `<PerfToggle>`
+
+Wraps `<VibeCheck>` and shows/hides it with a keyboard shortcut. Starts as the
+collapsed pill.
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `shortcut` | `string` | `'alt+shift+v'` | Combo like `'ctrl+shift+p'` or `'meta+k'`. |
+| `vibeCheckProps` | `Omit<VibeCheckProps, 'enabled'>` | — | Forwarded to the inner `<VibeCheck>`. |
+
+```tsx
+import { PerfToggle } from '@wcgw/vibe-check'
+
+<PerfToggle vibeCheckProps={{ beaconUrl: 'http://localhost:4200' }} />
+```
+
+<Callout title="Default shortcut">
+  The default is `Alt+Shift+V` — an uncontested combo. (The older `Ctrl+Shift+P`
+  collides with the private-window shortcut in Firefox/Edge.) Override it with
+  the `shortcut` prop.
+</Callout>
+
+## Context
+
+Share one engine across your own components without prop-drilling.
+
+- `VibeCheckProvider` — a React context Provider. Give it a `VibeEngine | null` as `value`.
+- `useVibeCheckEngine(): VibeEngine | null` — read the provided engine.
+
+```tsx
+import { VibeCheckProvider, useVibeCheckEngine } from '@wcgw/vibe-check'
+```
+
+## Hooks
+
+### `useVibeCheck`
+
+Creates and manages a `VibeCheckEngine` (or drives an injected one) and returns
+its live snapshot. This is what `<VibeCheck>` uses internally.
+
+```ts
+useVibeCheck(
+  config?: Partial<VibeCheckConfig>,
+  enabled = true,
+  injectedEngine?: VibeEngine | null,
+): { engine: VibeEngine | null; snapshot: VibeSnapshot }
+```
+
+### Metric hooks
+
+Each spins up a single collector while `enabled` is `true` and returns its live
+stats. Pass `true` to turn it on.
+
+| Hook | Signature |
+| --- | --- |
+| `useFrameRate` | `(enabled = false) => FrameRateStats` |
+| `useLongFrames` | `(enabled = false) => LongFrameStats` |
+| `useWebVitals` | `(enabled = false) => WebVitalsStats` |
+| `useMemory` | `(enabled = false) => HeapMemory \| null` |
+
+```tsx
+import { useFrameRate } from '@wcgw/vibe-check'
+
+const { fps, droppedFrames, smoothness } = useFrameRate(true)
+```
+
+### `useDetectedIssues`
+
+Subscribes to issues from an engine — the argument, or the one from context.
+
+```ts
+useDetectedIssues(engine?: VibeEngine | null): readonly VibeIssue[]
+```
+
+### `useIssueStore`
+
+Syncs the live issue list into a persisted, status-tracked browser store
+(`new` → `sent-to-agent` → `resolved`) and returns grouped views plus mutators.
+
+```ts
+useIssueStore(liveIssues: readonly VibeIssue[]): {
+  tracked: readonly TrackedIssue[]
+  active: readonly TrackedIssue[]   // status 'new'
+  sent: readonly TrackedIssue[]     // status 'sent-to-agent'
+  resolved: readonly TrackedIssue[] // status 'resolved'
+  markSent(id: string): void
+  markSentBatch(ids: readonly string[]): void
+  markResolved(id: string): void
+  clearResolved(): void
+  clearAll(): void
+}
+```
+
+### `usePreferences`
+
+Reads and writes the widget's persisted preferences (suggestion mode, theme,
+annotation visibility, …).
+
+```ts
+usePreferences(storageKey?: string): {
+  prefs: VibeCheckPreferences
+  updatePrefs(updates: Partial<VibeCheckPreferences>): void
+  toggleMode(): void   // flips 'vibe' ↔ 'technical'
+}
+```
+
+### `useClipboard`
+
+A copy helper that tracks which id was last copied (for "Copied!" feedback).
+
+```ts
+useClipboard(resetDelayMs = 2000): {
+  copiedId: string | null
+  copy(text: string, id: string): Promise<boolean>
+}
+```
+
+## Exported types
+
+`VibeCheckProps`, `PerfToggleProps`, `TrackedIssue`, `IssueStatus`, `IssueStore`,
+`VibeCheckPreferences`, plus these re-exports from core: `VibeSnapshot`,
+`VibeIssue`, `FrameRateStats`, `WebVitalsStats`, `HeapMemory`, `Severity`,
+`SuggestionMode`, `Suggestion`, `ProactivePrompt`.
