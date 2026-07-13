@@ -504,7 +504,7 @@ pnpm --filter web start --port 3100
 Verify `/`, `/docs/quickstart`, and the demo GIF return 200, then leave the
 server running for handoff.
 
-- [ ] **Step 4: Push and open the PR**
+- [x] **Step 4: Push and open the PR**
 
 ```bash
 git push -u origin codex/release-automation-onboarding
