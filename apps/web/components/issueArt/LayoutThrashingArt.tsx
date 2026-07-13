@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Crosshair, OP, HAIR, C, pt } from './instrumentKit'
 
 // layout-thrashing (instrument grammar) — the reticle jumps. A faint ghost
@@ -20,17 +20,24 @@ const [hb2x, hb2y] = pt(ax1, ay1, 2.6, DIR - 150)
 export const LayoutThrashingArt = () => (
   <ArtSvg>
     {/* ghost reading — where it was */}
-    <Crosshair cx={GX} cy={GY} reach={13} gap={3.5} ticks={false} opacity={OP.faint} />
-    <rect
-      x={GX - 2.4}
-      y={GY - 2.4}
-      width={4.8}
-      height={4.8}
-      rx={0.6}
-      fill="currentColor"
-      fillOpacity={OP.faint}
-      stroke="none"
-    />
+    <ProcessPlate ink="cyan">
+      <Crosshair cx={GX} cy={GY} reach={13} gap={3.5} ticks={false} opacity={0.24} />
+    </ProcessPlate>
+    <ProcessPlate ink="magenta">
+      <Crosshair cx={GX} cy={GY} reach={13} gap={3.5} ticks={false} opacity={0.2} />
+    </ProcessPlate>
+    <ProcessPlate ink="yellow">
+      <rect
+        x={GX - 2.4}
+        y={GY - 2.4}
+        width={4.8}
+        height={4.8}
+        rx={0.6}
+        fill="currentColor"
+        fillOpacity={OP.faint}
+        stroke="none"
+      />
+    </ProcessPlate>
     {/* true reading — where it snapped to */}
     <Crosshair reach={13} gap={3.5} opacity={OP.line} />
     {/* the jump */}

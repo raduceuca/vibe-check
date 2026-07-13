@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Ring, OP, HAIR, C, pt } from './instrumentKit'
 
 // dom-bloat (instrument grammar) — one focal node over-branching into far too
@@ -21,7 +21,12 @@ const twigs = PRIMARIES.flatMap((deg) => {
 export const DomBloatArt = () => (
   <ArtSvg>
     {/* swelling boundary */}
-    <Ring r={20} opacity={OP.faint} dash="1.4 2.8" />
+    <ProcessPlate ink="cyan">
+      <Ring r={20} opacity={OP.faint} dash="1.4 2.8" />
+    </ProcessPlate>
+    <ProcessPlate ink="magenta">
+      <Ring r={18.8} opacity={0.22} dash="1.4 2.8" />
+    </ProcessPlate>
     {/* branches: node → primary → two twigs */}
     <g fill="none" strokeWidth={HAIR} strokeOpacity={OP.line}>
       {PRIMARIES.map((deg) => {

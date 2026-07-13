@@ -2638,6 +2638,28 @@ html {
   color: var(--vc-ink);
   margin: 16px auto 14px;
 }
+.vc-spec-art [data-vc-process-plate] {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition-property: transform;
+  transition-duration: 0.18s;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+.vc-spec:hover [data-vc-process-plate='cyan'],
+.vc-spec:focus-visible [data-vc-process-plate='cyan'],
+.vc-spec:focus-within [data-vc-process-plate='cyan'] {
+  transform: translate(-0.75px, 0.35px);
+}
+.vc-spec:hover [data-vc-process-plate='magenta'],
+.vc-spec:focus-visible [data-vc-process-plate='magenta'],
+.vc-spec:focus-within [data-vc-process-plate='magenta'] {
+  transform: translate(0.75px, -0.35px);
+}
+.vc-spec:hover [data-vc-process-plate='yellow'],
+.vc-spec:focus-visible [data-vc-process-plate='yellow'],
+.vc-spec:focus-within [data-vc-process-plate='yellow'] {
+  transform: translate(0.25px, 0.6px);
+}
 
 /* Base — persona name + the register that swaps tagline ↔ field note */
 .vc-spec-base {
@@ -2709,6 +2731,23 @@ html {
   margin-top: auto;
   padding-top: 12px;
 }
+.vc-spec-foot::before {
+  content: '';
+  width: 22px;
+  height: 2px;
+  margin-left: auto;
+  flex: none;
+  background: linear-gradient(
+    90deg,
+    var(--vc-proof-c) 0 23%,
+    transparent 23% 27%,
+    var(--vc-proof-m) 27% 50%,
+    transparent 50% 54%,
+    var(--vc-proof-y) 54% 77%,
+    transparent 77% 81%,
+    var(--vc-proof-k) 81% 100%
+  );
+}
 .vc-spec-cat {
   font-family: var(--vc-mono);
   font-size: 10px;
@@ -2774,7 +2813,11 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .vc-spec-tagline,
   .vc-spec-note,
-  .vc-spec-inner {
+  .vc-spec-inner,
+  .vc-spec-art [data-vc-process-plate] {
     transition: none !important;
+  }
+  .vc-spec-art [data-vc-process-plate] {
+    transform: none !important;
   }
 }

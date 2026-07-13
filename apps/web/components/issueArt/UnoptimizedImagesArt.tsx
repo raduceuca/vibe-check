@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
 // unoptimized-images (instrument grammar) — served far larger than it renders. A
@@ -13,16 +13,18 @@ const [cb2x, cb2y] = pt(C, C, 8.2, RA + 16)
 export const UnoptimizedImagesArt = () => (
   <ArtSvg>
     {/* served size */}
-    <rect
-      x={14}
-      y={14}
-      width={20}
-      height={20}
-      rx={1.5}
-      fill="none"
-      strokeWidth={HAIR}
-      strokeOpacity={OP.ambient}
-    />
+    <ProcessPlate ink="cyan">
+      <rect
+        x={14}
+        y={14}
+        width={20}
+        height={20}
+        rx={1.5}
+        fill="none"
+        strokeWidth={HAIR}
+        strokeOpacity={OP.ambient}
+      />
+    </ProcessPlate>
     {/* size actually needed */}
     <rect
       x={19}
@@ -35,13 +37,17 @@ export const UnoptimizedImagesArt = () => (
       strokeOpacity={OP.line}
     />
     {/* reduce cue */}
-    <Arc r={7.6} a0={-66} a1={-24} dashed opacity={OP.ambient} />
-    <polyline
-      points={`${cb1x},${cb1y} ${vtx},${vty} ${cb2x},${cb2y}`}
-      fill="none"
-      strokeWidth={HAIR}
-      strokeOpacity={OP.line}
-    />
+    <ProcessPlate ink="magenta">
+      <Arc r={7.6} a0={-66} a1={-24} dashed opacity={OP.ambient} />
+    </ProcessPlate>
+    <ProcessPlate ink="yellow">
+      <polyline
+        points={`${cb1x},${cb1y} ${vtx},${vty} ${cb2x},${cb2y}`}
+        fill="none"
+        strokeWidth={HAIR}
+        strokeOpacity={OP.line}
+      />
+    </ProcessPlate>
     <Node shape="dot" r={2} />
   </ArtSvg>
 )

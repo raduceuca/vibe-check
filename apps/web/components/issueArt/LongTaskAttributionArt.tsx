@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Ray, Ring, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
 // long-task-attribution (instrument grammar) — one task stalls the whole
@@ -14,13 +14,19 @@ export const LongTaskAttributionArt = () => {
   return (
     <ArtSvg>
       {/* range */}
-      <Ring r={18} opacity={OP.faint} />
+      <ProcessPlate ink="cyan">
+        <Ring r={18} opacity={OP.faint} />
+      </ProcessPlate>
       {/* sweep halted either side of the blocking ray */}
-      <Arc r={13} a0={16} a1={356} opacity={OP.ambient} />
+      <ProcessPlate ink="magenta">
+        <Arc r={13} a0={16} a1={356} opacity={OP.ambient} />
+      </ProcessPlate>
       {/* the long blocking task, overrunning the range */}
       <Ray deg={BLOCK} from={3.5} to={20} opacity={OP.line} />
       {/* stall tick — the wall it hits */}
-      <line x1={w1x} y1={w1y} x2={w2x} y2={w2y} strokeWidth={HAIR} strokeOpacity={OP.line} />
+      <ProcessPlate ink="yellow">
+        <line x1={w1x} y1={w1y} x2={w2x} y2={w2y} strokeWidth={HAIR} strokeOpacity={OP.line} />
+      </ProcessPlate>
       <Node shape="dot" r={2.2} />
     </ArtSvg>
   )

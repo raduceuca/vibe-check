@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Ring, Ray, OP } from './instrumentKit'
 
 // large-images (instrument grammar) — raw byte weight. A big solid node ringed
@@ -8,10 +8,16 @@ import { Node, Ring, Ray, OP } from './instrumentKit'
 export const LargeImagesArt = () => (
   <ArtSvg>
     {/* heft */}
-    <Ring r={9.5} dashed={false} opacity={OP.line} />
-    <Ring r={14} dashed={false} opacity={OP.line} />
+    <ProcessPlate ink="magenta">
+      <Ring r={9.5} dashed={false} opacity={OP.line} />
+    </ProcessPlate>
+    <ProcessPlate ink="cyan">
+      <Ring r={14} dashed={false} opacity={OP.line} />
+    </ProcessPlate>
     {/* weight pulling down */}
-    <Ray deg={90} from={6} to={22} tip={1.8} opacity={OP.line} />
+    <ProcessPlate ink="yellow">
+      <Ray deg={90} from={6} to={22} tip={1.8} opacity={OP.line} />
+    </ProcessPlate>
     <Node shape="square" r={4.5} />
   </ArtSvg>
 )
