@@ -106,6 +106,7 @@ export const ANIMATIONS_CSS = `
   [data-wcgw-breathe], [data-wcgw] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   [data-wcgw] button:active, [data-wcgw-pill]:active { scale: 1; }
   [data-wcgw-proof-segment] { transform: none !important; }
+  [data-wcgw-proof-echo] { display: none; }
 }
 `
 

@@ -17,8 +17,8 @@ export const CANVAS_OK = typeof document !== 'undefined' && (() => {
 
 // ── Live FPS trace (oscilloscope) — SVG fallback when canvas is unavailable ──
 // Keeps a rolling window of recent FPS samples and draws a single polyline.
-export const FpsTrace = ({ fps, tick, color, width = 292, height = 24, points = 70 }: {
-  fps: number; tick: number; color: string; width?: number; height?: number; points?: number
+export const FpsTrace = ({ fps, tick, color, faulted = false, width = 292, height = 24, points = 70 }: {
+  fps: number; tick: number; color: string; faulted?: boolean; width?: number; height?: number; points?: number
 }) => {
   const [series, setSeries] = useState<readonly number[]>([])
   useEffect(() => {
@@ -35,6 +35,12 @@ export const FpsTrace = ({ fps, tick, color, width = 292, height = 24, points = 
 
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
+      {faulted && (
+        <>
+          <polyline data-wcgw-proof-echo points={poly} fill="none" stroke="var(--wcgw-proof-c)" strokeWidth={0.75} strokeOpacity={0.28} strokeLinejoin="round" strokeLinecap="round" transform="translate(-0.75 0.35)" />
+          <polyline data-wcgw-proof-echo points={poly} fill="none" stroke="var(--wcgw-proof-m)" strokeWidth={0.75} strokeOpacity={0.28} strokeLinejoin="round" strokeLinecap="round" transform="translate(0.75 -0.35)" />
+        </>
+      )}
       <polyline points={poly} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.55} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )

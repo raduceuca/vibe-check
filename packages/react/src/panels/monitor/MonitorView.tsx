@@ -187,7 +187,7 @@ export const MonitorView = memo(({
                 />
               </Suspense>
             ) : (
-              <FpsTrace fps={snapshot.frameRate.fps} tick={snapshot.timestamp} color={fc} />
+              <FpsTrace fps={snapshot.frameRate.fps} tick={snapshot.timestamp} color={fc} faulted={activeCount > 0} />
             )}
             <span aria-hidden="true" style={{
               position: 'absolute', top: 0, left: 0, width: 16, height: '100%',
