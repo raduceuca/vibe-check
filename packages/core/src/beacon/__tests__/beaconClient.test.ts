@@ -217,6 +217,7 @@ describe('BeaconClient', () => {
     expect(first.projectId).toBe('my-project')
     expect(first.instanceId).toBeTruthy()
     expect(first.instanceId).toBe(second.instanceId)
+    expect(first.pageUrl).toBe(window.location.href)
     expect(first.snapshot.domNodeCount).toBe(100)
     client.stop()
   })
@@ -277,9 +278,14 @@ describe('BeaconClient', () => {
     })
     const body = JSON.parse(String((mockFetch.mock.calls[0]![1] as RequestInit).body)) as {
       projectId: string
+      pageUrl: string
       issue: VibeIssue
     }
-    expect(body).toMatchObject({ projectId: 'project-a', issue: { id: 'dom-1' } })
+    expect(body).toMatchObject({
+      projectId: 'project-a',
+      pageUrl: window.location.href,
+      issue: { id: 'dom-1' },
+    })
 
     await expect(client.dispatchIssue(createMockIssue())).resolves.toMatchObject({
       ok: false,

@@ -37,6 +37,7 @@ describe('HubClient', () => {
       projectId: 'project-a',
       instanceId: 'browser-a',
       origin: 'http://localhost:5173',
+      pageUrl: 'http://localhost:5173/fixture',
       title: 'Fixture',
       snapshot,
     }

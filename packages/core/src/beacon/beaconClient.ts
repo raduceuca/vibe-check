@@ -31,6 +31,9 @@ const defaultProjectId = (): string =>
     ? window.location.origin
     : 'unknown-project'
 
+const currentPageUrl = (): string =>
+  typeof window !== 'undefined' ? window.location.href : ''
+
 const createInstanceId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
@@ -97,6 +100,7 @@ export class BeaconClient {
     const request: DispatchIssueRequest = {
       projectId: this.projectId,
       instanceId: this.instanceId,
+      pageUrl: currentPageUrl(),
       issue,
     }
     try {
@@ -131,6 +135,7 @@ export class BeaconClient {
       projectId: this.projectId,
       instanceId: this.instanceId,
       origin: typeof window !== 'undefined' ? window.location.origin : '',
+      pageUrl: currentPageUrl(),
       title: typeof document !== 'undefined' ? document.title : '',
       snapshot,
     }

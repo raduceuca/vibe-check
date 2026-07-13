@@ -5,6 +5,7 @@ import {
   updateSnapshot,
   type VibeStore,
 } from './store.js'
+import { getStableIssueKey } from '@wcgw/vibe-check-protocol'
 import type {
   AgentConnectionState,
   DispatchIssueResponse,
@@ -275,6 +276,7 @@ export const markLeaseBusy = (
 export const dispatchIssue = (
   store: HubStore,
   projectId: string,
+  pageUrl: string,
   issue: VibeIssue,
   now: number,
 ): StoreResult<DispatchIssueResponse> => {
@@ -301,7 +303,13 @@ export const dispatchIssue = (
 
   const queue = [
     ...project.queue,
-    { projectId, issue, snapshot: project.store.latestSnapshot, dispatchedAt: now },
+    {
+      projectId,
+      issueKey: getStableIssueKey(projectId, pageUrl, issue),
+      issue,
+      snapshot: project.store.latestSnapshot,
+      dispatchedAt: now,
+    },
   ]
   return {
     store: replaceProject(store, { ...project, queue }),

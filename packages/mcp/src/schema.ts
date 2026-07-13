@@ -49,6 +49,7 @@ export const projectSnapshotEnvelopeSchema = z.object({
   projectId: idSchema,
   instanceId: idSchema,
   origin: boundedString,
+  pageUrl: boundedString,
   title: boundedString,
   snapshot: snapshotSchema,
 })
@@ -56,6 +57,7 @@ export const projectSnapshotEnvelopeSchema = z.object({
 export const dispatchIssueRequestSchema = z.object({
   projectId: idSchema,
   instanceId: idSchema,
+  pageUrl: boundedString,
   issue: issueSchema,
 })
 

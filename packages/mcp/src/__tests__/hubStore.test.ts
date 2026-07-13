@@ -59,6 +59,7 @@ const makeEnvelope = (
   projectId,
   instanceId,
   origin: projectId,
+  pageUrl: `http://${projectId}/fixture`,
   title: `Fixture ${projectId}`,
   snapshot: makeSnapshot(issues),
 })
@@ -128,12 +129,18 @@ describe('hubStore', () => {
     let hub = acquireLease(withProject(), 'project-a', 'agent-a', 2_000).store
 
     for (let index = 0; index < MAX_DISPATCH_QUEUE; index += 1) {
-      const dispatched = dispatchIssue(hub, 'project-a', makeIssue(`issue-${index}`), 3_000 + index)
+      const dispatched = dispatchIssue(
+        hub,
+        'project-a',
+        'http://project-a/fixture',
+        makeIssue(`issue-${index}`),
+        3_000 + index,
+      )
       expect(dispatched.result.ok).toBe(true)
       hub = dispatched.store
     }
 
-    const overflow = dispatchIssue(hub, 'project-a', makeIssue('overflow'), 4_000)
+    const overflow = dispatchIssue(hub, 'project-a', 'http://project-a/fixture', makeIssue('overflow'), 4_000)
     expect(overflow.result).toMatchObject({ ok: false, code: 'queue-full', queueDepth: 10 })
 
     const first = dequeueIssue(overflow.store, 'project-a', 'agent-a')
@@ -143,11 +150,11 @@ describe('hubStore', () => {
   })
 
   it('rejects dispatch when no healthy agent is watching', () => {
-    const unclaimed = dispatchIssue(withProject(), 'project-a', makeIssue(), 2_000)
+    const unclaimed = dispatchIssue(withProject(), 'project-a', 'http://project-a/fixture', makeIssue(), 2_000)
     expect(unclaimed.result.code).toBe('agent-not-watching')
 
     const claimed = acquireLease(withProject(), 'project-a', 'agent-a', 1_000).store
-    const stale = dispatchIssue(claimed, 'project-a', makeIssue(), 11_000)
+    const stale = dispatchIssue(claimed, 'project-a', 'http://project-a/fixture', makeIssue(), 11_000)
     expect(stale.result.code).toBe('agent-not-watching')
   })
 

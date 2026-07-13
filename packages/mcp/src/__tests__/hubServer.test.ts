@@ -38,6 +38,7 @@ const envelope = (projectId: string, instanceId: string, issues = [makeIssue()])
   projectId,
   instanceId,
   origin: projectId,
+  pageUrl: `http://${projectId}/fixture`,
   title: `Fixture ${projectId}`,
   snapshot: makeSnapshot(issues),
 })
@@ -129,6 +130,7 @@ describe('hubServer', () => {
     const dispatched = await post(`${base}/api/projects/${project}/dispatch`, {
       projectId: 'project-a',
       instanceId: 'a',
+      pageUrl: 'http://project-a/fixture',
       issue,
     })
     expect(dispatched.response.status).toBe(200)

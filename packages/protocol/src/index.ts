@@ -18,6 +18,8 @@
 // Record<DetectorName, …> makes that class of drift a compile error.
 // ════════════════════════════════════════════════════════════════════════════
 
+export { getStableIssueKey, normalizePageUrl } from './issueIdentity.js'
+
 // ── Enums (type + runtime list derived from one source) ─────────────────────
 
 export const SEVERITIES = ['info', 'warning', 'error', 'critical'] as const
@@ -335,6 +337,7 @@ export interface ProjectSnapshotEnvelope {
   readonly projectId: string
   readonly instanceId: string
   readonly origin: string
+  readonly pageUrl: string
   readonly title: string
   readonly snapshot: VibeSnapshot
 }
@@ -359,6 +362,7 @@ export interface ProjectStatus {
 export interface DispatchIssueRequest {
   readonly projectId: string
   readonly instanceId: string
+  readonly pageUrl: string
   readonly issue: VibeIssue
 }
 
@@ -371,6 +375,7 @@ export interface DispatchIssueResponse {
 
 export interface QueuedIssue {
   readonly projectId: string
+  readonly issueKey: string
   readonly issue: VibeIssue
   readonly snapshot: VibeSnapshot
   readonly dispatchedAt: number

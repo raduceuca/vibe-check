@@ -193,7 +193,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
           sendJson(res, 400, { error: 'Invalid issue dispatch' }, true)
           return
         }
-        const dispatched = dispatchIssue(store, projectId, request.issue, now())
+        const dispatched = dispatchIssue(store, projectId, request.pageUrl, request.issue, now())
         store = dispatched.store
         if (dispatched.result.ok) flushIssueWaiter(projectId)
         const status = dispatched.result.ok ? 200 : dispatched.result.code === 'queue-full' ? 429 : 409
