@@ -12,7 +12,7 @@ const Image = () =>
   renderOgImage({
     kicker: 'For the AI-built frontend',
     title: 'Your agent shipped it. This caught what it broke.',
-    footer: 'vibecheck.dev',
+    footer: 'vibecheck.wcgw.fun',
     tag: 'Perf · SEO · AEO',
   })
 

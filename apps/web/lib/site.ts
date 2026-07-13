@@ -3,7 +3,7 @@
 // sitemap, robots, llms.txt) and the shared top-nav links.
 
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibecheck.dev'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibecheck.wcgw.fun'
 ).replace(/\/$/, '')
 
 export const SITE_NAME = 'VibeCheck'

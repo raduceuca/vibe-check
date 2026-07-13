@@ -49,7 +49,7 @@ export interface OgCardProps {
   readonly tag?: string
 }
 
-const OgCard = ({ kicker, title, severity, footer = 'vibecheck.dev', tag }: OgCardProps) => {
+const OgCard = ({ kicker, title, severity, footer = 'vibecheck.wcgw.fun', tag }: OgCardProps) => {
   const headline = clamp(title, 72)
   const accent = severity ? ACCENT[severity] : undefined
   return (
