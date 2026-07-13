@@ -319,52 +319,60 @@ git add packages/mcp README.md apps/web/content/docs/quickstart.mdx
 git commit -m "feat(mcp): scaffold widget and agent setup"
 ```
 
-### Task 5: Next proxy and Cloudflare compatibility
+### Task 5: Next routing and Cloudflare compatibility
 
 **Files:**
-- Rename: `apps/web/middleware.ts` to `apps/web/proxy.ts`
-- Create: `apps/web/__tests__/proxy.test.ts`
+- Delete: `apps/web/middleware.ts`
+- Create: `apps/web/lib/markdown-rewrites.mjs`
+- Create: `apps/web/__tests__/markdown-rewrites.test.ts`
+- Modify: `apps/web/next.config.mjs`
+- Modify: `apps/web/package.json`
 - Modify: `apps/web/wrangler.jsonc`
 
 **Interfaces:**
-- Produces named `proxy(request: NextRequest): NextResponse` and unchanged matcher behavior.
+- Produces immutable Next rewrite rules with unchanged Markdown negotiation behavior.
 
-- [ ] **Step 1: Add proxy behavior tests before the rename**
+- [x] **Step 1: Add rewrite behavior tests before the migration**
 
 Use `next/experimental/testing/server` to assert `/docs/quickstart.md` rewrites
 to `/md/docs/quickstart`, an explicit `Accept: text/markdown` request rewrites,
-ordinary HTML continues, and asset/API paths do not match the config.
+ordinary HTML continues, and asset/API paths do not match the rules.
 
-- [ ] **Step 2: Verify red**
+- [x] **Step 2: Verify red**
 
 ```bash
-pnpm --filter web exec vitest run __tests__/proxy.test.ts
+pnpm --filter web exec vitest run __tests__/markdown-rewrites.test.ts
 ```
 
-Expected: `proxy.ts` import is missing.
+Expected: the rewrite module is missing.
 
-- [ ] **Step 3: Rename and update compatibility date**
+- [x] **Step 3: Move routing to rewrites and update compatibility date**
 
-Rename the file, change the named function from `middleware` to `proxy`, keep
-the matcher unchanged, and set `compatibility_date` to `2026-07-13`.
+Remove middleware, express the same route negotiation as `next.config.mjs`
+rewrites, and set `compatibility_date` to `2026-07-13`.
 
-- [ ] **Step 4: Verify tests and warning removal**
+Implementation finding: a direct `proxy.ts` migration clears the Next warning
+but makes `opennextjs-cloudflare build` fail because Next Proxy uses the Node.js
+runtime and OpenNext does not support Node.js middleware. Configuration rewrites
+avoid both incompatibilities.
+
+- [x] **Step 4: Verify tests, local routes, builds, and warning removal**
 
 ```bash
-pnpm --filter web exec vitest run __tests__/proxy.test.ts
+pnpm --filter web test
 pnpm --filter web build
 pnpm --filter web cf:build
 pnpm --filter web exec wrangler deploy --dry-run
 ```
 
-Expected: proxy tests/builds pass and Next no longer prints the middleware
-deprecation warning.
+Expected: rewrite tests and both builds pass, explicit and negotiated Markdown
+requests return Markdown locally, and Next prints no middleware deprecation.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add apps/web
-git commit -m "chore(web): migrate to Next proxy convention"
+git commit -m "chore(web): replace deprecated middleware with rewrites"
 ```
 
 ### Task 6: Real MCP demo recording and presentation
@@ -502,7 +510,7 @@ server running for handoff.
 git push -u origin codex/release-automation-onboarding
 gh pr create --base main --head codex/release-automation-onboarding \
   --title "Automate releases and scaffold VibeCheck setup" \
-  --body "Adds guarded npm/Cloudflare release automation, scheduled production smoke checks, the tested MCP setup scaffold, the Next proxy migration, and a real packed widget-to-agent recording. Verification details are included in the PR checklist."
+  --body "Adds guarded npm/Cloudflare release automation, scheduled production smoke checks, the tested MCP setup scaffold, compatible Next routing cleanup, and a real packed widget-to-agent recording. Verification details are included in the PR checklist."
 ```
 
 Include setup prerequisites, verification counts, local showcase URL, and the

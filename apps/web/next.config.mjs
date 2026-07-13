@@ -1,6 +1,7 @@
 import { createMDX } from 'fumadocs-mdx/next'
 import { dirname, join } from 'node:path'
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare'
+import { markdownRewrites } from './lib/markdown-rewrites.mjs'
 
 const withMDX = createMDX()
 
@@ -11,6 +12,7 @@ const monorepoRoot = join(dirname(import.meta.dirname), '..')
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  rewrites: markdownRewrites,
   turbopack: {
     root: monorepoRoot,
   },

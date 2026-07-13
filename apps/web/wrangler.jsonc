@@ -12,7 +12,7 @@
       "custom_domain": true
     }
   ],
-  "compatibility_date": "2025-06-01",
+  "compatibility_date": "2026-07-13",
   // nodejs_compat: the /api/scan SSRF guard uses node:dns (resolve4/resolve6),
   // node:net (BlockList/isIP) and Buffer — all provided under this flag.
   // global_fetch_strictly_public stops the Worker's own fetch() from reaching

@@ -15,8 +15,8 @@ This batch delivers five independently testable capabilities on one branch:
 1. A guarded, resumable GitHub Actions release workflow.
 2. A scheduled production smoke test that can also run locally.
 3. A `vibe-check-mcp setup` scaffold for React projects and supported agents.
-4. The Next.js 16 `proxy.ts` migration and a current Cloudflare compatibility
-   date.
+4. Removal of deprecated Next.js middleware through configuration rewrites and
+   a current Cloudflare compatibility date.
 5. A deterministic GIF recorded while a real MCP client receives a real issue
    from packed workspace packages.
 
@@ -104,10 +104,16 @@ agent configuration.
 
 ## Next.js and Cloudflare Compatibility
 
-`apps/web/middleware.ts` becomes `apps/web/proxy.ts`, and its named export becomes
-`proxy`, exactly matching Next.js 16's documented migration. Routing and matcher
-behavior remain unchanged and are covered with Next's proxy test helpers plus a
-production build.
+The static Markdown aliases and `Accept: text/markdown` negotiation move from
+`apps/web/middleware.ts` into `next.config.mjs` rewrites. This removes the Next.js
+16 middleware deprecation without introducing a runtime hook. Route behavior is
+covered with Next's configuration test helper plus production and OpenNext
+builds.
+
+An initial direct migration to `proxy.ts` was tested and rejected: Next.js 16
+runs Proxy on the Node.js runtime, while OpenNext for Cloudflare does not support
+Node.js middleware. Configuration rewrites preserve the behavior and remain
+compatible with the deployed adapter.
 
 The Worker compatibility date becomes `2026-07-13`. Existing
 `nodejs_compat` and `global_fetch_strictly_public` flags remain unchanged because
@@ -148,8 +154,9 @@ regenerate or modify the committed asset.
 - MCP tests cover CLI parsing, package-manager detection, generated component
   content, dry-run, idempotency, Cursor merge preservation, and CLI command
   selection.
-- Next proxy tests prove HTML/Markdown negotiation behavior and the production
-  build contains no middleware deprecation warning.
+- Next rewrite tests prove HTML/Markdown negotiation behavior; the production
+  build contains no middleware deprecation warning and the OpenNext build
+  accepts the result.
 - `pnpm test`, `pnpm lint`, `pnpm build`, the packaged MCP E2E suite, publish dry
   run, Cloudflare dry run, and production smoke all pass.
 - The generated GIF is visually inspected and both README and site resolve it.
