@@ -249,6 +249,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm test:clients    # Isolated Codex / Claude Code / Cursor MCP acceptance
+pnpm smoke:production # Verify the public site, docs, discovery files, and OG image
 pnpm lint            # TypeScript type-check
 pnpm test:coverage   # Coverage report
 pnpm gen:docs        # Regenerate the detector reference in the READMEs + skill

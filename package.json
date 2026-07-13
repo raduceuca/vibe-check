@@ -10,6 +10,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e:mcp": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip test",
     "test:clients": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm --filter @wcgw/vibe-check-mcp build && node scripts/test-mcp-clients.mjs",
+    "smoke:production": "node scripts/production-smoke.mjs",
     "lint": "pnpm -r --filter \"./packages/*\" lint",
     "gen:docs": "node packages/core/scripts/gen-detector-reference.mjs",
     "clean": "pnpm -r exec rm -rf dist",
