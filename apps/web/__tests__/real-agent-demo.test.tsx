@@ -25,6 +25,7 @@ describe('real agent demo playback', () => {
     expect(demoControlLabel('idle')).toBe('Play demo')
     expect(demoControlLabel('playing')).toBe('Stop demo')
     expect(demoControlLabel('stopped')).toBe('Replay demo')
+    expect(nextDemoPlayback('idle')).toBe('playing')
     expect(nextDemoPlayback('playing')).toBe('stopped')
     expect(nextDemoPlayback('stopped')).toBe('playing')
   })
