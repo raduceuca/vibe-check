@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { parse } from 'yaml'
 import {
   formatSmokeResults,
   runProductionSmoke,
 } from '../production-smoke.mjs'
+import {
+  parseReleaseVersionArgs,
+  readReleaseManifest,
+  validateReleaseVersion,
+} from '../release-manifest.mjs'
+import { publishMissingPackages } from '../publish-release.mjs'
 
 describe('release tooling test harness', () => {
   it('runs tooling tests in a Node environment', () => {
@@ -119,5 +129,139 @@ describe('production smoke checks', () => {
 
     expect(formatSmokeResults(results)).toContain(`FAIL /robots.txt`)
     expect(formatSmokeResults(results)).toContain(`${ORIGIN}/sitemap.xml`)
+  })
+})
+
+const releasePackagePaths = [
+  ['packages/core', '@wcgw/vibe-check-core'],
+  ['packages/mcp', '@wcgw/vibe-check-mcp'],
+  ['packages/react', '@wcgw/vibe-check'],
+] as const
+
+const withReleaseFixture = async (
+  versions: Readonly<Record<string, string>>,
+  run: (root: string) => Promise<void>,
+): Promise<void> => {
+  const root = await mkdtemp(join(tmpdir(), 'vibe-check-release-manifest-'))
+  try {
+    for (const [directory, name] of releasePackagePaths) {
+      await mkdir(join(root, directory), { recursive: true })
+      await writeFile(join(root, directory, 'package.json'), JSON.stringify({
+        name,
+        version: versions[name] ?? '0.3.0',
+      }))
+    }
+    await run(root)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+}
+
+describe('release manifest', () => {
+  it('accepts pnpm argument forwarding with or without a separator', () => {
+    expect(parseReleaseVersionArgs(['--', '0.3.0'])).toBe('0.3.0')
+    expect(parseReleaseVersionArgs(['0.3.0'])).toBe('0.3.0')
+    expect(() => parseReleaseVersionArgs(['--'])).toThrow('Usage')
+  })
+
+  it('reads public packages in dependency-safe publish order', async () => {
+    await withReleaseFixture({}, async (root) => {
+      const manifest = await readReleaseManifest(root)
+
+      expect(manifest).toEqual([
+        { name: '@wcgw/vibe-check-core', directory: 'packages/core', version: '0.3.0' },
+        { name: '@wcgw/vibe-check-mcp', directory: 'packages/mcp', version: '0.3.0' },
+        { name: '@wcgw/vibe-check', directory: 'packages/react', version: '0.3.0' },
+      ])
+    })
+  })
+
+  it('reports every package whose version differs from the requested release', async () => {
+    await withReleaseFixture({
+      '@wcgw/vibe-check-core': '0.3.0',
+      '@wcgw/vibe-check-mcp': '0.2.1',
+      '@wcgw/vibe-check': '0.2.0',
+    }, async (root) => {
+      const manifest = await readReleaseManifest(root)
+
+      expect(() => validateReleaseVersion(manifest, '0.3.0')).toThrow(
+        '@wcgw/vibe-check-mcp=0.2.1, @wcgw/vibe-check=0.2.0',
+      )
+    })
+  })
+
+  it('rejects a non-semver release input', async () => {
+    await withReleaseFixture({}, async (root) => {
+      const manifest = await readReleaseManifest(root)
+
+      expect(() => validateReleaseVersion(manifest, 'next')).toThrow('valid semantic version')
+    })
+  })
+})
+
+describe('resumable package publishing', () => {
+  const packages = releasePackagePaths.map(([directory, name]) => ({ name, directory, version: '0.3.0' }))
+
+  it('skips published versions and publishes each missing package in order', async () => {
+    const published: string[] = []
+    const messages: string[] = []
+
+    const results = await publishMissingPackages({
+      packages,
+      packageExists: async (pkg) => pkg.name === '@wcgw/vibe-check-core',
+      publishPackage: async (pkg) => { published.push(pkg.name) },
+      log: (message) => { messages.push(message) },
+    })
+
+    expect(results).toEqual([
+      { name: '@wcgw/vibe-check-core', version: '0.3.0', action: 'skipped' },
+      { name: '@wcgw/vibe-check-mcp', version: '0.3.0', action: 'published' },
+      { name: '@wcgw/vibe-check', version: '0.3.0', action: 'published' },
+    ])
+    expect(published).toEqual(['@wcgw/vibe-check-mcp', '@wcgw/vibe-check'])
+    expect(messages.join('\n')).toContain('already exists; skipping')
+  })
+
+  it('stops before later packages when a publish fails', async () => {
+    const attempted: string[] = []
+
+    await expect(publishMissingPackages({
+      packages,
+      packageExists: async () => false,
+      publishPackage: async (pkg) => {
+        attempted.push(pkg.name)
+        if (pkg.name === '@wcgw/vibe-check-mcp') throw new Error('registry unavailable')
+      },
+      log: () => undefined,
+    })).rejects.toThrow('registry unavailable')
+
+    expect(attempted).toEqual(['@wcgw/vibe-check-core', '@wcgw/vibe-check-mcp'])
+  })
+})
+
+describe('GitHub release and monitoring workflows', () => {
+  it('guards production release with OIDC, environment, and concurrency', async () => {
+    const source = await readFile(join(process.cwd(), '.github/workflows/release.yml'), 'utf8')
+    const workflow = parse(source)
+
+    expect(workflow.on.workflow_dispatch.inputs.version.required).toBe(true)
+    expect(workflow.permissions).toMatchObject({ contents: 'write', 'id-token': 'write' })
+    expect(workflow.concurrency).toMatchObject({
+      group: 'vibe-check-production-release',
+      'cancel-in-progress': false,
+    })
+    expect(workflow.jobs.release.environment.name).toBe('production')
+    expect(source).not.toContain('NPM_TOKEN')
+    expect(source).toContain('pnpm release:publish')
+    expect(source).toContain('pnpm --filter web cf:deploy')
+  })
+
+  it('runs the production monitor on schedule and on demand', async () => {
+    const source = await readFile(join(process.cwd(), '.github/workflows/production-smoke.yml'), 'utf8')
+    const workflow = parse(source)
+
+    expect(workflow.on.schedule).toEqual([{ cron: '17,47 * * * *' }])
+    expect(workflow.on.workflow_dispatch.inputs.origin.default).toBe(ORIGIN)
+    expect(workflow.jobs.smoke['timeout-minutes']).toBe(10)
   })
 })

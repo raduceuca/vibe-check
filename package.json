@@ -11,6 +11,8 @@
     "test:e2e:mcp": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip test",
     "test:clients": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm --filter @wcgw/vibe-check-mcp build && node scripts/test-mcp-clients.mjs",
     "smoke:production": "node scripts/production-smoke.mjs",
+    "release:validate": "node scripts/release-manifest.mjs",
+    "release:publish": "node scripts/publish-release.mjs",
     "lint": "pnpm -r --filter \"./packages/*\" lint",
     "gen:docs": "node packages/core/scripts/gen-detector-reference.mjs",
     "clean": "pnpm -r exec rm -rf dist",
@@ -19,10 +21,11 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
+    "@vitest/coverage-v8": "^4.1.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
-    "@vitest/coverage-v8": "^4.1.0"
+    "yaml": "^2.9.0"
   },
   "packageManager": "pnpm@10.12.1",
   "engines": {
