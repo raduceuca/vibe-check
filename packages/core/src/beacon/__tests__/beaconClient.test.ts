@@ -286,4 +286,25 @@ describe('BeaconClient', () => {
       code: 'hub-offline',
     })
   })
+
+  it('aborts a stalled issue dispatch and reports a failed delivery', async () => {
+    let requestSignal: AbortSignal | null = null
+    setFetch(vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      requestSignal = init?.signal ?? null
+      return new Promise<Response>((_resolve, reject) => {
+        requestSignal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      })
+    }))
+    const client = new BeaconClient({
+      url: 'http://localhost:4200',
+      intervalMs: 2000,
+      projectId: 'project-a',
+    })
+
+    const dispatch = client.dispatchIssue(createMockIssue())
+    await vi.advanceTimersByTimeAsync(9_000)
+
+    await expect(dispatch).resolves.toMatchObject({ ok: false, code: 'failed' })
+    expect(requestSignal?.aborted).toBe(true)
+  })
 })

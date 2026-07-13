@@ -24,6 +24,7 @@ export interface BeaconStatus {
 }
 
 const STATUS_INTERVAL_MS = 2_000
+const ISSUE_DISPATCH_TIMEOUT_MS = 9_000
 
 const defaultProjectId = (): string =>
   typeof window !== 'undefined' && window.location.origin !== 'null'
@@ -89,6 +90,10 @@ export class BeaconClient {
 
   async dispatchIssue(issue: VibeIssue): Promise<DispatchIssueResponse> {
     if (typeof fetch === 'undefined') return this.dispatchFailure('hub-offline')
+    const controller = typeof AbortController === 'undefined' ? null : new AbortController()
+    const timeoutId = controller === null
+      ? undefined
+      : setTimeout(() => controller.abort(), ISSUE_DISPATCH_TIMEOUT_MS)
     const request: DispatchIssueRequest = {
       projectId: this.projectId,
       instanceId: this.instanceId,
@@ -101,12 +106,15 @@ export class BeaconClient {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(request),
+          signal: controller?.signal,
         },
       )
       const body = await response.json() as DispatchIssueResponse
       return body
     } catch {
-      return this.dispatchFailure('hub-offline')
+      return this.dispatchFailure(controller?.signal.aborted === true ? 'failed' : 'hub-offline')
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
     }
   }
 

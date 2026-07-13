@@ -13,6 +13,8 @@ import { CopyButton } from './ui/CopyButton.js'
 
 type DeliveryState = DispatchIssueResponse['code'] | 'idle' | 'sending'
 
+const DISPATCH_TIMEOUT_MS = 10_000
+
 interface IssueActionsProps {
   readonly tracked: TrackedIssue
   readonly mode: SuggestionMode
@@ -72,12 +74,18 @@ export const IssueActions = ({
 
   const handleDispatch = async (): Promise<void> => {
     setDelivery('sending')
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
     try {
-      const result = await onDispatch(tracked.issue)
+      const timeout = new Promise<never>((_resolve, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('dispatch timed out')), DISPATCH_TIMEOUT_MS)
+      })
+      const result = await Promise.race([onDispatch(tracked.issue), timeout])
       setDelivery(result.code)
       if (result.ok) onMarkSent(tracked.issue.id)
     } catch {
       setDelivery('failed')
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
     }
   }
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { BeaconStatus, DispatchIssueResponse, VibeIssue } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../../store/issueStore.js'
@@ -122,6 +122,26 @@ describe('IssueActions', () => {
     await waitFor(() => expect(screen.getByText('send failed')).toBeTruthy())
     expect(handlers.onMarkSent).not.toHaveBeenCalled()
     expect((screen.getByRole('button', { name: /send to agent/i }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('recovers to a retryable failed state when dispatch never settles', async () => {
+    vi.useFakeTimers()
+    try {
+      const handlers = renderActions({
+        onDispatch: vi.fn(() => new Promise<DispatchIssueResponse>(() => undefined)),
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /send to agent/i }))
+      expect(screen.getByRole('button', { name: /sending/i })).toBeTruthy()
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000) })
+
+      expect(screen.getByText('send failed')).toBeTruthy()
+      expect(handlers.onMarkSent).not.toHaveBeenCalled()
+      expect((screen.getByRole('button', { name: /send to agent/i }) as HTMLButtonElement).disabled).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps Send visible but disabled until an agent watcher is connected', () => {
