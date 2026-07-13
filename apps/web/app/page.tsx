@@ -13,7 +13,13 @@ import { RealAgentDemo } from '@/components/landing/RealAgentDemo'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteShell } from '@/components/site/SiteShell'
 import { PipelineDiagram } from '@/components/diagrams'
-import { ProofRail, RegistrationConstellation } from '@/components/brand/ProofMarks'
+import {
+  CropTicks,
+  ProofControlStrip,
+  ProofLabel,
+  RegistrationConstellation,
+  RegistrationTarget,
+} from '@/components/brand/ProofMarks'
 
 // A tight landing pitch, kept ≤ 160 chars so VibeCheck's own seo audit passes
 // its meta-description-too-long check on this very page. Shared with the JSON-LD
@@ -104,8 +110,15 @@ const LandingPage = () => (
     <main className="vc-wrap">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <header className="vc-hero">
+        <div className="vc-proof-header" aria-label="Print control proof 01">
+          <CropTicks className="vc-proof-header-crop" />
+          <ProofControlStrip className="vc-proof-control-strip" />
+          <ProofLabel className="vc-proof-header-label">PROOF 01</ProofLabel>
+          <span className="vc-proof-header-rule" aria-hidden="true" />
+          <RegistrationTarget className="vc-proof-header-target" />
+        </div>
+
         <div className="vc-eyebrow">
-          <ProofRail className="vc-proof-rail" />
           <span>VibeCheck</span>
           <span className="vc-dot" />
           <span>performance instrument</span>
