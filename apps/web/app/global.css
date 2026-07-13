@@ -378,6 +378,24 @@ html {
   text-transform: uppercase;
   color: var(--vc-ink-4);
 }
+@media (max-width: 520px) {
+  .vc-sechead {
+    position: relative;
+    align-items: flex-start;
+    padding-top: 17px;
+  }
+  .vc-sechead-index {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .vc-sechead h2 {
+    flex: 1 1 auto;
+  }
+  .vc-sechead .vc-sub {
+    padding-top: 4px;
+  }
+}
 
 /* Live gauges — the always-measuring layer, wired to the real core collectors
    (see components/landing/LiveGauges.tsx). Six live readings off THIS page. */
