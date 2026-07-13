@@ -36,15 +36,25 @@ export interface DoctorOptions {
   readonly client?: HubClient
 }
 
-const report = (
-  hubUrl: string,
-  generatedAt: number,
-  selectedProjectId: string | null,
-  checks: readonly DoctorCheck[],
-  projects: readonly ProjectSummary[],
-  nextSteps: readonly string[],
-  ok: boolean,
-): DoctorReport => ({
+interface DoctorReportInput {
+  readonly hubUrl: string
+  readonly generatedAt: number
+  readonly selectedProjectId: string | null
+  readonly checks: readonly DoctorCheck[]
+  readonly projects: readonly ProjectSummary[]
+  readonly nextSteps: readonly string[]
+  readonly ok: boolean
+}
+
+const report = ({
+  hubUrl,
+  generatedAt,
+  selectedProjectId,
+  checks,
+  projects,
+  nextSteps,
+  ok,
+}: DoctorReportInput): DoctorReport => ({
   schemaVersion: 1,
   ok,
   hubUrl,
@@ -103,7 +113,15 @@ export const runDoctor = async ({
       message: `Cannot reach the VibeCheck hub at ${hubUrl}.`,
     })
     nextSteps.push(`Start the hub: ${HUB_START_COMMAND}`)
-    return report(hubUrl, generatedAt, projectId ?? null, checks, [], nextSteps, false)
+    return report({
+      hubUrl,
+      generatedAt,
+      selectedProjectId: projectId ?? null,
+      checks,
+      projects: [],
+      nextSteps,
+      ok: false,
+    })
   }
 
   let projects: readonly ProjectSummary[]
@@ -116,7 +134,15 @@ export const runDoctor = async ({
       message: `Could not list browser projects: ${errorMessage(error)}`,
     })
     nextSteps.push('Restart the VibeCheck hub, then rerun doctor.')
-    return report(hubUrl, generatedAt, projectId ?? null, checks, [], nextSteps, false)
+    return report({
+      hubUrl,
+      generatedAt,
+      selectedProjectId: projectId ?? null,
+      checks,
+      projects: [],
+      nextSteps,
+      ok: false,
+    })
   }
 
   if (projects.length === 0) {
@@ -126,7 +152,15 @@ export const runDoctor = async ({
       message: 'No browser projects are publishing to this hub.',
     })
     nextSteps.push('Open or reload a development page that mounts VibeCheck with this hub URL.')
-    return report(hubUrl, generatedAt, projectId ?? null, checks, projects, nextSteps, false)
+    return report({
+      hubUrl,
+      generatedAt,
+      selectedProjectId: projectId ?? null,
+      checks,
+      projects,
+      nextSteps,
+      ok: false,
+    })
   }
 
   checks.push({
@@ -143,7 +177,15 @@ export const runDoctor = async ({
       message: 'More than one project is active; choose one with --project.',
     })
     nextSteps.push(`Run doctor again with --project <id>. Available: ${projects.map((item) => item.projectId).join(', ')}`)
-    return report(hubUrl, generatedAt, null, checks, projects, nextSteps, false)
+    return report({
+      hubUrl,
+      generatedAt,
+      selectedProjectId: null,
+      checks,
+      projects,
+      nextSteps,
+      ok: false,
+    })
   }
 
   const selected = projects.find((item) => item.projectId === selectedProjectId)
@@ -154,7 +196,15 @@ export const runDoctor = async ({
       message: `Project "${selectedProjectId}" is not publishing to this hub.`,
     })
     nextSteps.push(`Open or reload the page for "${selectedProjectId}", then rerun doctor.`)
-    return report(hubUrl, generatedAt, selectedProjectId, checks, projects, nextSteps, false)
+    return report({
+      hubUrl,
+      generatedAt,
+      selectedProjectId,
+      checks,
+      projects,
+      nextSteps,
+      ok: false,
+    })
   }
 
   checks.push({
@@ -234,15 +284,15 @@ export const runDoctor = async ({
     nextSteps.push('Restart the VibeCheck hub, then rerun doctor.')
   }
 
-  return report(
+  return report({
     hubUrl,
     generatedAt,
     selectedProjectId,
     checks,
     projects,
     nextSteps,
-    runtimeOk && snapshotFresh && watcherReady,
-  )
+    ok: runtimeOk && snapshotFresh && watcherReady,
+  })
 }
 
 const CHECK_LABELS: Readonly<Record<DoctorCheckId, string>> = {

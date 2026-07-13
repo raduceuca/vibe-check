@@ -203,6 +203,7 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
             type="button"
             onClick={() => setDetailsOpen((open) => !open)}
             aria-expanded={detailsOpen}
+            aria-controls="vibe-check-agent-setup-details"
             style={{ ...actionStyle, minHeight: 40, padding: '5px 8px', flexShrink: 0 }}
           >
             {detailsOpen ? 'Hide setup' : 'Setup details'}
@@ -225,7 +226,7 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
       )}
 
       {detailsOpen && (
-        <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
+        <div id="vibe-check-agent-setup-details" style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
           {state === 'unconfigured' && (
             <div style={{ marginBottom: 11 }}>
               <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>1. Configure the widget</div>

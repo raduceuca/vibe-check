@@ -104,7 +104,10 @@ describe('AgentConnectionStatus', () => {
     render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('watching')} />)
 
     expect(screen.queryByText(/codex mcp add vibe-check/)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /setup details/i }))
+    const toggle = screen.getByRole('button', { name: /setup details/i })
+    expect(toggle.getAttribute('aria-controls')).toBe('vibe-check-agent-setup-details')
+    fireEvent.click(toggle)
     expect(screen.getByText(/codex mcp add vibe-check/)).toBeTruthy()
+    expect(document.getElementById('vibe-check-agent-setup-details')).toBeTruthy()
   })
 })
