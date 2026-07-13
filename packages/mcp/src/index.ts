@@ -1,15 +1,23 @@
 import { randomUUID } from 'node:crypto'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { parseCliConfig } from './cli.js'
 import { createHubClient } from './hubClient.js'
 import { createHubServer } from './hubServer.js'
 import { createLeaseManager } from './leaseManager.js'
+import { runMain } from './main.js'
 import { createMcpServer } from './mcpServer.js'
 
 declare const __VIBE_CHECK_VERSION__: string
 
 const main = async (): Promise<void> => {
-  const config = parseCliConfig(process.argv.slice(2), process.env)
+  const result = await runMain(process.argv.slice(2), process.env, {
+    stdout: (value) => process.stdout.write(value),
+    stderr: (value) => process.stderr.write(value),
+  })
+  if (result.kind === 'exit') {
+    process.exitCode = result.code
+    return
+  }
+  const { config } = result
 
   if (config.role === 'hub') {
     const hub = createHubServer({ version: __VIBE_CHECK_VERSION__ })
@@ -47,5 +55,5 @@ const main = async (): Promise<void> => {
 
 main().catch((error: unknown) => {
   process.stderr.write(`[vibe-check] Fatal error: ${error instanceof Error ? error.message : String(error)}\n`)
-  process.exit(1)
+  process.exitCode = 1
 })

@@ -19,8 +19,32 @@ describe('parseCliConfig', () => {
     })
   })
 
+  it('parses doctor defaults and explicit project JSON output', () => {
+    expect(parseCliConfig(['doctor'], {})).toEqual({
+      role: 'doctor',
+      hubUrl: 'http://127.0.0.1:4200',
+      projectId: undefined,
+      json: false,
+    })
+    expect(parseCliConfig(['doctor', '--project', 'storefront', '--json'], {
+      VIBE_CHECK_HUB_URL: 'http://127.0.0.1:4210',
+    })).toEqual({
+      role: 'doctor',
+      hubUrl: 'http://127.0.0.1:4210',
+      projectId: 'storefront',
+      json: true,
+    })
+  })
+
+  it('rejects unknown, incomplete, and duplicate doctor options', () => {
+    expect(() => parseCliConfig(['doctor', '--unknown'], {})).toThrow('Unknown doctor option')
+    expect(() => parseCliConfig(['doctor', '--project'], {})).toThrow('requires a project ID')
+    expect(() => parseCliConfig(['doctor', '--json', '--json'], {})).toThrow('Duplicate doctor option')
+    expect(() => parseCliConfig(['doctor', '--project', 'a', '--project', 'b'], {})).toThrow('Duplicate doctor option')
+  })
+
   it('rejects a missing or unknown role', () => {
-    expect(() => parseCliConfig([], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect')
-    expect(() => parseCliConfig(['serve'], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect')
+    expect(() => parseCliConfig([], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor')
+    expect(() => parseCliConfig(['serve'], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor')
   })
 })
