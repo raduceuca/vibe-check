@@ -158,6 +158,11 @@ The full overlay widget.
 />
 ```
 
+`position` is the application fallback. A user-selected corner in Settings is
+saved per `projectId` and overrides that fallback. Pass `storageKey` to own the
+preference bucket explicitly. `startCollapsed` applies only on first use; after
+the user expands or collapses the widget, that choice survives refreshes.
+
 ### Scripted demos
 
 Pass an `engine` built with `createScriptedEngine(...)` from `@wcgw/vibe-check-core` to replay a canned, deterministic timeline (identical for every visitor) instead of reading live collectors — useful for landing-page and docs demos.
@@ -230,7 +235,7 @@ Available hooks:
 | `useLongFrames(enabled?)` | `LongFrameStats` | LoAF API. |
 | `useDetectedIssues(engine?)` | `readonly VibeIssue[]` | Subscribes to an engine (explicit or via provider). |
 | `useIssueStore(liveIssues)` | tracked + status helpers | localStorage-backed issue tracking. |
-| `usePreferences(storageKey?)` | `{ prefs, updatePrefs, toggleMode }` | UI mode + annotation/theme/history prefs. |
+| `usePreferences(storageKey?, projectId?, startCollapsed?)` | `{ prefs, updatePrefs, toggleMode }` | Project-scoped UI mode, open/closed state, placement, annotation, theme, and history preferences. |
 | `useClipboard(resetDelayMs?)` | `{ copiedId, copy }` | Used by the prompts panel. |
 
 ## AI agent integration

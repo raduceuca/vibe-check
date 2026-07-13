@@ -169,6 +169,32 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
   }
 })
 
+test('restores widget state and placement after refresh', async ({ page }) => {
+  await page.goto(appAUrl)
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+
+  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.getByText('Use one position for both', { exact: true }).click()
+  await expect(page.getByRole('checkbox', { name: 'Use one position for both' })).not.toBeChecked()
+  await page.getByRole('radiogroup', { name: 'Collapsed' })
+    .getByRole('radio', { name: 'Top left' }).click()
+  await page.getByRole('radiogroup', { name: 'Expanded' })
+    .getByRole('radio', { name: 'Bottom right' }).click()
+  await page.getByTestId('vibe-check-header').click()
+
+  await page.reload()
+  const collapsed = page.getByTestId('vibe-check-overlay')
+  await expect(page.getByTestId('vibe-check-header')).toHaveAttribute('aria-expanded', 'false')
+  await expect(collapsed).toHaveCSS('top', '12px')
+  await expect(collapsed).toHaveCSS('left', '12px')
+
+  await page.getByTestId('vibe-check-header').click()
+  const expanded = page.getByTestId('vibe-check-overlay')
+  await expect(expanded).toHaveCSS('bottom', '12px')
+  await expect(expanded).toHaveCSS('right', '12px')
+})
+
 test('packed SEO suggestion dispatches its exact finding to the watching agent', async ({ page }) => {
   const agent = await connectClient('seo-agent')
   try {
