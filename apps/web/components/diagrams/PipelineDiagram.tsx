@@ -62,6 +62,18 @@ const stageNode = (s: Stage, x: number, y: number, w: number, h: number) => (
   />
 )
 
+const RegistrationPin = ({ x, y }: { readonly x: number; readonly y: number }) => (
+  <g
+    className="vc-dg-register"
+    transform={`translate(${x} ${y})`}
+    data-vc-registration-target=""
+    aria-hidden="true"
+  >
+    <circle cx="0" cy="0" r="4" />
+    <path d="M-7 0h14M0-7v14" />
+  </g>
+)
+
 // Two-row serpentine: Browser · Engine · Beacon  ↴  MCP · Agent · Fix
 const Wide = () => {
   const w = 180
@@ -83,6 +95,7 @@ const Wide = () => {
       ))}
       <Arrow x1={xs[0] + w} y1={cyTop} x2={xs[1]} y2={cyTop} />
       <Arrow x1={xs[1] + w} y1={cyTop} x2={xs[2]} y2={cyTop} />
+      <RegistrationPin x={xs[2] - 15} y={cyTop} />
 
       {/* Serpentine turn: end of row 1 → start of row 2 */}
       <Elbow
@@ -100,6 +113,7 @@ const Wide = () => {
       ))}
       <Arrow x1={xs[0] + w} y1={cyBot} x2={xs[1]} y2={cyBot} />
       <Arrow x1={xs[1] + w} y1={cyBot} x2={xs[2]} y2={cyBot} />
+      <RegistrationPin x={xs[2] - 15} y={cyBot} />
     </DiagramSvg>
   )
 }
@@ -124,7 +138,12 @@ const Narrow = () => {
           <g key={s.kicker}>
             {stageNode(s, x, y, w, h)}
             {i < STAGES.length - 1 ? (
-              <Arrow x1={x + w / 2} y1={y + h} x2={x + w / 2} y2={y + step} />
+              <>
+                <Arrow x1={x + w / 2} y1={y + h} x2={x + w / 2} y2={y + step} />
+                {i === 1 || i === 4 ? (
+                  <RegistrationPin x={x + w / 2} y={y + h + 13} />
+                ) : null}
+              </>
             ) : null}
           </g>
         )

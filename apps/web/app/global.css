@@ -338,11 +338,31 @@ html {
 /* Section head */
 .vc-sechead {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 11px;
   border-bottom: 1px solid var(--vc-line);
   padding-bottom: 12px;
   margin-bottom: 24px;
+}
+.vc-sechead-index {
+  position: relative;
+  padding-left: 8px;
+  font-family: var(--vc-mono);
+  font-size: 8.5px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: var(--vc-ink-4);
+  white-space: nowrap;
+}
+.vc-sechead-index::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 13px;
+  background: var(--vc-line-strong);
+  transform: translateY(-50%);
 }
 .vc-sechead h2 {
   font-size: 23px;
@@ -388,6 +408,12 @@ html {
 .vc-gauges-live-label {
   color: var(--vc-ink-2);
 }
+.vc-gauges-ruler {
+  width: 42px;
+  height: 4px;
+  opacity: 0.55;
+  flex: none;
+}
 .vc-gauges-note {
   margin-left: auto;
   color: var(--vc-ink-4);
@@ -421,8 +447,9 @@ html {
   overflow: hidden;
 }
 .vc-gauge {
+  position: relative;
   background: var(--vc-bg);
-  padding: 11px 12px 12px;
+  padding: 11px 24px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -485,6 +512,17 @@ html {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.vc-gauge-index {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-family: var(--vc-mono);
+  font-size: 7.5px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--vc-ink-4);
+  opacity: 0.72;
 }
 @media (max-width: 900px) {
   .vc-gauges-grid {
@@ -618,6 +656,7 @@ html {
 
 /* Install command — the hero object */
 .vc-cmd {
+  position: relative;
   font-family: var(--vc-mono);
   font-size: 13.5px;
   color: var(--vc-ink);
@@ -630,6 +669,20 @@ html {
   align-items: center;
   min-width: min(360px, 100%);
   justify-content: space-between;
+}
+.vc-cmd-crop {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  pointer-events: none;
+}
+.vc-cmd-proof-label {
+  position: absolute;
+  top: -5px;
+  left: 14px;
+  padding: 0 4px;
+  background: var(--vc-panel);
+  pointer-events: none;
 }
 .vc-cmd .vc-cmd-text {
   display: inline-flex;
@@ -865,6 +918,7 @@ html {
   color: var(--vc-ink-2);
 }
 .vc-pre {
+  position: relative;
   font-family: var(--vc-mono);
   font-size: 12.5px;
   line-height: 1.7;
@@ -876,6 +930,31 @@ html {
   overflow-x: auto;
   margin: 0 0 14px;
   white-space: pre;
+}
+.vc-pre[data-vc-proof-surface='code'] {
+  padding-top: 18px;
+}
+.vc-pre[data-vc-proof-surface='code']::before {
+  content: attr(data-proof-label);
+  position: absolute;
+  top: 6px;
+  right: 9px;
+  font-family: var(--vc-mono);
+  font-size: 7.5px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: var(--vc-ink-4);
+}
+.vc-pre[data-vc-proof-surface='code']::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 9px;
+  height: 9px;
+  border-top: 1px solid var(--vc-line-strong);
+  border-left: 1px solid var(--vc-line-strong);
+  pointer-events: none;
 }
 .vc-pre .vc-prompt {
   color: var(--vc-ink-4);
@@ -909,6 +988,7 @@ html {
 
 /* Footer */
 .vc-footer {
+  position: relative;
   margin: 72px 0 0;
   padding: 22px 0 40px;
   border-top: 1px solid var(--vc-line-2);
@@ -921,6 +1001,12 @@ html {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+.vc-footer-crop {
+  position: absolute;
+  bottom: 39px;
+  left: -1px;
+  pointer-events: none;
 }
 .vc-footer b {
   color: var(--vc-ink-3);
@@ -2550,6 +2636,13 @@ html {
 .vc-dg-narrow {
   display: none;
 }
+.vc-dg-register {
+  fill: var(--vc-bg, transparent);
+  stroke: currentColor;
+  stroke-width: 0.8;
+  opacity: 0.42;
+  vector-effect: non-scaling-stroke;
+}
 @media (max-width: 719px) {
   .vc-dg-wide {
     display: none;
@@ -2821,20 +2914,22 @@ html {
 }
 .vc-spec-foot::before {
   content: '';
-  width: 22px;
-  height: 2px;
+  width: 42px;
+  height: 3px;
   margin-left: auto;
   flex: none;
   background: linear-gradient(
     90deg,
-    var(--vc-proof-c) 0 23%,
-    transparent 23% 27%,
-    var(--vc-proof-m) 27% 50%,
-    transparent 50% 54%,
-    var(--vc-proof-y) 54% 77%,
-    transparent 77% 81%,
-    var(--vc-proof-k) 81% 100%
+    var(--vc-proof-c) 0 9%,
+    var(--vc-proof-m) 9% 23%,
+    var(--vc-proof-y) 23% 30%,
+    var(--vc-proof-k) 30% 48%,
+    var(--vc-proof-c) 48% 58%,
+    var(--vc-proof-m) 58% 64%,
+    var(--vc-proof-y) 64% 74%,
+    var(--vc-proof-k) 74% 100%
   );
+  opacity: 0.72;
 }
 .vc-spec-cat {
   font-family: var(--vc-mono);

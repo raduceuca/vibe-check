@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { CropTicks, ProofLabel } from '@/components/brand/ProofMarks'
 
 interface InstallCommandProps {
   readonly command: string
@@ -25,7 +26,9 @@ export const InstallCommand = ({ command }: InstallCommandProps) => {
   }, [command])
 
   return (
-    <div className="vc-cmd">
+    <div className="vc-cmd" data-vc-proof-surface="install">
+      <CropTicks className="vc-cmd-crop" />
+      <ProofLabel className="vc-cmd-proof-label">K 100</ProofLabel>
       <span className="vc-cmd-text">
         <span className="vc-prompt">$</span>
         <span>{command}</span>

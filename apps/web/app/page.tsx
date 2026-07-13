@@ -159,7 +159,7 @@ const LandingPage = () => (
 
       {/* ── 01 · The pain ────────────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="The pain, named in one breath" sub="your Tuesday" />
+        <SectionHead index="01" title="The pain, named in one breath" sub="your Tuesday" />
         <p className="vc-p">
           AI agents ship frontends that pass review and look fine in the happy
           path — then <b>leak memory</b> across route changes, <b>bloat the DOM</b>{' '}
@@ -178,7 +178,7 @@ const LandingPage = () => (
 
       {/* ── 02 · Break this page ─────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="Break this page" sub="the live proof" />
+        <SectionHead index="02" title="Break this page" sub="the live proof" />
         <p className="vc-p">
           These are not mockups. Each button induces a <b>real</b> fault in this
           page; the instrument in the corner catches it in real time. When
@@ -189,7 +189,7 @@ const LandingPage = () => (
 
       {/* ── The gauges — the always-measuring layer ──────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="Always measuring" sub="the live layer" />
+        <SectionHead index="03" title="Always measuring" sub="the live layer" />
         <p className="vc-p">
           Before it catches anything by name, the instrument is simply{' '}
           <b>measuring</b> — continuously, in the corner. Below are this
@@ -207,7 +207,7 @@ const LandingPage = () => (
 
       {/* ── What it catches ──────────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="The Slop Bestiary" sub="what it catches" />
+        <SectionHead index="04" title="The Slop Bestiary" sub="what it catches" />
         <p className="vc-p">
           Thirteen recurring frontend regressions that AI agents ship without
           noticing — each one a specimen the instrument catches by name. Hover a
@@ -235,7 +235,7 @@ const LandingPage = () => (
 
       {/* ── 04 · The round-trip ──────────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="From symptom to fix" sub="the round-trip" />
+        <SectionHead index="05" title="From symptom to fix" sub="the round-trip" />
         <p className="vc-p">
           The widget captures a snapshot, beacons it to a local MCP server, and
           your agent reads it — then proposes the diff. The loop that was missing
@@ -262,9 +262,9 @@ const LandingPage = () => (
 
       {/* ── 05 · Install & wire up ───────────────────────────────────────── */}
       <section className="vc-section">
-        <SectionHead title="Install & wire up your agent" sub="two blocks" />
+        <SectionHead index="06" title="Install & wire up your agent" sub="two blocks" />
         <h3 className="vc-h3">Drop in the widget</h3>
-        <pre className="vc-pre">
+        <pre className="vc-pre" data-vc-proof-surface="code" data-proof-label="PLATE K">
 {`import { VibeCheck } from '@wcgw/vibe-check'
 
 {process.env.NODE_ENV !== 'production' && (
@@ -275,7 +275,7 @@ const LandingPage = () => (
 )}`}
         </pre>
         <h3 className="vc-h3">Connect your coding agent</h3>
-        <pre className="vc-pre">
+        <pre className="vc-pre" data-vc-proof-surface="code" data-proof-label="PLATE C">
 {`# Run once in a terminal
 npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 
@@ -292,7 +292,8 @@ claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect`}
       </section>
 
       {/* ── Footer / CTA ─────────────────────────────────────────────────── */}
-      <footer className="vc-footer">
+      <footer className="vc-footer" data-vc-proof-surface="footer">
+        <CropTicks className="vc-footer-crop" corner="bottom-left" />
         <div>
           <b>It&rsquo;s already running in the corner.</b> Ship it.
           <br />
