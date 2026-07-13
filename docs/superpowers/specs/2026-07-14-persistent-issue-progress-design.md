@@ -32,6 +32,8 @@ when the user wants different collapsed and expanded positions.
   its occurrence history.
 - Preserve issue history across hub restarts in the project’s `.vibecheck/`
   directory.
+- Persist an honest project impact ledger for verified fixes, regressions, and
+  measurable before/after improvements.
 - Preserve collapsed/expanded state and placement across page refreshes.
 - Keep multiple projects and development servers isolated behind one shared
   hub.
@@ -42,6 +44,7 @@ when the user wants different collapsed and expanded positions.
 - A hosted or multi-user issue tracker.
 - Synchronizing local history between developers or machines.
 - Committing the operational history file to source control.
+- Claiming savings that VibeCheck did not measure or cannot attribute.
 - Replacing GitHub issues, a task manager, or source-control history.
 - Arbitrary drag-and-drop placement; the existing four supported corners remain
   the placement model for this release.
@@ -73,7 +76,7 @@ The design uses a hybrid model with a single writer for workflow state:
    workflow response so the panel renders immediately and remains readable
    while the hub is temporarily offline. It is not a competing source of truth.
 3. **Hub workflow store:** the local hub owns issue transitions, verification,
-   regression detection, and durable history.
+   regression detection, impact receipts, and durable history.
 4. **Project file:** the hub persists workflow state atomically to
    `.vibecheck/state.json` for the registered project root.
 
@@ -142,6 +145,52 @@ full timeline, increments its occurrence and regression counts, and returns to
 the actionable queue. Sending it again progresses through the same workflow
 while retaining a regression badge.
 
+## Project Impact Ledger
+
+The hub stores immutable impact receipts alongside workflow records. Project
+totals are derived from receipts and timeline events at read time instead of
+incrementing unrelated counters that can drift after retries or restarts.
+
+Exact lifecycle totals include:
+
+- issues detected;
+- issues sent to an agent;
+- unique issues verified fixed;
+- total verified fix cycles, including later regression fixes;
+- regressions caught;
+- failed verification attempts; and
+- median time from dispatch to verified fix.
+
+Each confirmed fix may also create detector-specific measurement receipts. A
+receipt contains the stable issue key and occurrence, detector, page key,
+baseline and verification snapshot timestamps, before and after values, delta,
+unit, and confidence (`measured` or `estimated`). Its deterministic ID prevents
+the same verification from being counted twice after a retry or hub restart.
+
+The first supported measurements are:
+
+- duplicate requests eliminated in the detector observation window, using the
+  duplicate excess (`count - 1`) before and after verification;
+- console calls reduced when comparable console windows are available;
+- DOM nodes reduced on the same page;
+- transfer KB reduced between comparable same-page snapshots; and
+- blocking time reduced between comparable same-page snapshots.
+
+An adapter emits a receipt only when its before and after samples are
+comparable. Multiple simultaneous fixes may share a page-level improvement but
+must not each claim the full delta. Ambiguous data is either attributed once to
+the verification batch or omitted. The UI never turns an absent detector issue
+into a fabricated byte, request, or timing value.
+
+“Requests saved” is presented with its scope, for example “4 duplicate requests
+removed per observed page load,” rather than extrapolating an unbounded lifetime
+number. An optional estimated cumulative value may multiply that verified delta
+only by page loads VibeCheck actually observed after the fix and is labeled
+**estimated**.
+
+Clearing fixed rows does not delete impact receipts. Resetting project impact is
+a separate destructive action with confirmation.
+
 ## Agent Panel Experience
 
 The current “sent” tab becomes **in progress** and contains records in Sent,
@@ -161,6 +210,22 @@ Every expanded issue row shows:
 Connection colors remain semantic: connected and Agent working are both green,
 waiting is yellow, and offline or stale is red. Blue remains reserved for
 informational findings and navigation indicators, not healthy agent activity.
+
+A compact **VibeCheck impact** card appears in the Agent view and the monitor
+overview. It prioritizes verified fixes and regressions caught, then shows only
+the measurement totals the project has actually earned, such as duplicate
+requests removed or transfer KB reduced. Each measurement has a short scope or
+confidence tooltip.
+
+The card includes **Copy impact summary** for a concise, shareable statement,
+for example: “VibeCheck caught 3 regressions and helped verify 12 fixes,
+including 4 duplicate requests removed per observed page load.” The copy uses
+“caught,” “verified,” and “helped” so it does not falsely claim that VibeCheck
+wrote the fixes itself.
+
+Settings provides JSON and Markdown export plus a separately confirmed
+**Reset impact stats** action. Export does not include local filesystem paths,
+agent session identifiers, or raw page content.
 
 Fixed records remain inspectable. Clearing the fixed view removes them from the
 browser presentation but does not erase the durable regression baseline. A
@@ -215,7 +280,7 @@ the project root, so it will create and register the mapping safely:
 ```text
 .vibecheck/
   config.json   # schema version + stable project ID; safe to commit
-  state.json    # local workflow history; ignored by git
+  state.json    # workflow history + impact receipts; ignored by git
 ```
 
 Setup also updates a user-local registry mapping project ID to the absolute
@@ -245,8 +310,8 @@ new snapshots.
 Browser-facing additions:
 
 - snapshot envelopes include the normalized page URL;
-- a project workflow endpoint returns versioned records for the widget cache;
-  and
+- a project workflow endpoint returns versioned records and the derived project
+  impact summary for the widget cache; and
 - a project issue verification endpoint lets the widget request evidence-based
   verification.
 
@@ -260,6 +325,10 @@ Bridge-facing changes:
 - resolve requests verification; and
 - issue lookup accepts occurrence IDs while resolving them to their durable
   stable record.
+
+MCP gains `get_project_impact` so a watching agent can report exact project
+results without reading files directly. The CLI gains
+`stats --project <id> [--json|--markdown]` for local inspection and sharing.
 
 No local path or registry data is exposed through browser-facing endpoints.
 
@@ -280,6 +349,8 @@ Unit tests will cover:
 - idempotent dequeue, acknowledge, and verify calls;
 - two-snapshot fix confirmation and failed verification;
 - regression reopening and occurrence counts;
+- idempotent impact receipts and derived lifecycle totals;
+- measured versus estimated impact adapters and ambiguous batch attribution;
 - project-scoped preference and cache migrations;
 - collapsed-state restoration and `startCollapsed` fallback;
 - linked and independent visual position selection;
@@ -301,7 +372,10 @@ hub/bridge packages. It will:
 6. restart the hub and prove the fixed record survives;
 7. publish the same stable issue under a new occurrence ID and prove it becomes
    Regressed only in the correct project; and
-8. refresh the browser and prove collapsed state and both placement choices
+8. verify that project impact survives the restart without double counting,
+   exposes an honest copyable summary, and stays isolated from the second
+   project; and
+9. refresh the browser and prove collapsed state and both placement choices
    survive.
 
 ## Showcase Handoff
@@ -310,4 +384,5 @@ The completed batch must leave a running local showcase with a documented URL
 and a deterministic control path. The user will be able to send a finding,
 watch its timeline advance as the real MCP bridge receives and resolves it,
 confirm the browser-verified fix, refresh without losing widget state or
-placement, and deliberately replay the finding to see the regression reopen.
+placement, inspect and copy the persisted impact summary, and deliberately
+replay the finding to see the regression reopen and its totals update once.
