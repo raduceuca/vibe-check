@@ -290,7 +290,7 @@ export const VibeCheck = memo(({
 
           {activeView === 'settings' && (
             <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
-              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} onToggleMode={toggleMode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} />
+              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} onToggleMode={toggleMode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} defaultPosition={position} />
             </div>
           )}
         </div>

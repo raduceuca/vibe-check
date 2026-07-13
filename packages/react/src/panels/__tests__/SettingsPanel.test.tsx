@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SettingsPanel } from '../SettingsPanel.js'
 import type { VibeCheckPreferences } from '../../store/preferences.js'
@@ -9,24 +9,77 @@ const prefs: VibeCheckPreferences = {
   clearOnSend: false,
   theme: 'dark',
   keepHistory: true,
+  collapsed: false,
+  positionsLinked: true,
+  collapsedPosition: null,
+  expandedPosition: null,
 }
+
+const renderSettings = (
+  inputPrefs: VibeCheckPreferences = prefs,
+  onUpdate = vi.fn(),
+) => render(
+  <SettingsPanel
+    prefs={inputPrefs}
+    onUpdate={onUpdate}
+    mode="technical"
+    onToggleMode={vi.fn()}
+    beaconUrl="http://127.0.0.1:4200"
+    beaconStatus={null}
+    onClearAll={vi.fn()}
+    defaultPosition="bottom-right"
+  />,
+)
 
 describe('SettingsPanel', () => {
   it('shows MCP status before preference controls', () => {
-    render(
-      <SettingsPanel
-        prefs={prefs}
-        onUpdate={vi.fn()}
-        mode="technical"
-        onToggleMode={vi.fn()}
-        beaconUrl="http://127.0.0.1:4200"
-        beaconStatus={null}
-        onClearAll={vi.fn()}
-      />,
-    )
+    renderSettings()
 
     const status = screen.getByTestId('vibe-check-agent-status')
     const wording = screen.getByText('Mode')
     expect(status.compareDocumentPosition(wording) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  })
+
+  it('uses one visual position picker while positions are linked', () => {
+    const onUpdate = vi.fn()
+    renderSettings(prefs, onUpdate)
+
+    expect(screen.getByRole('radiogroup', { name: 'Widget position' })).toBeTruthy()
+    expect(screen.queryByRole('radiogroup', { name: 'Collapsed' })).toBeNull()
+    fireEvent.click(screen.getByRole('radio', { name: 'Top left' }))
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      collapsedPosition: 'top-left',
+      expandedPosition: 'top-left',
+    })
+  })
+
+  it('shows independent collapsed and expanded pickers when unlinked', () => {
+    const onUpdate = vi.fn()
+    renderSettings({
+      ...prefs,
+      positionsLinked: false,
+      collapsedPosition: 'top-left',
+      expandedPosition: 'bottom-right',
+    }, onUpdate)
+
+    expect(screen.getByRole('radiogroup', { name: 'Collapsed' })).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: 'Expanded' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radiogroup', { name: 'Expanded' })
+      .querySelector<HTMLInputElement>('input[value="top-right"]')!)
+
+    expect(onUpdate).toHaveBeenCalledWith({ expandedPosition: 'top-right' })
+  })
+
+  it('resets both saved position overrides', () => {
+    const onUpdate = vi.fn()
+    renderSettings({ ...prefs, collapsedPosition: 'top-left', expandedPosition: 'top-left' }, onUpdate)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to app default' }))
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      collapsedPosition: null,
+      expandedPosition: null,
+    })
   })
 })

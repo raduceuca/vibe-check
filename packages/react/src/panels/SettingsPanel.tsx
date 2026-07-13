@@ -7,6 +7,8 @@ import type { VibeCheckPreferences } from '../store/preferences.js'
 import { ToggleRow } from './ui/ToggleRow.js'
 import { ModeToggle } from './ui/ModeToggle.js'
 import { AgentConnectionStatus } from './AgentConnectionStatus.js'
+import { PositionPicker } from './ui/PositionPicker.js'
+import type { Position } from './types.js'
 
 interface SettingsPanelProps {
   readonly prefs: VibeCheckPreferences
@@ -16,6 +18,7 @@ interface SettingsPanelProps {
   readonly beaconUrl?: string
   readonly beaconStatus?: BeaconStatus | null
   readonly onClearAll: () => void
+  readonly defaultPosition: Position
 }
 
 const sectionTitle: CSSProperties = {
@@ -38,7 +41,18 @@ const infoRowStyle: CSSProperties = {
   fontSize: 14,
 }
 
-export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beaconUrl, beaconStatus, onClearAll }: SettingsPanelProps) => {
+export const SettingsPanel = memo(({
+  prefs,
+  onUpdate,
+  mode,
+  onToggleMode,
+  beaconUrl,
+  beaconStatus,
+  onClearAll,
+  defaultPosition,
+}: SettingsPanelProps) => {
+  const linkedPosition = prefs.expandedPosition ?? prefs.collapsedPosition ?? defaultPosition
+
   return (
     <div style={{ paddingTop: 4 }}>
       <div style={firstSection}>
@@ -77,6 +91,58 @@ export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beacon
         checked={prefs.keepHistory}
         onChange={(checked) => onUpdate({ keepHistory: checked })}
       />
+
+      <div style={sectionTitle}>
+        {mode === 'vibe' ? 'Widget position' : 'Widget placement'}
+      </div>
+      <ToggleRow
+        label="Use one position for both"
+        checked={prefs.positionsLinked}
+        onChange={(positionsLinked) => onUpdate({
+          positionsLinked,
+          ...(positionsLinked
+            ? { collapsedPosition: linkedPosition, expandedPosition: linkedPosition }
+            : {}),
+        })}
+      />
+      {prefs.positionsLinked ? (
+        <PositionPicker
+          label="Widget position"
+          value={linkedPosition}
+          onChange={(value) => onUpdate({
+            collapsedPosition: value,
+            expandedPosition: value,
+          })}
+        />
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          <div>
+            <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 6 }}>Collapsed</div>
+            <PositionPicker
+              label="Collapsed"
+              value={prefs.collapsedPosition ?? defaultPosition}
+              onChange={(collapsedPosition) => onUpdate({ collapsedPosition })}
+            />
+          </div>
+          <div>
+            <div style={{ color: T.textTertiary, fontSize: 12, marginBottom: 6 }}>Expanded</div>
+            <PositionPicker
+              label="Expanded"
+              value={prefs.expandedPosition ?? defaultPosition}
+              onChange={(expandedPosition) => onUpdate({ expandedPosition })}
+            />
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: 8 }}>
+        <Button
+          variant="ghost"
+          fullWidth
+          onClick={() => onUpdate({ collapsedPosition: null, expandedPosition: null })}
+        >
+          Reset to app default
+        </Button>
+      </div>
 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}
