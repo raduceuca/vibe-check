@@ -151,6 +151,9 @@ export const VibeCheck = memo(({
       theme={prefs.theme}
       copiedId={copiedId}
       onCopy={copy}
+      beaconStatus={beaconStatus}
+      onDispatch={handleDispatch}
+      onMarkSent={handleMarkSent}
       onMarkResolved={markResolved}
     />
   )
@@ -251,6 +254,9 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
+                beaconStatus={beaconStatus}
+                onDispatch={handleDispatch}
+                onMarkSent={handleMarkSent}
               />
             </div>
           )}
@@ -269,6 +275,9 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
+                beaconStatus={beaconStatus}
+                onDispatch={handleDispatch}
+                onMarkSent={handleMarkSent}
               />
             </div>
           )}
