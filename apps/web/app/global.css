@@ -31,6 +31,10 @@ html {
   --vc-amber-bg: rgba(161, 98, 7, 0.12);
   --vc-ok: #15803d;
   --vc-ok-bg: rgba(21, 128, 61, 0.1);
+  --vc-proof-c: #00a4c7;
+  --vc-proof-m: #d31574;
+  --vc-proof-y: #c9b800;
+  --vc-proof-k: #111112;
   --vc-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code', Menlo,
     Consolas, monospace;
   --vc-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
@@ -72,6 +76,10 @@ html {
     --vc-amber-bg: rgba(224, 165, 58, 0.13);
     --vc-ok: #4ade80;
     --vc-ok-bg: rgba(74, 222, 128, 0.13);
+    --vc-proof-c: #36c1df;
+    --vc-proof-m: #ff5aa7;
+    --vc-proof-y: #f0dc3c;
+    --vc-proof-k: #f4f4f5;
   }
 }
 :root.dark .vc-landing,
@@ -94,6 +102,10 @@ html {
   --vc-amber-bg: rgba(224, 165, 58, 0.13);
   --vc-ok: #4ade80;
   --vc-ok-bg: rgba(74, 222, 128, 0.13);
+  --vc-proof-c: #36c1df;
+  --vc-proof-m: #ff5aa7;
+  --vc-proof-y: #f0dc3c;
+  --vc-proof-k: #f4f4f5;
 }
 :root.light .vc-landing,
 :root[data-theme='light'] .vc-landing,
@@ -115,6 +127,10 @@ html {
   --vc-amber-bg: rgba(161, 98, 7, 0.12);
   --vc-ok: #15803d;
   --vc-ok-bg: rgba(21, 128, 61, 0.1);
+  --vc-proof-c: #00a4c7;
+  --vc-proof-m: #d31574;
+  --vc-proof-y: #c9b800;
+  --vc-proof-k: #111112;
 }
 
 .vc-landing *,
@@ -152,6 +168,21 @@ html {
 }
 
 /* Eyebrow / kicker */
+.vc-hero {
+  position: relative;
+  isolation: isolate;
+}
+.vc-hero::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: -16px;
+  width: 11px;
+  height: 11px;
+  border-top: 1px solid var(--vc-line-strong);
+  border-left: 1px solid var(--vc-line-strong);
+  pointer-events: none;
+}
 .vc-eyebrow {
   font-family: var(--vc-mono);
   font-size: 11.5px;
@@ -162,6 +193,52 @@ html {
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+}
+.vc-proof-rail {
+  width: 52px;
+  height: 3px;
+  gap: 1px;
+  flex: none;
+}
+.vc-proof-rail i {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vc-registration-constellation {
+  display: none;
+  position: absolute;
+  top: 7px;
+  right: -92px;
+  width: 78px;
+  height: 78px;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--vc-ink);
+}
+.vc-registration-plate {
+  stroke: currentColor;
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+.vc-registration-plate-c {
+  color: var(--vc-proof-c);
+  opacity: 0.3;
+  transform: translate(-0.7px, 0.35px);
+}
+.vc-registration-plate-m {
+  color: var(--vc-proof-m);
+  opacity: 0.26;
+  transform: translate(0.7px, -0.35px);
+}
+.vc-registration-plate-k {
+  color: var(--vc-proof-k);
+  opacity: 0.27;
+}
+@media (min-width: 1320px) {
+  .vc-registration-constellation {
+    display: block;
+  }
 }
 .vc-eyebrow .vc-dot {
   width: 4px;

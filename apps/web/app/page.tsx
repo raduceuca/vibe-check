@@ -13,6 +13,7 @@ import { RealAgentDemo } from '@/components/landing/RealAgentDemo'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteShell } from '@/components/site/SiteShell'
 import { PipelineDiagram } from '@/components/diagrams'
+import { ProofRail, RegistrationConstellation } from '@/components/brand/ProofMarks'
 
 // A tight landing pitch, kept ≤ 160 chars so VibeCheck's own seo audit passes
 // its meta-description-too-long check on this very page. Shared with the JSON-LD
@@ -102,14 +103,17 @@ const LandingPage = () => (
 
     <main className="vc-wrap">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <header>
+      <header className="vc-hero">
         <div className="vc-eyebrow">
+          <ProofRail className="vc-proof-rail" />
           <span>VibeCheck</span>
           <span className="vc-dot" />
           <span>performance instrument</span>
           <span className="vc-dot" />
           <span>for the AI-built frontend</span>
         </div>
+
+        <RegistrationConstellation className="vc-registration-constellation" />
 
         <h1 className="vc-hero-head">
           <span className="vc-hero-line">Your agent shipped it.</span>
