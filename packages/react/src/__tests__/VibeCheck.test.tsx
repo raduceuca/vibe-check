@@ -55,6 +55,7 @@ describe('VibeCheck', () => {
 
     const overlay = screen.getByTestId('vibe-check-overlay')
     expect(overlay).toBeTruthy()
+    expect(overlay.style.width).toBe('320px')
     expect(screen.getByText('vibe check')).toBeTruthy()
   })
 
@@ -63,6 +64,35 @@ describe('VibeCheck', () => {
 
     expect(screen.getByTestId('vibe-check-agent-connection-dot').getAttribute('data-state')).toBe('unconfigured')
     expect(screen.getByRole('tab', { name: /Fix.*AI connection not configured/i })).toBeTruthy()
+  })
+
+  it('misregisters the proof rail only when an issue is active', () => {
+    const { unmount } = render(<VibeCheck enabled />)
+
+    expect(screen.getByTestId('wcgw-proof-rail').hasAttribute('data-faulted')).toBe(false)
+    unmount()
+
+    mockUseVibeCheck.mockReturnValue({
+      engine: null,
+      snapshot: {
+        ...EMPTY_SNAPSHOT,
+        issues: [{
+          id: 'dom-1',
+          detector: 'dom-bloat',
+          severity: 'warning',
+          title: 'DOM issue',
+          description: 'The page has too many DOM nodes.',
+          evidence: {},
+          timestamp: 1,
+          acknowledged: false,
+          resolved: false,
+        }],
+      },
+    })
+
+    render(<VibeCheck enabled />)
+
+    expect(screen.getByTestId('wcgw-proof-rail').getAttribute('data-faulted')).toBe('true')
   })
 
   it('shows FPS panel by default', () => {
