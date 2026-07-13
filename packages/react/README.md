@@ -80,15 +80,14 @@ For Claude Code:
 claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-For Cursor, save `.cursor/mcp.json`:
+For Cursor, merge this entry into the top-level `mcpServers` object in
+`.cursor/mcp.json`; keep any servers already present:
 
 ```json
 {
-  "mcpServers": {
-    "vibe-check": {
-      "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
-    }
+  "vibe-check": {
+    "command": "npx",
+    "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
   }
 }
 ```

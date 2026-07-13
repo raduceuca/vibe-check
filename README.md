@@ -177,24 +177,26 @@ Verify with `claude mcp get vibe-check`.
 
 ### Cursor
 
-Save this as `.cursor/mcp.json`, then approve the project MCP when Cursor asks:
+Open `.cursor/mcp.json` and find its top-level `mcpServers` object. Create that
+object if the file is new, then merge the entry below into it without removing
+any servers already configured:
 
 ```json
 {
-  "mcpServers": {
-    "vibe-check": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@wcgw/vibe-check-mcp",
-        "connect"
-      ]
-    }
+  "vibe-check": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@wcgw/vibe-check-mcp",
+      "connect"
+    ]
   }
 }
 ```
 
-Verify with `cursor-agent mcp list-tools vibe-check`.
+The copied object is the contents to add inside `mcpServers`, not a replacement
+for the whole file. Approve the project MCP when Cursor asks, then verify with
+`cursor-agent mcp list-tools vibe-check`.
 
 After restarting or opening a new session, use the instruction copied from the
 widget. For this example it is:

@@ -74,7 +74,8 @@ describe('AgentConnectionStatus', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Claude Code' }))
     expect(screen.getByText(/claude mcp add --scope local vibe-check/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cursor' }))
-    expect(screen.getByText(/"mcpServers"/)).toBeTruthy()
+    expect(screen.getByText(/add inside mcpServers/i)).toBeTruthy()
+    expect(screen.getByText(/"vibe-check"/)).toBeTruthy()
     expect(screen.getByText(/project_id "project-a"/)).toBeTruthy()
   })
 

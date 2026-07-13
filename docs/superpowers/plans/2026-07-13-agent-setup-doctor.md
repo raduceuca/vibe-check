@@ -72,11 +72,9 @@ expect(getAgentClientSetup('claude-code').value).toBe(
   'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
 )
 expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
-  mcpServers: {
-    'vibe-check': {
-      command: 'npx',
-      args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
-    },
+  'vibe-check': {
+    command: 'npx',
+    args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
   },
 })
 expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
@@ -133,13 +131,11 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     id: 'cursor',
     label: 'Cursor',
     format: 'json',
-    destination: 'Save as .cursor/mcp.json',
+    destination: 'Add inside mcpServers in .cursor/mcp.json; if the file is new, create mcpServers first',
     value: JSON.stringify({
-      mcpServers: {
-        'vibe-check': {
-          command: 'npx',
-          args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
-        },
+      'vibe-check': {
+        command: 'npx',
+        args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
       },
     }, null, 2),
     verifyCommand: 'cursor-agent mcp list-tools vibe-check',

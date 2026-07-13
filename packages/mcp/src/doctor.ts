@@ -62,7 +62,7 @@ const setupSteps = (projectId: string): readonly string[] => {
   return [
     `Configure Codex: ${codex.value}`,
     `Configure Claude Code: ${claude.value}`,
-    `Configure Cursor: save the VibeCheck stdio server as ${cursor.destination.replace('Save as ', '')}.`,
+    `Configure Cursor: ${cursor.destination}.`,
     'Restart or open a new agent session after changing its MCP configuration.',
     getWatchInstruction(projectId),
   ]

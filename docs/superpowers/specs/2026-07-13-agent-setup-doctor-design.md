@@ -101,8 +101,8 @@ Each client shows one authoritative local-project setup method:
   `codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect`
 - Claude Code:
   `claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect`
-- Cursor: create `.cursor/mcp.json` with a `vibe-check` stdio server whose
-  command is `npx` and arguments are
+- Cursor: merge a `vibe-check` stdio server into the existing `mcpServers` object
+  in `.cursor/mcp.json` without replacing other servers. Its command is `npx` and arguments are
   `[-y, @wcgw/vibe-check-mcp, connect]`.
 
 Every variant then says to restart or open a new agent session and supplies this

@@ -116,12 +116,13 @@ describe('protocol enums', () => {
     expect(getAgentClientSetup('claude-code').value).toBe(
       'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
     )
+    expect(getAgentClientSetup('cursor').destination).toBe(
+      'Add inside mcpServers in .cursor/mcp.json; if the file is new, create mcpServers first',
+    )
     expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
-      mcpServers: {
-        'vibe-check': {
-          command: 'npx',
-          args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
-        },
+      'vibe-check': {
+        command: 'npx',
+        args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
       },
     })
     expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
@@ -153,5 +154,11 @@ describe('protocol enums', () => {
       expect(document).toContain('doctor --project')
       expect(document).toContain(getWatchInstruction('docs-project').split('project_id')[0])
     }
+
+    const mcpReadme = documents[1] ?? ''
+    expect(mcpReadme).toContain('Merge the `vibe-check` entry into `mcpServers`')
+    expect(mcpReadme).toContain('**ready** — exits `0`')
+    expect(mcpReadme).toContain('**stale** —')
+    expect(mcpReadme).toContain('**missing** —')
   })
 })

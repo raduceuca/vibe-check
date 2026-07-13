@@ -57,7 +57,8 @@ codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-For Cursor, copy the `.cursor/mcp.json` value shown in the card. Then copy this
+For Cursor, merge the card's `vibe-check` entry into `mcpServers` in
+`.cursor/mcp.json`; do not replace existing server entries. Then copy this
 project-specific instruction:
 
 ```text

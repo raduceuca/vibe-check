@@ -6,12 +6,26 @@ import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { getAgentClientSetup } from '../packages/protocol/dist/index.js'
 
 const execFile = promisify(execFileCallback)
-const bridgeArgs = ['-y', '@wcgw/vibe-check-mcp', 'connect']
 const commandTimeoutMs = 30_000
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const localBridge = join(repositoryRoot, 'packages/mcp/dist/index.js')
+
+const commandArguments = (client) => {
+  const [, ...args] = getAgentClientSetup(client).value.trim().split(/\s+/)
+  return args
+}
+
+const cursorEntries = () => {
+  const parsed = JSON.parse(getAgentClientSetup('cursor').value)
+  const entry = parsed?.['vibe-check']
+  if (!entry || entry.command !== 'npx' || !Array.isArray(entry.args)) {
+    throw new Error('Cursor setup must provide a vibe-check entry for the npx bridge')
+  }
+  return parsed
+}
 
 const findExecutable = async (name) => {
   for (const directory of (process.env.PATH ?? '').split(delimiter)) {
@@ -115,7 +129,7 @@ const checkCodex = async (root) => {
   const home = join(root, 'codex-home')
   await mkdir(home, { recursive: true })
   const env = { CODEX_HOME: home }
-  await run(executable, ['mcp', 'add', 'vibe-check', '--', 'npx', ...bridgeArgs], { env })
+  await run(executable, commandArguments('codex'), { env })
   const configured = await run(executable, ['mcp', 'get', 'vibe-check', '--json'], { env })
   requireFragments(configured, ['vibe-check', 'npx', '@wcgw/vibe-check-mcp', 'connect'])
   return { client: 'Codex', status: 'PASS', detail: await getVersion(executable) }
@@ -130,7 +144,7 @@ const checkClaude = async (root) => {
   const project = join(root, 'claude-project')
   await Promise.all([mkdir(home, { recursive: true }), mkdir(config, { recursive: true }), mkdir(project, { recursive: true })])
   const env = { HOME: home, CLAUDE_CONFIG_DIR: config }
-  await run(executable, ['mcp', 'add', '--scope', 'local', 'vibe-check', '--', 'npx', ...bridgeArgs], { cwd: project, env })
+  await run(executable, commandArguments('claude-code'), { cwd: project, env })
   const configured = await run(executable, ['mcp', 'get', 'vibe-check'], { cwd: project, env })
   requireFragments(configured, ['vibe-check', 'npx', '@wcgw/vibe-check-mcp', 'connect'])
   return { client: 'Claude Code', status: 'PASS', detail: await getVersion(executable) }
@@ -144,9 +158,11 @@ const checkCursor = async (root, hubUrl) => {
   const project = join(root, 'cursor-project')
   const cursorDirectory = join(project, '.cursor')
   await Promise.all([mkdir(home, { recursive: true }), mkdir(cursorDirectory, { recursive: true })])
+  const existingServer = { command: process.execPath, args: ['--version'] }
   await writeFile(join(cursorDirectory, 'mcp.json'), `${JSON.stringify({
     mcpServers: {
-      'vibe-check': { command: 'npx', args: bridgeArgs },
+      'existing-server': existingServer,
+      ...cursorEntries(),
       'vibe-check-under-test': {
         command: process.execPath,
         args: [localBridge, 'connect'],
@@ -156,7 +172,7 @@ const checkCursor = async (root, hubUrl) => {
   }, null, 2)}\n`)
   const env = { HOME: home }
   const configured = await run(executable, ['mcp', 'list'], { cwd: project, env })
-  requireFragments(configured, ['vibe-check', 'vibe-check-under-test'])
+  requireFragments(configured, ['existing-server', 'vibe-check', 'vibe-check-under-test'])
   await run(executable, ['mcp', 'enable', 'vibe-check-under-test'], { cwd: project, env })
   const tools = await run(executable, ['mcp', 'list-tools', 'vibe-check-under-test'], { cwd: project, env })
   requireFragments(tools, ['list_projects', 'watch_for_issue'])

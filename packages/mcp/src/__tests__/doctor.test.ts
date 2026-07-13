@@ -152,6 +152,38 @@ describe('runDoctor', () => {
     expect(report.nextSteps).toEqual([])
   })
 
+  it('reports a stale watcher with reconnect guidance', async () => {
+    const report = await diagnose(makeClient({
+      getProjectStatus: async () => status('stale'),
+    }), 'project-a')
+
+    expect(report.ok).toBe(false)
+    expect(report.checks).toContainEqual({
+      id: 'watcher',
+      level: 'warn',
+      message: 'The agent watcher stopped responding.',
+    })
+    expect(report.nextSteps.join('\n')).toContain('Restart or reconnect the owning agent session')
+    expect(report.nextSteps.join('\n')).toContain('watch_for_issue')
+  })
+
+  it('never calls mutating hub methods', async () => {
+    const mutation = async (): Promise<never> => {
+      throw new Error('doctor attempted to mutate hub state')
+    }
+    const report = await diagnose(makeClient({
+      getProjectStatus: async () => status('watching'),
+      acquireLease: mutation,
+      heartbeatLease: mutation,
+      releaseLease: mutation,
+      waitForIssue: mutation,
+      acknowledgeIssue: mutation,
+      resolveIssue: mutation,
+    }), 'project-a')
+
+    expect(report.ok).toBe(true)
+  })
+
   it('reports a recent rejected second watcher without replacing the owner', async () => {
     const report = await diagnose(makeClient({
       getProjectStatus: async () => status('watching', 19_500),

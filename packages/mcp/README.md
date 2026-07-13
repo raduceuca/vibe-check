@@ -78,23 +78,23 @@ Verify with `claude mcp get vibe-check`.
 
 #### Cursor
 
-Save this project-scoped configuration as `.cursor/mcp.json`:
+Merge the `vibe-check` entry into `mcpServers` in `.cursor/mcp.json`. If the file
+already contains other MCP servers, keep them alongside this entry:
 
 ```json
 {
-  "mcpServers": {
-    "vibe-check": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@wcgw/vibe-check-mcp",
-        "connect"
-      ]
-    }
+  "vibe-check": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@wcgw/vibe-check-mcp",
+      "connect"
+    ]
   }
 }
 ```
 
+Create the top-level `mcpServers` object first when starting from an empty file.
 Approve the project MCP when Cursor asks. Verify it with
 `cursor-agent mcp list-tools vibe-check`.
 
@@ -245,15 +245,17 @@ Options and environment:
 | `--json` | Emit the stable, versioned `DoctorReport` JSON shape. |
 | `VIBE_CHECK_HUB_URL` | Override the hub URL used by `doctor` and `connect`. |
 
-Exit `0` means the hub is reachable, the selected browser snapshot is fresh,
-and its owner state is `watching` or `busy`. Exit `1` covers the useful failure
-states:
+The result states are:
 
-- **offline** — start `npx -y @wcgw/vibe-check-mcp hub`;
-- **ambiguous** — rerun `doctor --project <id>` with a listed project;
-- **waiting** — configure Codex, Claude Code, or Cursor, restart it, and paste the
-  project-specific watch instruction;
-- **ready** — the human report shows all required checks as `PASS` and exits `0`.
+- **ready** — exits `0` when the hub is reachable, the selected browser snapshot
+  is fresh, and its owner state is `watching` or `busy`;
+- **offline** — exits `1`; start `npx -y @wcgw/vibe-check-mcp hub`;
+- **ambiguous** — exits `1`; rerun `doctor --project <id>` with a listed project;
+- **missing** — exits `1`; open or reload the requested browser project;
+- **stale** — exits `1`; reload a stale browser snapshot or reconnect a stale
+  agent watcher;
+- **waiting** — exits `1`; configure Codex, Claude Code, or Cursor, restart it,
+  and paste the project-specific watch instruction.
 
 JSON output contains `schemaVersion`, `ok`, `hubUrl`, `generatedAt`,
 `selectedProjectId`, `checks`, `projects`, and `nextSteps`.

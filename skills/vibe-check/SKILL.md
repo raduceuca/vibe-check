@@ -51,9 +51,10 @@ codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-For Cursor, save the JSON shown in the card as `.cursor/mcp.json`. Restart or
-open a new client session, copy the card's project-specific watch instruction,
-and wait for **Agent connected** before clicking **Send to agent**.
+For Cursor, merge the JSON entry shown in the card into the top-level
+`mcpServers` object in `.cursor/mcp.json` without removing existing servers.
+Restart or open a new client session, copy the card's project-specific watch
+instruction, and wait for **Agent connected** before clicking **Send to agent**.
 
 The hub is one long-running process shared by local projects. The MCP bridge is
 spawned by each agent client and never binds the browser port. Restart the agent
