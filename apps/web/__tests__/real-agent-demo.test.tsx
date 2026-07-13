@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { RealAgentDemo, shouldAutoplayDemo } from '../components/landing/RealAgentDemo'
+import {
+  RealAgentDemo,
+  demoControlLabel,
+  nextDemoPlayback,
+  shouldAutoplayDemo,
+} from '../components/landing/RealAgentDemo'
 
 describe('real agent demo playback', () => {
   it('defaults to the poster with an explicit play control', () => {
@@ -14,5 +19,13 @@ describe('real agent demo playback', () => {
   it('does not autoplay for reduced-motion users', () => {
     expect(shouldAutoplayDemo(true)).toBe(false)
     expect(shouldAutoplayDemo(false)).toBe(true)
+  })
+
+  it('describes animated GIF playback as stop and replay instead of pause', () => {
+    expect(demoControlLabel('idle')).toBe('Play demo')
+    expect(demoControlLabel('playing')).toBe('Stop demo')
+    expect(demoControlLabel('stopped')).toBe('Replay demo')
+    expect(nextDemoPlayback('playing')).toBe('stopped')
+    expect(nextDemoPlayback('stopped')).toBe('playing')
   })
 })

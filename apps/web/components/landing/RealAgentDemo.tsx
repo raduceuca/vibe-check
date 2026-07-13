@@ -7,12 +7,23 @@ import { useEffect, useState } from 'react'
 export const shouldAutoplayDemo = (prefersReducedMotion: boolean): boolean =>
   !prefersReducedMotion
 
+export type DemoPlayback = 'idle' | 'playing' | 'stopped'
+
+export const demoControlLabel = (playback: DemoPlayback): string => {
+  if (playback === 'playing') return 'Stop demo'
+  return playback === 'stopped' ? 'Replay demo' : 'Play demo'
+}
+
+export const nextDemoPlayback = (playback: DemoPlayback): DemoPlayback =>
+  playback === 'playing' ? 'stopped' : 'playing'
+
 export const RealAgentDemo = () => {
-  const [playing, setPlaying] = useState(false)
+  const [playback, setPlayback] = useState<DemoPlayback>('idle')
+  const playing = playback === 'playing'
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-    setPlaying(shouldAutoplayDemo(prefersReducedMotion))
+    if (shouldAutoplayDemo(prefersReducedMotion)) setPlayback('playing')
   }, [])
 
   return (
@@ -25,9 +36,9 @@ export const RealAgentDemo = () => {
           className="vc-real-demo-control"
           type="button"
           aria-pressed={playing}
-          onClick={() => setPlaying((current) => !current)}
+          onClick={() => setPlayback(nextDemoPlayback)}
         >
-          {playing ? 'Pause demo' : 'Play demo'}
+          {demoControlLabel(playback)}
         </button>
         <Image
           className="vc-real-demo-image"
