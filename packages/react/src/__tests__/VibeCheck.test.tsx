@@ -57,6 +57,13 @@ describe('VibeCheck', () => {
     expect(screen.getByText('vibe check')).toBeTruthy()
   })
 
+  it('shows agent connection state in navigation from every view', () => {
+    render(<VibeCheck enabled />)
+
+    expect(screen.getByTestId('vibe-check-agent-connection-dot').getAttribute('data-state')).toBe('unconfigured')
+    expect(screen.getByRole('tab', { name: /Fix.*AI connection not configured/i })).toBeTruthy()
+  })
+
   it('shows FPS panel by default', () => {
     const snapshotWithFps: VibeSnapshot = {
       ...EMPTY_SNAPSHOT,

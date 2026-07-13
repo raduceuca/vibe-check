@@ -99,6 +99,12 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
   const agent = await connectClient('single-agent')
   try {
     await openAgentIssue(page, appAUrl)
+    const connection = page.getByTestId('vibe-check-agent-status')
+    await expect(connection).toContainText('Waiting for')
+    await expect(connection).toContainText(appAUrl)
+    await expect(connection).toContainText(/codex mcp add vibe-check/)
+    await expect(connection).toContainText(`project_id "${appAUrl}"`)
+    await expect(page.getByRole('button', { name: /copy codex setup/i })).toBeVisible()
     const receivedPromise = watch(agent.client, appAUrl)
     await expect(page.getByTestId('vibe-check-agent-status')).toContainText(/Agent connected|AI agent connected/, { timeout: 10_000 })
     await page.getByTestId(/vibe-check-send-/).click()

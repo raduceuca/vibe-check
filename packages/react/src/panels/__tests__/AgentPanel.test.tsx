@@ -23,6 +23,7 @@ const renderPanel = (onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResp
   const onMarkSent = vi.fn()
   render(<AgentPanel
     tracked={[tracked]} mode="technical" copiedId={null} onCopy={onCopy}
+    beaconUrl="http://127.0.0.1:4200"
     beaconStatus={connected} onDispatch={onDispatch} onMarkSent={onMarkSent}
     onMarkResolved={vi.fn()} onClearResolved={vi.fn()}
   />)
