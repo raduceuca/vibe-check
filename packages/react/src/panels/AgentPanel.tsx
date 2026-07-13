@@ -5,6 +5,7 @@ import { getAgentPrompt } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { getSuggestionCached } from './suggestionCache.js'
+import { IssueActions } from './IssueActions.js'
 import { CopyButton } from './ui/CopyButton.js'
 import { Row } from './ui/Row.js'
 import { Button } from './ui/Button.js'
@@ -47,34 +48,9 @@ const IssueRow = ({
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
 }) => {
-  const [delivery, setDelivery] = useState<DispatchIssueResponse['code'] | 'idle' | 'sending'>('idle')
   const { issue } = tracked
   const suggestion = getSuggestionCached(issue, mode)
   const isResolved = tracked.status === 'resolved'
-
-  const handleCopy = async () => {
-    await onCopy(suggestion.prompt, issue.id)
-  }
-
-  const canDispatch = beaconStatus?.lastOk === true
-    && (beaconStatus.projectStatus?.state === 'watching' || beaconStatus.projectStatus?.state === 'busy')
-
-  const handleDispatch = async () => {
-    setDelivery('sending')
-    const result = await onDispatch(issue)
-    setDelivery(result.code)
-    if (result.ok) onMarkSent(issue.id)
-  }
-
-  const deliveryLabel: Partial<Record<typeof delivery, string>> = {
-    dispatched: 'sent',
-    'agent-not-watching': 'agent not watching',
-    'queue-full': 'queue full',
-    'hub-offline': 'MCP server offline',
-    'invalid-issue': 'invalid issue',
-    failed: 'send failed',
-    unconfigured: 'MCP not configured',
-  }
 
   return (
     <Row
@@ -97,16 +73,11 @@ const IssueRow = ({
       }}>
         <div style={{
           display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', marginBottom: 8,
+          marginBottom: 8,
         }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: T.textTertiary }}>
             {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
           </span>
-          <CopyButton
-            copied={copiedId === issue.id}
-            onClick={handleCopy}
-            label="Copy prompt"
-          />
         </div>
         <div style={{
           fontSize: 14, color: T.textTertiary,
@@ -118,36 +89,16 @@ const IssueRow = ({
         </div>
       </div>
 
-      {!isResolved && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            size="sm"
-            disabled={!canDispatch || delivery === 'sending' || delivery === 'dispatched'}
-            onClick={(e) => { e.stopPropagation(); void handleDispatch() }}
-            testId={`vibe-check-send-${issue.id}`}
-            title={canDispatch ? 'Send this issue to the connected agent' : 'Connect one agent watcher before sending'}
-          >
-            {delivery === 'sending' ? 'Sending…' : delivery === 'dispatched' ? 'Sent' : 'Send to agent'}
-          </Button>
-          <Button
-            variant="success"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onMarkResolved(issue.id) }}
-            icon={(
-              <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          >
-            {mode === 'vibe' ? 'mark as fixed' : 'resolve'}
-          </Button>
-          {delivery !== 'idle' && delivery !== 'sending' && deliveryLabel[delivery] && (
-            <span role="status" style={{ color: delivery === 'dispatched' ? T.green : T.red, fontSize: 13 }}>
-              {deliveryLabel[delivery]}
-            </span>
-          )}
-        </div>
-      )}
+      <IssueActions
+        tracked={tracked}
+        mode={mode}
+        copiedId={copiedId}
+        beaconStatus={beaconStatus}
+        onCopy={onCopy}
+        onDispatch={onDispatch}
+        onMarkSent={onMarkSent}
+        onMarkResolved={onMarkResolved}
+      />
     </Row>
   )
 }
