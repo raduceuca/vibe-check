@@ -381,6 +381,41 @@ export interface QueuedIssue {
   readonly dispatchedAt: number
 }
 
+export type IssuePhase = 'detected' | 'sent' | 'working' | 'verifying' | 'fixed' | 'regressed'
+
+export interface IssueWorkflowEvent {
+  readonly type:
+    | 'detected'
+    | 'sent'
+    | 'working'
+    | 'verification-requested'
+    | 'verification-failed'
+    | 'fixed'
+    | 'regressed'
+  readonly at: number
+  readonly occurrence: number
+}
+
+export interface TrackedProjectIssue {
+  readonly issueKey: string
+  readonly pageUrl: string
+  readonly issue: VibeIssue
+  readonly phase: IssuePhase
+  readonly occurrenceCount: number
+  readonly regressionCount: number
+  readonly verificationMisses: number
+  readonly firstSeenAt: number
+  readonly lastSeenAt: number
+  readonly events: readonly IssueWorkflowEvent[]
+}
+
+export interface ProjectWorkflow {
+  readonly schemaVersion: 1
+  readonly projectId: string
+  readonly revision: number
+  readonly issues: readonly TrackedProjectIssue[]
+}
+
 export type LeaseResult =
   | {
       readonly ok: true
