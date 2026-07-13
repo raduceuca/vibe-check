@@ -472,7 +472,7 @@ git commit -m "docs: showcase the real widget agent roundtrip"
 **Interfaces:**
 - Produces a pushed branch, reviewable PR, and running local production showcase.
 
-- [ ] **Step 1: Run the complete gate from clean outputs**
+- [x] **Step 1: Run the complete gate from clean outputs**
 
 ```bash
 pnpm clean
@@ -489,13 +489,13 @@ pnpm --filter web exec wrangler deploy --dry-run
 pnpm smoke:production
 ```
 
-- [ ] **Step 2: Audit the implementation against the design**
+- [x] **Step 2: Audit the implementation against the design**
 
 Confirm every acceptance requirement maps to code and evidence, workflows
 contain no long-lived npm token, setup dry-run is non-mutating, the demo is from
 the real MCP result, and `git diff --check` is clean.
 
-- [ ] **Step 3: Start the local production showcase**
+- [x] **Step 3: Start the local production showcase**
 
 ```bash
 pnpm --filter web start --port 3100
