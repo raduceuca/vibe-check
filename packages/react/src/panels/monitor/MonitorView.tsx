@@ -23,6 +23,7 @@ import { Tabs } from '../ui/Tabs.js'
 import { sevVar, sevHex, sevGlow, fpsKey, vitalKey, fmtMs } from './severity.js'
 import { FpsTrace, WINDOW_OPTIONS, CANVAS_OK } from './FpsTrace.js'
 import { ImpactCard } from '../ImpactCard.js'
+import { CalibrationRuler, ProofLabel, RegistrationTarget } from '../ui/ProofMarks.js'
 
 // Visually-hidden text — announced to screen readers, off-screen visually.
 const SR_ONLY: CSSProperties = {
@@ -48,7 +49,7 @@ const ConsoleStat = ({ count, color, label }: { count: number; color: string; la
 )
 
 // Compact audit score cell — value + grade over a label; click jumps to the tab.
-const AuditScoreChip = ({ label, score, onClick }: { label: string; score: number; onClick: () => void }) => {
+const AuditScoreChip = ({ label, score, plate, onClick }: { label: string; score: number; plate: string; onClick: () => void }) => {
   const c = scoreColor(score)
   return (
     <button
@@ -57,9 +58,12 @@ const AuditScoreChip = ({ label, score, onClick }: { label: string; score: numbe
       aria-label={`${label} score ${score}, grade ${gradeFor(score)} — open ${label} audit`}
       style={{
         minWidth: 0, display: 'block', textAlign: 'left', padding: 0,
-        background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
       }}
     >
+      <span data-wcgw-audit-plate aria-hidden="true" style={{ position: 'absolute', top: 0, right: 0, fontFamily: T.fontMono, fontSize: 8, letterSpacing: '0.08em', color: T.textMuted }}>
+        CHK {plate}
+      </span>
       <div aria-hidden="true" style={{ ...STAT_VALUE, gap: 5, color: c }}>
         {score}<span style={{ fontWeight: 600 }}>{gradeFor(score)}</span>
       </div>
@@ -88,6 +92,9 @@ const QuickIssue = ({ issue, mode }: { readonly issue: VibeIssue; mode: string }
         flex: 1, minWidth: 0, fontSize: 14, color: T.textSecondary, alignSelf: 'center',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}><span style={SR_ONLY}>{issue.severity}: </span>{title}</span>
+      <span data-wcgw-issue-register aria-hidden="true" style={{ display: 'flex', alignItems: 'center', opacity: 0.7, flexShrink: 0 }}>
+        <RegistrationTarget size={8} />
+      </span>
     </div>
   )
 }
@@ -130,7 +137,11 @@ export const MonitorView = memo(({
     <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
       {/* FPS HERO — quiet numeral + avg/worst + live trace */}
       {panels.has('fps') && (
-        <div style={{ paddingBottom: 14 }}>
+        <div style={{ paddingBottom: 14, position: 'relative' }}>
+          <span data-wcgw-read-sample aria-hidden="true" style={{ position: 'absolute', top: 1, right: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <ProofLabel>READ / SAMPLE</ProofLabel>
+            <RegistrationTarget faulted={activeCount > 0} size={10} />
+          </span>
           {/* Main metric — FPS, left-aligned */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
             <span style={{ fontSize: DISPLAY_PX, fontWeight: 600, lineHeight: 1, color: T.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>{Math.round(snapshot.frameRate.fps)}</span>
@@ -194,6 +205,9 @@ export const MonitorView = memo(({
               background: 'linear-gradient(to right, var(--wcgw-bg), transparent)',
               pointerEvents: 'none',
             }} />
+            <span aria-hidden="true" style={{ position: 'absolute', top: 22, right: -1, opacity: 0.72 }}>
+              <CalibrationRuler />
+            </span>
           </div>
           {/* Timescale selector — live / 5m / 15m / 1h (segmented pills) */}
           {CANVAS_OK && (
@@ -220,8 +234,8 @@ export const MonitorView = memo(({
         {/* Two chips only — a 2-col grid (not the 3-col STAT_GRID) so the vibe
             label never truncates at the panel's default 320px width. */}
         <div style={{ ...STAT_GRID, gridTemplateColumns: '1fr 1fr' }}>
-          <AuditScoreChip label={mode === 'vibe' ? 'search' : 'seo'} score={seoScore} onClick={() => onOpenView('seo')} />
-          <AuditScoreChip label={mode === 'vibe' ? 'answers' : 'aeo'} score={aeoScore} onClick={() => onOpenView('aeo')} />
+          <AuditScoreChip label={mode === 'vibe' ? 'search' : 'seo'} score={seoScore} plate="01" onClick={() => onOpenView('seo')} />
+          <AuditScoreChip label={mode === 'vibe' ? 'answers' : 'aeo'} score={aeoScore} plate="02" onClick={() => onOpenView('aeo')} />
         </div>
       </div>
 
