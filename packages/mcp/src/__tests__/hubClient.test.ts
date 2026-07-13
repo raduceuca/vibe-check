@@ -1,7 +1,19 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createHubClient, HubClientError } from '../hubClient.js'
 import { createHubServer, type HubServerContext } from '../hubServer.js'
-import type { ProjectSnapshotEnvelope, VibeSnapshot } from '../types.js'
+import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../types.js'
+
+const issue: VibeIssue = {
+  id: 'dom-1',
+  detector: 'dom-bloat',
+  severity: 'warning',
+  title: 'DOM has too many nodes',
+  description: 'Too many nodes',
+  evidence: { nodeCount: 1_600 },
+  timestamp: 1,
+  acknowledged: false,
+  resolved: false,
+}
 
 const snapshot: VibeSnapshot = {
   timestamp: 1,
@@ -11,7 +23,7 @@ const snapshot: VibeSnapshot = {
   memory: null,
   resources: { totalTransferKB: 0, jsTransferKB: 0, cssTransferKB: 0, imageTransferKB: 0, fontTransferKB: 0, resourceCount: 0, largeResources: [] },
   console: { logCount: 0, warnCount: 0, errorCount: 0, totalCount: 0 },
-  issues: [],
+  issues: [issue],
   domNodeCount: 10,
 }
 
@@ -55,6 +67,14 @@ describe('HubClient', () => {
       projectId: 'project-a',
       state: 'no-agent',
       queueDepth: 0,
+    })
+    await expect(client.getWorkflow('project-a')).resolves.toMatchObject({
+      projectId: 'project-a',
+      issues: [{ issue: { id: 'dom-1' }, phase: 'detected' }],
+    })
+    await expect(client.requestVerification('project-a', 'dom-1')).resolves.toBeUndefined()
+    await expect(client.getWorkflow('project-a')).resolves.toMatchObject({
+      issues: [{ phase: 'verifying' }],
     })
     await expect(client.acquireLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })
     await expect(client.heartbeatLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })

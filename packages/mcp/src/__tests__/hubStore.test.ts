@@ -143,7 +143,7 @@ describe('hubStore', () => {
     const overflow = dispatchIssue(hub, 'project-a', 'http://project-a/fixture', makeIssue('overflow'), 4_000)
     expect(overflow.result).toMatchObject({ ok: false, code: 'queue-full', queueDepth: 10 })
 
-    const first = dequeueIssue(overflow.store, 'project-a', 'agent-a')
+    const first = dequeueIssue(overflow.store, 'project-a', 'agent-a', 4_001)
     expect(first.issue?.issue.id).toBe('issue-0')
     expect(first.issue?.snapshot.domNodeCount).toBe(900)
     expect(getProjectStatus(first.store, 'project-a', 4_000)?.queueDepth).toBe(9)
@@ -178,9 +178,9 @@ describe('hubStore', () => {
     hub = recordSnapshot(hub, makeEnvelope('project-a', 'browser-a', [makeIssue('current-1')]), 2_000)
 
     expect(findProjectIssue(hub, 'project-a', 'history-1')?.id).toBe('history-1')
-    hub = acknowledgeProjectIssue(hub, 'project-a', 'current-1')
+    hub = acknowledgeProjectIssue(hub, 'project-a', 'current-1', 3_000)
     expect(getActiveIssues(hub, 'project-a')).toEqual([])
-    hub = resolveProjectIssue(hub, 'project-a', 'history-1')
+    hub = resolveProjectIssue(hub, 'project-a', 'history-1', 4_000)
     expect(findProjectIssue(hub, 'project-a', 'history-1')?.id).toBe('history-1')
     expect(getActiveIssues(hub, 'missing')).toEqual([])
   })

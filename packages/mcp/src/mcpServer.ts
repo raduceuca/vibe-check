@@ -187,13 +187,13 @@ export const createMcpServer = (
 
   server.tool(
     'resolve_issue',
-    'Resolve an issue in one project',
+    'Request browser-evidence verification after fixing an issue in one project',
     { project_id: projectIdSchema, issue_id: z.string() },
     async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
       const issue = await client.getIssue(projectId, issue_id)
       if (!issue) return jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
       await client.resolveIssue(projectId, issue_id)
-      return jsonResult({ resolved: true, projectId, issue_id })
+      return jsonResult({ verifying: true, projectId, issue_id })
     }),
   )
 

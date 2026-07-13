@@ -41,6 +41,8 @@ const makeClient = (): HubClient => ({
   health: vi.fn(),
   listProjects: vi.fn(async () => [project('project-a')]),
   getSnapshot: vi.fn(async () => snapshot),
+  getWorkflow: vi.fn(async () => null),
+  requestVerification: vi.fn(),
   getDetectedIssues: vi.fn(async () => [issue]),
   getIssue: vi.fn(async (_projectId, issueId) => issueId === issue.id ? issue : null),
   waitForSnapshot: vi.fn(async () => snapshot),
@@ -49,6 +51,7 @@ const makeClient = (): HubClient => ({
   releaseLease: vi.fn(),
   waitForIssue: vi.fn(async (): Promise<QueuedIssue> => ({
     projectId: 'project-a',
+    issueKey: 'project-a|fixture|dom-bloat|dom-bloat',
     issue,
     snapshot,
     dispatchedAt: 10,
@@ -150,7 +153,12 @@ describe('project-scoped MCP server', () => {
     const issues = await call(context, 'get_detected_issues', { severity: 'warning' })
     expect(JSON.parse(issues.text)).toMatchObject({ count: 1, issues: [{ id: 'dom-1' }] })
     await call(context, 'acknowledge_issue', { issue_id: 'dom-1' })
-    await call(context, 'resolve_issue', { issue_id: 'dom-1' })
+    const resolving = await call(context, 'resolve_issue', { issue_id: 'dom-1' })
+    expect(JSON.parse(resolving.text)).toEqual({
+      verifying: true,
+      projectId: 'project-a',
+      issue_id: 'dom-1',
+    })
     expect(client.acknowledgeIssue).toHaveBeenCalledWith('project-a', 'dom-1')
     expect(client.resolveIssue).toHaveBeenCalledWith('project-a', 'dom-1')
   })

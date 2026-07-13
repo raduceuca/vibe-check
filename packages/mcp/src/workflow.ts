@@ -9,6 +9,7 @@ import type {
 
 const MAX_WORKFLOW_ISSUES = 200
 const MAX_EVENTS_PER_ISSUE = 50
+const MAX_OCCURRENCE_IDS = 20
 
 export const createProjectWorkflow = (projectId: string): ProjectWorkflow => ({
   schemaVersion: 1,
@@ -30,6 +31,17 @@ const event = (
   at: number,
   occurrence: number,
 ): IssueWorkflowEvent => ({ type, at, occurrence })
+
+const latestEventAt = (
+  tracked: TrackedProjectIssue,
+  type: IssueWorkflowEvent['type'],
+): number => {
+  for (let index = tracked.events.length - 1; index >= 0; index -= 1) {
+    const item = tracked.events[index]
+    if (item?.type === type) return item.at
+  }
+  return 0
+}
 
 export const compactWorkflowIssues = (
   issues: readonly TrackedProjectIssue[],
@@ -62,6 +74,7 @@ const newTrackedIssue = (
   issueKey: getStableIssueKey(workflow.projectId, pageUrl, issue),
   pageUrl,
   issue,
+  occurrenceIds: [issue.id],
   phase: 'detected',
   occurrenceCount: 1,
   regressionCount: 0,
@@ -74,13 +87,18 @@ const newTrackedIssue = (
 const recordPresentIssue = (
   tracked: TrackedProjectIssue,
   issue: VibeIssue,
+  snapshotAt: number,
   now: number,
 ): TrackedProjectIssue => {
+  const occurrenceIds = tracked.occurrenceIds.includes(issue.id)
+    ? tracked.occurrenceIds
+    : [...tracked.occurrenceIds, issue.id].slice(-MAX_OCCURRENCE_IDS)
   if (tracked.phase === 'fixed') {
     const occurrenceCount = tracked.occurrenceCount + 1
     return appendEvent({
       ...tracked,
       issue,
+      occurrenceIds,
       phase: 'regressed',
       occurrenceCount,
       regressionCount: tracked.regressionCount + 1,
@@ -89,22 +107,28 @@ const recordPresentIssue = (
     }, event('regressed', now, occurrenceCount))
   }
   if (tracked.phase === 'verifying') {
+    const requestedAt = latestEventAt(tracked, 'verification-requested')
+    if (snapshotAt <= requestedAt) return tracked
     return appendEvent({
       ...tracked,
       issue,
+      occurrenceIds,
       phase: 'working',
       verificationMisses: 0,
       lastSeenAt: now,
     }, event('verification-failed', now, tracked.occurrenceCount))
   }
-  return { ...tracked, issue, lastSeenAt: now }
+  return { ...tracked, issue, occurrenceIds, lastSeenAt: now }
 }
 
 const recordAbsentIssue = (
   tracked: TrackedProjectIssue,
+  snapshotAt: number,
   now: number,
 ): TrackedProjectIssue => {
   if (tracked.phase !== 'verifying') return tracked
+  const requestedAt = latestEventAt(tracked, 'verification-requested')
+  if (snapshotAt <= requestedAt) return tracked
   const verificationMisses = tracked.verificationMisses + 1
   if (verificationMisses < 2) return { ...tracked, verificationMisses }
   return appendEvent({
@@ -132,8 +156,8 @@ export const recordWorkflowSnapshot = (
     if (tracked.pageUrl !== pageUrl) return tracked
     const present = incoming.get(tracked.issueKey)
     const next = present
-      ? recordPresentIssue(tracked, present, now)
-      : recordAbsentIssue(tracked, now)
+      ? recordPresentIssue(tracked, present, envelope.snapshot.timestamp, now)
+      : recordAbsentIssue(tracked, envelope.snapshot.timestamp, now)
     if (next !== tracked) changed = true
     return next
   })
@@ -179,7 +203,7 @@ export const markWorkflowWorking = (
   now: number,
 ): ProjectWorkflow => updateIssue(
   workflow,
-  (tracked) => tracked.issue.id === issueId,
+  (tracked) => tracked.occurrenceIds.includes(issueId),
   (tracked) => tracked.phase === 'working' ? tracked : appendEvent({
     ...tracked,
     phase: 'working',
@@ -192,7 +216,7 @@ export const requestWorkflowVerification = (
   now: number,
 ): ProjectWorkflow => updateIssue(
   workflow,
-  (tracked) => tracked.issue.id === issueId,
+  (tracked) => tracked.occurrenceIds.includes(issueId),
   (tracked) => tracked.phase === 'verifying' || tracked.phase === 'fixed'
     ? tracked
     : appendEvent({

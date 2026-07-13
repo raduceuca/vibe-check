@@ -8,6 +8,7 @@ import {
   dispatchIssue,
   findProjectIssue,
   getActiveIssues,
+  getProjectWorkflow,
   getProjectStatus,
   heartbeatLease,
   listActiveProjects,
@@ -15,6 +16,7 @@ import {
   markLeaseWatching,
   recordSnapshot,
   releaseLease,
+  requestProjectVerification,
   resolveProjectIssue,
   type HubStore,
 } from './hubStore.js'
@@ -133,7 +135,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
     const waiters = issueWaiters.get(projectId)
     const waiter = waiters?.values().next().value as PendingWaiter<QueuedIssue> | undefined
     if (!waiter) return
-    const dequeued = dequeueIssue(store, projectId, waiter.sessionId)
+    const dequeued = dequeueIssue(store, projectId, waiter.sessionId, now())
     if (!dequeued.issue) return
     store = markLeaseBusy(dequeued.store, projectId, waiter.sessionId)
     resolveWaiter(issueWaiters, projectId, waiter, dequeued.issue)
@@ -183,6 +185,25 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
       if (method === 'GET' && parts[0] === 'api' && parts[1] === 'projects' && parts[3] === 'status') {
         const status = getProjectStatus(store, parts[2] ?? '', now())
         sendJson(res, status ? 200 : 404, status ?? { error: 'Project not found' }, true)
+        return
+      }
+
+      if (method === 'GET' && parts[0] === 'api' && parts[1] === 'projects' && parts[3] === 'workflow') {
+        const workflow = getProjectWorkflow(store, parts[2] ?? '')
+        sendJson(res, workflow ? 200 : 404, workflow ?? { error: 'Project not found' }, true)
+        return
+      }
+
+      if (method === 'POST' && parts[0] === 'api' && parts[1] === 'projects'
+        && parts[3] === 'issues' && parts[4] && parts[5] === 'verify') {
+        const projectId = parts[2] ?? ''
+        const issueId = parts[4]
+        if (!findProjectIssue(store, projectId, issueId)) {
+          sendJson(res, 404, { error: 'Issue not found', projectId, issueId }, true)
+          return
+        }
+        store = requestProjectVerification(store, projectId, issueId, now())
+        sendJson(res, 200, { verifying: true, projectId, issueId }, true)
         return
       }
 
@@ -267,7 +288,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
             return
           }
           store = markLeaseWatching(store, projectId, request.sessionId)
-          const immediate = dequeueIssue(store, projectId, request.sessionId)
+          const immediate = dequeueIssue(store, projectId, request.sessionId, now())
           store = immediate.store
           if (immediate.issue) {
             store = markLeaseBusy(store, projectId, request.sessionId)
@@ -304,13 +325,13 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
         if (method === 'POST' && parts[3] === 'issues' && parts[4] && parts[5]) {
           const issueId = parts[4]
           if (parts[5] === 'acknowledge') {
-            store = acknowledgeProjectIssue(store, projectId, issueId)
+            store = acknowledgeProjectIssue(store, projectId, issueId, now())
             sendJson(res, 200, { acknowledged: true, projectId, issueId })
             return
           }
           if (parts[5] === 'resolve') {
-            store = resolveProjectIssue(store, projectId, issueId)
-            sendJson(res, 200, { resolved: true, projectId, issueId })
+            store = resolveProjectIssue(store, projectId, issueId, now())
+            sendJson(res, 200, { verifying: true, projectId, issueId })
             return
           }
         }

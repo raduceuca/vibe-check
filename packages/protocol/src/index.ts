@@ -400,6 +400,7 @@ export interface TrackedProjectIssue {
   readonly issueKey: string
   readonly pageUrl: string
   readonly issue: VibeIssue
+  readonly occurrenceIds: readonly string[]
   readonly phase: IssuePhase
   readonly occurrenceCount: number
   readonly regressionCount: number

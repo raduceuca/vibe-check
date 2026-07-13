@@ -63,6 +63,7 @@ const tracked = (overrides: Partial<TrackedProjectIssue> = {}): TrackedProjectIs
   issueKey: 'stable-a',
   pageUrl: 'http://project-a/pricing',
   issue: issue('first'),
+  occurrenceIds: ['first'],
   phase: 'detected',
   occurrenceCount: 1,
   regressionCount: 0,
@@ -126,6 +127,34 @@ describe('issue workflow', () => {
     expect(compacted).toHaveLength(200)
     expect(compacted).toEqual(expect.arrayContaining(protectedIssues))
     expect(compacted.some((item) => item.issueKey === 'old-0')).toBe(false)
+  })
+
+  it('ignores same-page evidence that is not newer than the verification request', () => {
+    let workflow = recordWorkflowSnapshot(
+      createProjectWorkflow('project-a'),
+      envelope([issue('first')], '/pricing', 1),
+      1,
+    )
+    workflow = requestWorkflowVerification(workflow, 'first', 5)
+    const stale = recordWorkflowSnapshot(workflow, envelope([], '/pricing', 5), 6)
+
+    expect(stale.issues[0]).toMatchObject({ phase: 'verifying', verificationMisses: 0 })
+    expect(stale).toBe(workflow)
+  })
+
+  it('accepts an earlier occurrence id after a newer scan replaces the browser id', () => {
+    let workflow = recordWorkflowSnapshot(
+      createProjectWorkflow('project-a'),
+      envelope([issue('first')], '/pricing', 1),
+      1,
+    )
+    workflow = recordWorkflowSnapshot(workflow, envelope([issue('new-id')], '/pricing', 2), 2)
+    workflow = requestWorkflowVerification(workflow, 'first', 3)
+
+    expect(workflow.issues[0]).toMatchObject({
+      phase: 'verifying',
+      occurrenceIds: ['first', 'new-id'],
+    })
   })
 
 })

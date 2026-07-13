@@ -14,8 +14,8 @@ const makeIssue = (id = 'dom-1'): VibeIssue => ({
   resolved: false,
 })
 
-const makeSnapshot = (issues: readonly VibeIssue[] = []): VibeSnapshot => ({
-  timestamp: 1,
+const makeSnapshot = (issues: readonly VibeIssue[] = [], timestamp = 1): VibeSnapshot => ({
+  timestamp,
   frameRate: { fps: 60, avgFrameTime: 16.7, maxFrameTime: 20, droppedFrames: 0, smoothness: 100 },
   longFrames: { count: 0, entries: [], worstFrame: 0 },
   webVitals: { lcp: null, inp: null, cls: null },
@@ -34,19 +34,25 @@ const makeSnapshot = (issues: readonly VibeIssue[] = []): VibeSnapshot => ({
   domNodeCount: 900,
 })
 
-const envelope = (projectId: string, instanceId: string, issues = [makeIssue()]): ProjectSnapshotEnvelope => ({
+const envelope = (
+  projectId: string,
+  instanceId: string,
+  issues = [makeIssue()],
+  path = '/fixture',
+  timestamp = 1,
+): ProjectSnapshotEnvelope => ({
   projectId,
   instanceId,
   origin: projectId,
-  pageUrl: `http://${projectId}/fixture`,
+  pageUrl: `http://${projectId}${path}`,
   title: `Fixture ${projectId}`,
-  snapshot: makeSnapshot(issues),
+  snapshot: makeSnapshot(issues, timestamp),
 })
 
 let context: HubServerContext | null = null
 
-const start = async () => {
-  context = createHubServer({ version: '0.2.0' })
+const start = async (now: () => number = Date.now) => {
+  context = createHubServer({ version: '0.2.0', now })
   await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
   const address = context.server.address()
   const port = typeof address === 'object' && address ? address.port : 0
@@ -153,5 +159,54 @@ describe('hubServer', () => {
     expect((await json(`${base}/internal/projects/${project}/issues`)).body).toEqual([])
     await post(`${base}/internal/projects/${project}/issues/a-1/resolve`, {})
     expect((await json(`${base}/internal/projects/${project}/issues/a-1`)).body).toMatchObject({ id: 'a-1' })
+  })
+
+  it('tracks a real issue through verified fix and regression', async () => {
+    let clock = 1
+    const base = await start(() => clock)
+    const project = encodeURIComponent('project-a')
+    await post(
+      `${base}/api/snapshot`,
+      envelope('project-a', 'browser-a', [makeIssue('first')], '/pricing', clock),
+    )
+    clock = 2
+    await post(`${base}/internal/projects/${project}/leases/acquire`, { sessionId: 'agent-a' })
+    await post(`${base}/api/projects/${project}/dispatch`, {
+      projectId: 'project-a',
+      instanceId: 'browser-a',
+      pageUrl: 'http://project-a/pricing',
+      issue: makeIssue('first'),
+    })
+    await post(`${base}/internal/projects/${project}/issues/next`, {
+      sessionId: 'agent-a',
+      timeoutSeconds: 1,
+    })
+
+    const working = await json(`${base}/api/projects/${project}/workflow`)
+    expect(working.response.status).toBe(200)
+    expect(working.response.headers.get('access-control-allow-origin')).toBe('*')
+    expect(working.body).toMatchObject({ issues: [{ phase: 'working' }] })
+
+    clock = 4
+    const verification = await post(`${base}/api/projects/${project}/issues/first/verify`, {})
+    expect(verification.response.status).toBe(200)
+    expect(verification.response.headers.get('access-control-allow-origin')).toBe('*')
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+      .toMatchObject({ issues: [{ phase: 'verifying' }] })
+    clock = 5
+    await post(`${base}/api/snapshot`, envelope('project-a', 'browser-a', [], '/pricing', clock))
+    clock = 6
+    await post(`${base}/api/snapshot`, envelope('project-a', 'browser-a', [], '/pricing', clock))
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+      .toMatchObject({ issues: [{ phase: 'fixed' }] })
+
+    clock = 7
+    await post(
+      `${base}/api/snapshot`,
+      envelope('project-a', 'browser-a', [makeIssue('returned')], '/pricing', clock),
+    )
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body).toMatchObject({
+      issues: [{ phase: 'regressed', occurrenceCount: 2, regressionCount: 1 }],
+    })
   })
 })

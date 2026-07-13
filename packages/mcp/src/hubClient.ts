@@ -3,6 +3,7 @@ import type {
   LeaseResult,
   ProjectSummary,
   ProjectStatus,
+  ProjectWorkflow,
   QueuedIssue,
   Severity,
   VibeIssue,
@@ -34,6 +35,8 @@ export interface HubClient {
   listProjects(): Promise<readonly ProjectSummary[]>
   getSnapshot(projectId: string): Promise<VibeSnapshot | null>
   getProjectStatus(projectId: string): Promise<ProjectStatus | null>
+  getWorkflow(projectId: string): Promise<ProjectWorkflow | null>
+  requestVerification(projectId: string, issueId: string): Promise<void>
   getDetectedIssues(
     projectId: string,
     filters?: { readonly severity?: Severity; readonly detector?: DetectorName },
@@ -101,6 +104,21 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
         `/api/projects/${encodeURIComponent(projectId)}/status`,
         undefined,
         true,
+      )
+    },
+
+    async getWorkflow(projectId): Promise<ProjectWorkflow | null> {
+      return await request<ProjectWorkflow>(
+        `/api/projects/${encodeURIComponent(projectId)}/workflow`,
+        undefined,
+        true,
+      )
+    },
+
+    async requestVerification(projectId, issueId): Promise<void> {
+      await post(
+        `/api/projects/${encodeURIComponent(projectId)}/issues/${encodeURIComponent(issueId)}/verify`,
+        {},
       )
     },
 

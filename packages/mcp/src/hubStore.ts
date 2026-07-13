@@ -1,11 +1,17 @@
 import {
   acknowledgeIssue,
   createStore,
-  resolveIssue,
   updateSnapshot,
   type VibeStore,
 } from './store.js'
 import { getStableIssueKey } from '@wcgw/vibe-check-protocol'
+import {
+  createProjectWorkflow,
+  markWorkflowDispatched,
+  markWorkflowWorking,
+  recordWorkflowSnapshot,
+  requestWorkflowVerification,
+} from './workflow.js'
 import type {
   AgentConnectionState,
   DispatchIssueResponse,
@@ -13,6 +19,7 @@ import type {
   ProjectSnapshotEnvelope,
   ProjectStatus,
   ProjectSummary,
+  ProjectWorkflow,
   QueuedIssue,
   Severity,
   DetectorName,
@@ -43,6 +50,7 @@ export interface HubProject {
   readonly projectId: string
   readonly instances: ReadonlyMap<string, BrowserInstance>
   readonly store: VibeStore
+  readonly workflow: ProjectWorkflow
   readonly queue: readonly QueuedIssue[]
   readonly lease: AgentLease | null
   readonly conflictAt: number | null
@@ -118,6 +126,11 @@ export const recordSnapshot = (
     projectId: envelope.projectId,
     instances,
     store: updateSnapshot(current?.store ?? createStore(), envelope.snapshot),
+    workflow: recordWorkflowSnapshot(
+      current?.workflow ?? createProjectWorkflow(envelope.projectId),
+      envelope,
+      now,
+    ),
     queue: current?.queue ?? [],
     lease: current?.lease ?? null,
     conflictAt: current?.conflictAt ?? null,
@@ -311,8 +324,13 @@ export const dispatchIssue = (
       dispatchedAt: now,
     },
   ]
+  const workflow = markWorkflowDispatched(
+    project.workflow,
+    queue[queue.length - 1]!.issueKey,
+    now,
+  )
   return {
-    store: replaceProject(store, { ...project, queue }),
+    store: replaceProject(store, { ...project, queue, workflow }),
     result: { ok: true, code: 'dispatched', projectId, queueDepth: queue.length },
   }
 }
@@ -321,14 +339,18 @@ export const dequeueIssue = (
   store: HubStore,
   projectId: string,
   sessionId: string,
+  now: number,
 ): { readonly store: HubStore; readonly issue: QueuedIssue | null } => {
   const project = store.projects.get(projectId)
   if (!project?.lease || project.lease.sessionId !== sessionId || project.queue.length === 0) {
     return { store, issue: null }
   }
   const [issue, ...queue] = project.queue
+  const workflow = issue
+    ? markWorkflowWorking(project.workflow, issue.issue.id, now)
+    : project.workflow
   return {
-    store: replaceProject(store, { ...project, queue }),
+    store: replaceProject(store, { ...project, queue, workflow }),
     issue: issue ?? null,
   }
 }
@@ -356,17 +378,30 @@ export const findProjectIssue = (
   const projectStore = store.projects.get(projectId)?.store
   if (!projectStore) return undefined
   const current = projectStore.latestSnapshot?.issues.find((issue) => issue.id === issueId)
-  return current ?? projectStore.issueHistory.find((issue) => issue.id === issueId)
+  const historical = current ?? projectStore.issueHistory.find((issue) => issue.id === issueId)
+  if (historical) return historical
+  return store.projects.get(projectId)?.workflow.issues
+    .find((tracked) => tracked.occurrenceIds.includes(issueId))?.issue
 }
+
+export const getProjectWorkflow = (
+  store: HubStore,
+  projectId: string,
+): ProjectWorkflow | null => store.projects.get(projectId)?.workflow ?? null
 
 export const acknowledgeProjectIssue = (
   store: HubStore,
   projectId: string,
   issueId: string,
+  now: number,
 ): HubStore => {
   const project = store.projects.get(projectId)
   return project
-    ? replaceProject(store, { ...project, store: acknowledgeIssue(project.store, issueId) })
+    ? replaceProject(store, {
+      ...project,
+      store: acknowledgeIssue(project.store, issueId),
+      workflow: markWorkflowWorking(project.workflow, issueId, now),
+    })
     : store
 }
 
@@ -374,9 +409,16 @@ export const resolveProjectIssue = (
   store: HubStore,
   projectId: string,
   issueId: string,
+  now: number,
 ): HubStore => {
   const project = store.projects.get(projectId)
   return project
-    ? replaceProject(store, { ...project, store: resolveIssue(project.store, issueId) })
+    ? replaceProject(store, {
+      ...project,
+      workflow: requestWorkflowVerification(project.workflow, issueId, now),
+    })
     : store
 }
+
+
+export const requestProjectVerification = resolveProjectIssue
