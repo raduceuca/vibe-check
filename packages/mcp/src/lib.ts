@@ -25,6 +25,15 @@ export type {
   DispatchIssueResponse,
   QueuedIssue,
   LeaseResult,
+  AgentClientId,
+  AgentClientSetup,
 } from './types.js'
 
-export { AGENT_CONNECTION_STATES, DISPATCH_RESULT_CODES } from './types.js'
+export {
+  AGENT_CLIENTS,
+  AGENT_CONNECTION_STATES,
+  DISPATCH_RESULT_CODES,
+  HUB_START_COMMAND,
+  getAgentClientSetup,
+  getWatchInstruction,
+} from './types.js'

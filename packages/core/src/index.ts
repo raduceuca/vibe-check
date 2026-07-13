@@ -29,6 +29,8 @@ export type {
   DispatchIssueResponse,
   QueuedIssue,
   LeaseResult,
+  AgentClientId,
+  AgentClientSetup,
 } from './types.js'
 
 export {
@@ -38,8 +40,12 @@ export {
   EMPTY_RESOURCE_STATS,
   EMPTY_CONSOLE_STATS,
   DEFAULT_CONFIG,
+  AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
   DISPATCH_RESULT_CODES,
+  HUB_START_COMMAND,
+  getAgentClientSetup,
+  getWatchInstruction,
 } from './types.js'
 
 // Engine

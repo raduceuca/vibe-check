@@ -264,6 +264,60 @@ export interface VibeSnapshot {
 
 // ── Local hub / agent routing contract ─────────────────────────────────────
 
+export const AGENT_CLIENTS = ['codex', 'claude-code', 'cursor'] as const
+export type AgentClientId = (typeof AGENT_CLIENTS)[number]
+
+export interface AgentClientSetup {
+  readonly id: AgentClientId
+  readonly label: string
+  readonly format: 'command' | 'json'
+  readonly destination: string
+  readonly value: string
+  readonly verifyCommand: string
+}
+
+export const HUB_START_COMMAND = 'npx -y @wcgw/vibe-check-mcp hub'
+
+const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
+  codex: {
+    id: 'codex',
+    label: 'Codex',
+    format: 'command',
+    destination: 'Run in the project directory',
+    value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    verifyCommand: 'codex mcp get vibe-check --json',
+  },
+  'claude-code': {
+    id: 'claude-code',
+    label: 'Claude Code',
+    format: 'command',
+    destination: 'Run in the project directory',
+    value: 'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    verifyCommand: 'claude mcp get vibe-check',
+  },
+  cursor: {
+    id: 'cursor',
+    label: 'Cursor',
+    format: 'json',
+    destination: 'Save as .cursor/mcp.json',
+    value: JSON.stringify({
+      mcpServers: {
+        'vibe-check': {
+          command: 'npx',
+          args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+        },
+      },
+    }, null, 2),
+    verifyCommand: 'cursor-agent mcp list-tools vibe-check',
+  },
+}
+
+export const getAgentClientSetup = (client: AgentClientId): AgentClientSetup =>
+  CLIENT_SETUPS[client]
+
+export const getWatchInstruction = (projectId: string): string =>
+  `Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "${projectId}" and keep waiting for the next issue I send from the widget.`
+
 export const AGENT_CONNECTION_STATES = ['no-agent', 'watching', 'busy', 'stale'] as const
 export type AgentConnectionState = (typeof AGENT_CONNECTION_STATES)[number]
 

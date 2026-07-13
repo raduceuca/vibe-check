@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
+  AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
   DETECTOR_NAMES,
   DISPATCH_RESULT_CODES,
+  HUB_START_COMMAND,
   SEVERITIES,
+  getAgentClientSetup,
+  getWatchInstruction,
 } from '../index.js'
 import type {
   DetectorName,
@@ -99,5 +103,27 @@ describe('protocol enums', () => {
       'invalid-issue',
       'failed',
     ])
+  })
+
+  it('defines exact setup values for every first-class agent client', () => {
+    expect(AGENT_CLIENTS).toEqual(['codex', 'claude-code', 'cursor'])
+    expect(getAgentClientSetup('codex')).toMatchObject({
+      label: 'Codex',
+      format: 'command',
+      value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    })
+    expect(getAgentClientSetup('claude-code').value).toBe(
+      'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    )
+    expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
+      mcpServers: {
+        'vibe-check': {
+          command: 'npx',
+          args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+        },
+      },
+    })
+    expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
+    expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp hub')
   })
 })
