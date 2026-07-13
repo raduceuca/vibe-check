@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdir, mkdtemp, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { chromium, type Browser, type BrowserContext } from '@playwright/test'
+import { cleanupRecording } from './helpers/cleanup.js'
 import { installFixture, type InstalledFixture } from './helpers/installFixture.js'
 import { freePort, startProcess, waitForHttp, waitForJson, type ManagedProcess } from './helpers/processes.js'
 
@@ -154,14 +155,7 @@ const run = async (): Promise<void> => {
     process.stdout.write(`Recorded ${gifPath} (${formatSize(gif.size)})\n`)
     process.stdout.write(`Captured ${posterPath} (${formatSize(poster.size)})\n`)
   } finally {
-    await Promise.allSettled([
-      context?.close() ?? Promise.resolve(),
-      client?.close() ?? Promise.resolve(),
-    ])
-    await browser?.close()
-    await Promise.all(processes.reverse().map((process) => process.stop()))
-    await fixture?.cleanup()
-    await rm(recordingRoot, { recursive: true, force: true })
+    await cleanupRecording({ context, client, browser, processes, fixture, recordingRoot })
   }
 }
 

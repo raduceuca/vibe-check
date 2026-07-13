@@ -12,7 +12,11 @@ import {
   readReleaseManifest,
   validateReleaseVersion,
 } from '../release-manifest.mjs'
-import { publishMissingPackages } from '../publish-release.mjs'
+import {
+  publishMissingPackages,
+  publishPackage,
+  registryHasPackage,
+} from '../publish-release.mjs'
 
 describe('release tooling test harness', () => {
   it('runs tooling tests in a Node environment', () => {
@@ -236,6 +240,42 @@ describe('resumable package publishing', () => {
     })).rejects.toThrow('registry unavailable')
 
     expect(attempted).toEqual(['@wcgw/vibe-check-core', '@wcgw/vibe-check-mcp'])
+  })
+
+  it('bounds npm registry requests', async () => {
+    let signal: AbortSignal | undefined
+    const exists = await registryHasPackage(packages[0], {
+      timeoutMs: 25,
+      fetchImpl: async (_url: string, init: RequestInit) => {
+        signal = init.signal as AbortSignal
+        return new Response('{}', { status: 200 })
+      },
+    })
+
+    expect(exists).toBe(true)
+    expect(signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('bounds publish execution and preserves command failure output', async () => {
+    let timeout = 0
+    const errors: string[] = []
+    const failure = Object.assign(new Error('publish failed'), {
+      stdout: 'npm stdout',
+      stderr: 'npm stderr',
+    })
+
+    await expect(publishPackage(packages[0], {
+      timeoutMs: 50,
+      execFileImpl: async (_command: string, _args: readonly string[], options: { timeout?: number }) => {
+        timeout = options.timeout ?? 0
+        throw failure
+      },
+      writeError: (message: string) => { errors.push(message) },
+    })).rejects.toBe(failure)
+
+    expect(timeout).toBe(50)
+    expect(errors.join('\n')).toContain('npm stdout')
+    expect(errors.join('\n')).toContain('npm stderr')
   })
 })
 

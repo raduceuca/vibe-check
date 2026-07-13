@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  defaultRunCommand,
   detectPackageManager,
   renderDevtoolsComponent,
   runSetup,
@@ -71,13 +72,27 @@ describe('renderDevtoolsComponent', () => {
     const source = renderDevtoolsComponent('my-storefront')
 
     expect(source).toContain("export const VibeCheckDevtools")
-    expect(source).toContain("projectId: 'my-storefront'")
+    expect(source).toContain('projectId: "my-storefront"')
     expect(source).toContain("beaconUrl: 'http://127.0.0.1:4200'")
     expect(source).not.toContain('export default')
+  })
+
+  it('serializes unusual project IDs as valid TypeScript string literals', () => {
+    const projectId = "store'\\front\nline\rseparator\u2028end"
+    const source = renderDevtoolsComponent(projectId)
+
+    expect(source).toContain(`projectId: ${JSON.stringify(projectId)}`)
   })
 })
 
 describe('runSetup', () => {
+  it('preserves command failure details from the default runner', async () => {
+    const result = await defaultRunCommand('vibe-check-command-that-does-not-exist', [], process.cwd())
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.error).toContain('vibe-check-command-that-does-not-exist')
+  })
+
   it('rejects projects that do not declare React', async () => {
     await withProject({ name: 'not-react' }, async (root) => {
       await expect(runSetup({
@@ -113,6 +128,20 @@ describe('runSetup', () => {
     })
   })
 
+  it('includes the underlying install failure in the setup error', async () => {
+    await withProject({ name: 'storefront', dependencies: { react: '^19.0.0' } }, async (root) => {
+      await expect(runSetup({
+        cwd: root,
+        agent: 'codex',
+        version: '0.3.0',
+        dryRun: false,
+        force: false,
+      }, {
+        runCommand: async () => ({ exitCode: 1, error: 'registry connection timed out' }),
+      })).rejects.toThrow('registry connection timed out')
+    })
+  })
+
   it('installs the widget, generates the component, and configures Codex', async () => {
     await withProject({ name: '@acme/storefront', dependencies: { react: '^19.0.0' } }, async (root) => {
       await mkdir(join(root, 'src'))
@@ -129,7 +158,7 @@ describe('runSetup', () => {
       }, { runCommand: runner })
 
       const source = await readFile(join(root, 'src/VibeCheckDevtools.tsx'), 'utf8')
-      expect(source).toContain("projectId: '@acme/storefront'")
+      expect(source).toContain('projectId: "@acme/storefront"')
       expect(calls.map(({ command, args }) => [command, ...args])).toEqual([
         ['pnpm', 'add', '--save-dev', '@wcgw/vibe-check@0.3.0'],
         ['codex', 'mcp', 'get', 'vibe-check', '--json'],
@@ -210,7 +239,7 @@ describe('runSetup', () => {
         command: 'npx',
         args: ['-y', '@wcgw/vibe-check-mcp@0.3.0', 'connect'],
       })
-      await expect(readFile(join(root, 'VibeCheckDevtools.tsx'), 'utf8')).resolves.toContain("projectId: 'storefront-web'")
+      await expect(readFile(join(root, 'VibeCheckDevtools.tsx'), 'utf8')).resolves.toContain('projectId: "storefront-web"')
     })
   })
 

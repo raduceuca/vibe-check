@@ -2,7 +2,7 @@
 const markdownAccept = [{
   type: 'header',
   key: 'accept',
-  value: '.*text/markdown.*',
+  value: '(?:^|.*,\\s*)text/markdown(?![^,]*;\\s*q\\s*=\\s*0(?:\\.0*)?\\s*(?:;|,|$))[^,]*(?:,.*)?',
 }]
 
 export const markdownRewrites = async () => ({

@@ -29,19 +29,40 @@ export const publishMissingPackages = async ({
   return results
 }
 
-const registryHasPackage = async (pkg) => {
+export const registryHasPackage = async (pkg, {
+  fetchImpl = fetch,
+  timeoutMs = 15_000,
+} = {}) => {
   const url = `https://registry.npmjs.org/${encodeURIComponent(pkg.name)}/${encodeURIComponent(pkg.version)}`
-  const response = await fetch(url, { headers: { accept: 'application/json' } })
+  const response = await fetchImpl(url, {
+    headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(timeoutMs),
+  })
   if (response.status === 200) return true
   if (response.status === 404) return false
   throw new Error(`npm registry returned ${response.status} for ${pkg.name}@${pkg.version}`)
 }
 
-const publishPackage = async (pkg) => {
-  await execFileAsync('pnpm', ['--filter', pkg.name, 'publish', '--no-git-checks'], {
-    cwd: process.cwd(),
-    env: process.env,
-  })
+export const publishPackage = async (pkg, {
+  execFileImpl = execFileAsync,
+  timeoutMs = 5 * 60_000,
+  writeError = (message) => process.stderr.write(message),
+} = {}) => {
+  try {
+    await execFileImpl('pnpm', ['--filter', pkg.name, 'publish', '--no-git-checks'], {
+      cwd: process.cwd(),
+      env: process.env,
+      timeout: timeoutMs,
+    })
+  } catch (error) {
+    const output = typeof error === 'object' && error !== null ? error : {}
+    const stdout = typeof output.stdout === 'string' ? output.stdout : ''
+    const stderr = typeof output.stderr === 'string' ? output.stderr : ''
+    if (stdout.length > 0 || stderr.length > 0) {
+      writeError(`Publish command output for ${pkg.name}@${pkg.version}:\n${stdout}${stderr}\n`)
+    }
+    throw error
+  }
 }
 
 const isCli = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]

@@ -20,6 +20,7 @@ export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
 export interface SetupCommandResult {
   readonly exitCode: number
+  readonly error?: string
 }
 
 export type SetupCommandRunner = (
@@ -91,9 +92,7 @@ export const detectPackageManager = async (cwd: string): Promise<PackageManager>
   return 'npm'
 }
 
-const quoteTs = (value: string): string => `'${value
-  .replaceAll('\\', '\\\\')
-  .replaceAll("'", "\\'")}'`
+const quoteTs = (value: string): string => JSON.stringify(value)
 
 export const renderDevtoolsComponent = (projectId: string): string =>
   `'use client'\n\n`
@@ -143,14 +142,24 @@ const agentCommands = (agent: Exclude<SetupAgent, 'cursor'>, version: string): {
   }
 }
 
-const defaultRunCommand: SetupCommandRunner = async (command, args, cwd) => {
+export const defaultRunCommand: SetupCommandRunner = async (command, args, cwd) => {
   try {
     await execFileAsync(command, [...args], { cwd })
     return { exitCode: 0 }
-  } catch {
-    return { exitCode: 1 }
+  } catch (error) {
+    const output = isRecord(error) ? error : {}
+    const message = error instanceof Error ? error.message : String(error)
+    const stderr = typeof output['stderr'] === 'string' ? output['stderr'].trim() : ''
+    const stdout = typeof output['stdout'] === 'string' ? output['stdout'].trim() : ''
+    return {
+      exitCode: 1,
+      error: [message, stderr, stdout].filter((value) => value.length > 0).join('\n'),
+    }
   }
 }
+
+const commandFailure = (summary: string, result: SetupCommandResult): Error =>
+  new Error(result.error ? `${summary}: ${result.error}` : summary)
 
 const writeAtomic = async (path: string, content: string): Promise<void> => {
   await mkdir(dirname(path), { recursive: true })
@@ -235,7 +244,9 @@ export const runSetup = async (
   if (!options.dryRun) {
     if (!widgetInstalled) {
       const installed = await runCommand(install.command, install.args, options.cwd)
-      if (installed.exitCode !== 0) throw new Error(`Widget install failed: ${commandText(install)}`)
+      if (installed.exitCode !== 0) {
+        throw commandFailure(`Widget install failed: ${commandText(install)}`, installed)
+      }
     }
 
     await writeAtomic(componentAbsolutePath, renderDevtoolsComponent(projectId))
@@ -249,7 +260,9 @@ export const runSetup = async (
         actions[actions.length - 1] = 'vibe-check MCP server is already configured'
       } else {
         const added = await runCommand(commands.add.command, commands.add.args, options.cwd)
-        if (added.exitCode !== 0) throw new Error(`Agent configuration failed: ${commandText(commands.add)}`)
+        if (added.exitCode !== 0) {
+          throw commandFailure(`Agent configuration failed: ${commandText(commands.add)}`, added)
+        }
       }
     }
   }

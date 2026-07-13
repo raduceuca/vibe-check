@@ -42,6 +42,22 @@ describe('markdown content rewrites', () => {
   })
 
   it.each([
+    'text/markdown; q=0',
+    'text/html, text/markdown;q=0.0',
+    'text/markdown; charset=utf-8; q=0',
+  ])('does not negotiate an explicitly unacceptable Markdown range: %s', async (accept) => {
+    expect(isRewrite(await responseFor('/docs/quickstart', accept))).toBe(false)
+  })
+
+  it.each([
+    'text/markdown; q=0.5',
+    'text/markdown; charset=utf-8',
+    'text/markdown;q=0, text/markdown;q=0.8',
+  ])('accepts a usable Markdown media range: %s', async (accept) => {
+    expect(isRewrite(await responseFor('/docs/quickstart', accept))).toBe(true)
+  })
+
+  it.each([
     '/',
     '/docs/quickstart',
     '/api/scan',
