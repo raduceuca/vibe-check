@@ -48,6 +48,61 @@ describe('duplicateRequests detector', () => {
     detector.stop()
   })
 
+  it('ignores only requests inside the configured MCP URL tree', async () => {
+    const detector = createDuplicateRequestsDetector(['http://127.0.0.1:4200/'])
+    detector.start()
+
+    await globalThis.fetch('http://127.0.0.1:4200/api/snapshot', { method: 'POST' })
+    await globalThis.fetch('http://127.0.0.1:4200/api/snapshot', { method: 'POST' })
+    await globalThis.fetch('http://127.0.0.1:4200/api/projects/storefront/status')
+    await globalThis.fetch('http://127.0.0.1:4200/api/projects/storefront/status')
+
+    expect(detector.getIssues()).toEqual([])
+
+    await globalThis.fetch('http://127.0.0.1:4201/api/users')
+    await globalThis.fetch('http://127.0.0.1:4201/api/users')
+
+    expect(detector.getIssues()).toHaveLength(1)
+    expect(detector.getIssues()[0]?.evidence['url']).toBe('http://127.0.0.1:4201/api/users')
+
+    detector.stop()
+  })
+
+  it('does not ignore hosts that only share the MCP string prefix', async () => {
+    const detector = createDuplicateRequestsDetector(['http://127.0.0.1:4200'])
+    detector.start()
+
+    await globalThis.fetch('http://127.0.0.1:4200.example/api/users')
+    await globalThis.fetch('http://127.0.0.1:4200.example/api/users')
+
+    expect(detector.getIssues()).toHaveLength(1)
+
+    detector.stop()
+  })
+
+  it('ignores configured MCP XHR calls while preserving the original request', () => {
+    const mockOpen = vi.fn()
+    class MockXMLHttpRequest {
+      open(method: string, url: string | URL): void {
+        mockOpen(method, url)
+      }
+    }
+    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest as unknown as typeof XMLHttpRequest)
+    const detector = createDuplicateRequestsDetector(['http://127.0.0.1:4200'])
+
+    try {
+      detector.start()
+      new XMLHttpRequest().open('GET', 'http://127.0.0.1:4200/api/projects/storefront/status')
+      new XMLHttpRequest().open('GET', 'http://127.0.0.1:4200/api/projects/storefront/status')
+
+      expect(mockOpen).toHaveBeenCalledTimes(2)
+      expect(detector.getIssues()).toEqual([])
+    } finally {
+      detector.stop()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('should not flag different URLs as duplicates', async () => {
     const detector = createDuplicateRequestsDetector()
     detector.start()

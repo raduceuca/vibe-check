@@ -138,7 +138,9 @@ export class VibeCheckEngine implements VibeEngine {
       // domBloat reuses the engine's cached DOM node count instead of running a
       // second full-DOM scan; only its periodic depth walk remains its own work.
       [detectorConfig.domBloat, () => createDomBloatDetector(() => this.cachedDomNodeCount)],
-      [detectorConfig.duplicateRequests, createDuplicateRequestsDetector],
+      [detectorConfig.duplicateRequests, () => createDuplicateRequestsDetector(
+        this.config.beaconUrl ? [this.config.beaconUrl] : [],
+      )],
       [detectorConfig.consoleSpam, createConsoleSpamDetector],
       [detectorConfig.memoryLeak, createMemoryLeakDetector],
       [detectorConfig.layoutThrashing, createLayoutThrashingDetector],
