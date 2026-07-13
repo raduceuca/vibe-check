@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm -r --filter '!@wcgw/vibe-check-mcp-roundtrip' test",
+    "test": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm test:tooling && pnpm -r --filter '!@wcgw/vibe-check-mcp-roundtrip' test",
+    "test:tooling": "vitest run --config scripts/vitest.config.ts",
     "test:watch": "pnpm -r test:watch",
     "test:coverage": "vitest run --coverage",
     "test:e2e:mcp": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip test",
