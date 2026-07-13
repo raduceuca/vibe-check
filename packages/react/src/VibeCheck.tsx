@@ -13,7 +13,7 @@ import { useAnimations } from './theme.js'
 import type { PanelType, Position, ViewTab } from './panels/types.js'
 import { getHealth, healthKey, sevVar, sevGlow } from './panels/monitor/severity.js'
 import { surfaceStyle } from './panels/ui/surface.js'
-import { ProofRail } from './panels/ui/ProofRail.js'
+import { TopProofRegister } from './panels/ui/ProofMarks.js'
 import { CollapsedPill } from './panels/CollapsedPill.js'
 import { MonitorView } from './panels/monitor/MonitorView.js'
 import { BottomNav } from './panels/nav/BottomNav.js'
@@ -235,10 +235,12 @@ export const VibeCheck = memo(({
           ...pos,
         }}>
 
+        <TopProofRegister faulted={activeCount > 0} />
+
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '12px 16px 6px', cursor: 'default', userSelect: 'none',
+          padding: '8px 16px 6px', cursor: 'default', userSelect: 'none',
           flexShrink: 0, position: 'relative',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -260,9 +262,6 @@ export const VibeCheck = memo(({
               background: `color-mix(in srgb, ${h.labelColor} 14%, transparent)`, padding: '2px 8px', borderRadius: T.radiusSm,
             }}>{mode === 'vibe' ? h.vibeLabel : h.label}</span>
           </div>
-          <span style={{ position: 'absolute', top: 15, right: 16, lineHeight: 0 }}>
-            <ProofRail faulted={activeCount > 0} />
-          </span>
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}

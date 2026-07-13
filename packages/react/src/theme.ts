@@ -77,14 +77,10 @@ export const ANIMATIONS_CSS = `
   --wcgw-proof-c: #009fc2; --wcgw-proof-m: #cf146f; --wcgw-proof-y: #bdaa00; --wcgw-proof-k: #1c1c1e;
   --wcgw-badge-alpha: 16%;
 }
-[data-wcgw-proof-segment] { transition: transform var(--wcgw-duration-fast) var(--wcgw-ease); }
 [data-wcgw-proof-ink] { transition: transform var(--wcgw-duration-fast) var(--wcgw-ease); transform-box: fill-box; transform-origin: center; }
 [data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="c"] { transform: translate(-0.75px,0.35px); }
 [data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="m"] { transform: translate(0.75px,-0.35px); }
 [data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="y"] { transform: translate(0.25px,0.6px); }
-[data-wcgw-proof-rail][data-faulted="true"] [data-wcgw-proof-segment="c"] { transform: translate(-0.75px,0.35px); }
-[data-wcgw-proof-rail][data-faulted="true"] [data-wcgw-proof-segment="m"] { transform: translate(0.75px,-0.35px); }
-[data-wcgw-proof-rail][data-faulted="true"] [data-wcgw-proof-segment="y"] { transform: translate(0.25px,0.6px); }
 [data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
 [data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
 [data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
@@ -109,7 +105,6 @@ export const ANIMATIONS_CSS = `
 @media (prefers-reduced-motion: reduce) {
   [data-wcgw-breathe], [data-wcgw] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   [data-wcgw] button:active, [data-wcgw-pill]:active { scale: 1; }
-  [data-wcgw-proof-segment] { transform: none !important; }
   [data-wcgw-proof-ink] { transform: none !important; }
   [data-wcgw-proof-echo] { display: none; }
 }

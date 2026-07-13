@@ -66,10 +66,10 @@ describe('VibeCheck', () => {
     expect(screen.getByRole('tab', { name: /Fix.*AI connection not configured/i })).toBeTruthy()
   })
 
-  it('misregisters the proof rail only when an issue is active', () => {
+  it('misregisters the top proof register only when an issue is active', () => {
     const { unmount } = render(<VibeCheck enabled />)
 
-    expect(screen.getByTestId('wcgw-proof-rail').hasAttribute('data-faulted')).toBe(false)
+    expect(screen.getByTestId('wcgw-top-proof-register').hasAttribute('data-faulted')).toBe(false)
     unmount()
 
     mockUseVibeCheck.mockReturnValue({
@@ -92,7 +92,25 @@ describe('VibeCheck', () => {
 
     render(<VibeCheck enabled />)
 
-    expect(screen.getByTestId('wcgw-proof-rail').getAttribute('data-faulted')).toBe('true')
+    expect(screen.getByTestId('wcgw-top-proof-register').getAttribute('data-faulted')).toBe('true')
+  })
+
+  it('places the proof register before the interactive header', () => {
+    render(<VibeCheck enabled />)
+
+    const overlay = screen.getByTestId('vibe-check-overlay')
+    const register = screen.getByTestId('wcgw-top-proof-register')
+    const header = screen.getByTestId('vibe-check-header')
+
+    expect(overlay.style.width).toBe('320px')
+    expect(register.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('uses an edge register in the collapsed pill without covering metrics', () => {
+    render(<VibeCheck enabled startCollapsed />)
+
+    expect(screen.getByTestId('wcgw-pill-proof-register')).toBeTruthy()
+    expect(screen.queryByTestId('wcgw-top-proof-register')).toBeNull()
   })
 
   it('shows FPS panel by default', () => {
