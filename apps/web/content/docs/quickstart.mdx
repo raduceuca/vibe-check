@@ -119,9 +119,13 @@ is rejected and the widget shows a conflict warning.
 
 ## 5. Click Send to agent
 
-Wait for any issue to appear, open **Agent**, expand it, and click **Send to
-agent**. The pending tool call returns the exact issue and a fix suggestion.
-Only this confirmed response moves the item to *sent*.
+Wait for any issue to appear, expand it, and click **Send to agent**. You can do
+this from **Agent**, **SEO**, **AEO**, or an on-page annotation: every detected
+issue has the same quick action. The pending tool call returns the exact issue
+and a fix suggestion. Only this confirmed response moves the item to *sent*.
+
+The **Prompts** library stays copy-only because its entries are proactive ideas,
+not detected issues with evidence to deliver through MCP.
 
 <Callout type="success" title="Round trip complete">
   The widget and agent exchanged a real issue. Copy prompt remains a separate
@@ -130,4 +134,5 @@ Only this confirmed response moves the item to *sent*.
 
 If the status does not match a step, use [Troubleshooting](/docs/troubleshooting).
 For multiple dev servers, give each one a different `projectId` and keep using
-the same hub.
+the same hub. Requests to the configured hub URL and its API paths are excluded
+from duplicate-request findings; other localhost requests are still monitored.

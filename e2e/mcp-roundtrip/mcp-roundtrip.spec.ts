@@ -25,7 +25,11 @@ interface SetupTransport {
 interface ToolPayload {
   readonly projectId?: string
   readonly code?: string
-  readonly issue?: { readonly detector?: string; readonly evidence?: { readonly nodeCount?: number } }
+  readonly issue?: {
+    readonly detector?: string
+    readonly title?: string
+    readonly evidence?: { readonly nodeCount?: number }
+  }
   readonly suggestion?: string
 }
 
@@ -160,6 +164,34 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
     expect(received.issue?.evidence?.nodeCount).toBeGreaterThanOrEqual(1_500)
     expect(received.suggestion).toContain('DOM Bloat')
     await expect(page.getByRole('tab', { name: /sent \(1\)/i })).toBeVisible()
+  } finally {
+    await agent.close()
+  }
+})
+
+test('packed SEO suggestion dispatches its exact finding to the watching agent', async ({ page }) => {
+  const agent = await connectClient('seo-agent')
+  try {
+    await page.goto(appAUrl)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+
+    const receivedPromise = watch(agent.client, appAUrl)
+    await page.getByRole('tab', { name: /^SEO/ }).click()
+    const finding = page.getByRole('button', { name: /Missing meta description/ })
+    await expect(finding).toBeVisible({ timeout: 20_000 })
+    await finding.click()
+
+    const send = page.getByTestId(/vibe-check-send-/)
+    await expect(send).toBeEnabled({ timeout: 10_000 })
+    await send.click()
+
+    const received = payload(await receivedPromise)
+    expect(received.projectId).toBe(appAUrl)
+    expect(received.issue?.detector).toBe('seo')
+    expect(received.issue?.title).toBe('Missing meta description')
+    expect(received.suggestion).toContain('meta name="description"')
+    await expect(send).toHaveText('Sent')
   } finally {
     await agent.close()
   }
