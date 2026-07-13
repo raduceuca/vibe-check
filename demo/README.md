@@ -2,7 +2,7 @@
 
 A deliberately "vibe-coded" landing page — `VibeShip` — wired up so every common
 AI-generated performance mistake is present and trips a real detector. Open the
-panel (bottom-right, or **Ctrl+Shift+P**) and watch it light up.
+panel (bottom-right, or **Alt+Shift+V**) and watch it light up.
 
 ## Run it
 
@@ -48,13 +48,24 @@ For on-demand extras beyond the baked-in issues:
 
 ## Agent round-trip
 
-Register the bridge once, then restart your agent client:
+Open the widget's **Agent** tab and choose Codex, Claude Code, or Cursor. Register
+the bridge once, then restart your agent client. The commands for the first two
+clients are:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-Ask the agent to call `watch_for_issue` with `project_id: "vibe-check-demo"`.
+For Cursor, copy the `.cursor/mcp.json` value shown in the card. Then copy this
+project-specific instruction:
+
+```text
+Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "vibe-check-demo" and keep waiting for the next issue I send from the widget.
+```
+
 When the widget says **Agent connected**, open **Agent**, expand a detected
 issue, and click **Send to agent**. The pending tool call returns that issue and
-its fix guide. **Copy prompt** remains a clipboard-only fallback.
+its fix guide. **Copy prompt** remains a clipboard-only fallback. If the state
+does not turn green, run
+`npx -y @wcgw/vibe-check-mcp doctor --project vibe-check-demo`.

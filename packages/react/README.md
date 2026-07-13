@@ -68,12 +68,19 @@ npx -y @wcgw/vibe-check-mcp hub
 
 ### 3. Wire the bridge into your AI agent
 
+Choose Codex, Claude Code, or Cursor in the widget's setup card. For Codex:
+
 ```bash
-# Claude Code
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
 
-Or add it to the agent's `mcpServers` config (Cursor, Windsurf, Cline, Continue, Claude Desktop, Zed):
+For Claude Code:
+
+```bash
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+```
+
+For Cursor, save `.cursor/mcp.json`:
 
 ```json
 {
@@ -86,12 +93,15 @@ Or add it to the agent's `mcpServers` config (Cursor, Windsurf, Cline, Continue,
 }
 ```
 
-Restart the agent client after changing its MCP configuration.
+Restart the agent client after changing its MCP configuration. The card keeps
+the exact setup and project-specific watch instruction visible until the agent
+connects. Run `npx -y @wcgw/vibe-check-mcp doctor --project my-storefront` if a
+step is not turning green.
 
 ### 4. Watch, then send
 
 ```
-List the active VibeCheck projects, then watch my-storefront for an issue.
+Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "my-storefront" and keep waiting for the next issue I send from the widget.
 ```
 
 The agent calls `list_projects` and `watch_for_issue`. When the widget says
@@ -232,7 +242,7 @@ If exactly one project is active, `project_id` is optional. With multiple active
 projects the tools require it, preventing data from one dev server from leaking
 into another session.
 
-See [`@wcgw/vibe-check-mcp`](https://www.npmjs.com/package/@wcgw/vibe-check-mcp) for full setup across Claude Code, Cursor, Windsurf, Cline, Continue, and Claude Desktop.
+See [`@wcgw/vibe-check-mcp`](https://www.npmjs.com/package/@wcgw/vibe-check-mcp) for the tested Codex, Claude Code, and Cursor setup, doctor output, lease behavior, and port overrides.
 
 ## Bundle size
 

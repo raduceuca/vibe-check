@@ -27,7 +27,7 @@ import { VibeCheck } from '@wcgw/vibe-check'
 )}
 ```
 
-Or use the keyboard toggle (Ctrl+Shift+P):
+Or use the keyboard toggle (Alt+Shift+V):
 
 ```tsx
 import { PerfToggle } from '@wcgw/vibe-check'
@@ -42,12 +42,31 @@ import { PerfToggle } from '@wcgw/vibe-check'
 
 ```bash
 npx -y @wcgw/vibe-check-mcp hub
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
 ```
+
+Use the exact setup shown in the widget for Codex, Claude Code, or Cursor:
+
+```bash
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+```
+
+For Cursor, save the JSON shown in the card as `.cursor/mcp.json`. Restart or
+open a new client session, copy the card's project-specific watch instruction,
+and wait for **Agent connected** before clicking **Send to agent**.
 
 The hub is one long-running process shared by local projects. The MCP bridge is
 spawned by each agent client and never binds the browser port. Restart the agent
 client after registration.
+
+If any connection step fails, run:
+
+```bash
+npx -y @wcgw/vibe-check-mcp doctor --project my-project
+```
+
+`doctor --json` provides machine-readable checks. `doctor` is read-only and must
+not be described as acquiring a project lease.
 
 ## What It Detects
 
