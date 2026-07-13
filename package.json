@@ -9,6 +9,7 @@
     "test:watch": "pnpm -r test:watch",
     "test:coverage": "vitest run --coverage",
     "test:e2e:mcp": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip test",
+    "demo:record": "pnpm --filter @wcgw/vibe-check-mcp-roundtrip record-demo",
     "test:clients": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm --filter @wcgw/vibe-check-mcp build && node scripts/test-mcp-clients.mjs",
     "smoke:production": "node scripts/production-smoke.mjs",
     "release:validate": "node scripts/release-manifest.mjs",

@@ -8,7 +8,11 @@ DOM bloat, duplicate fetches, memory leaks, unoptimized images, missing SEO/AEO
 basics — and can dispatch a detected issue directly to the one AI-agent session
 watching that project.
 
-<!-- TODO: screenshot — hero GIF of the widget expanding and flagging issues → docs/screenshots/hero.gif -->
+![Real VibeCheck widget-to-agent MCP round-trip](./apps/web/public/demo/vibe-check-agent-roundtrip.gif)
+
+This is the packed-package E2E, not a scripted UI: the real widget detects DOM
+bloat, a real MCP SDK client leases the project, and **Send to agent** delivers
+the issue before the receipt turns green.
 
 ## Packages
 
@@ -119,8 +123,8 @@ theme is available.
 the page itself, so you see *where* a problem lives, not just that it exists.
 <!-- TODO: screenshot → docs/screenshots/annotations.png -->
 
-> Screenshots and the hero GIF still need to be captured and committed under
-> `docs/screenshots/`.
+> The tab-by-tab screenshots are still planned under `docs/screenshots/`; the
+> real end-to-end hero recording above is generated with `pnpm demo:record`.
 
 ## How it works
 

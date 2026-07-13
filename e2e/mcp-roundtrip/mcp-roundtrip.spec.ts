@@ -165,6 +165,38 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
   }
 })
 
+test('recording shell shows the receipt only after the real agent receives the issue', async ({ page }) => {
+  const agent = await connectClient('recording-agent')
+  try {
+    await openAgentIssue(page, `${appAUrl}?recording=1`)
+    await expect(page.getByTestId('vibe-check-demo-shell')).toBeVisible()
+    await expect(page.getByTestId('vibe-check-demo-receipt')).toContainText('Waiting for issue')
+
+    const receivedPromise = watch(agent.client, appAUrl)
+    await expect(page.getByTestId('vibe-check-agent-status')).toContainText(
+      /Agent connected|AI agent connected/,
+      { timeout: 10_000 },
+    )
+    await page.getByTestId(/vibe-check-send-/).click()
+    const received = payload(await receivedPromise)
+
+    await page.evaluate((detail) => {
+      window.dispatchEvent(new CustomEvent('vibe-check-demo-agent-received', { detail }))
+    }, {
+      projectId: received.projectId ?? '',
+      detector: received.issue?.detector ?? '',
+      nodeCount: received.issue?.evidence?.nodeCount ?? 0,
+    })
+
+    const receipt = page.getByTestId('vibe-check-demo-receipt')
+    await expect(receipt).toContainText('Received by agent')
+    await expect(receipt).toContainText('dom-bloat')
+    await expect(receipt).toContainText(appAUrl)
+  } finally {
+    await agent.close()
+  }
+})
+
 test('every documented client setup reaches list_projects through the packed bridge', async () => {
   for (const clientId of AGENT_CLIENTS) {
     const agent = await connectClient(`compatibility-${clientId}`, clientId)

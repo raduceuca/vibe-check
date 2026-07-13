@@ -368,7 +368,7 @@ pnpm --filter web exec wrangler deploy --dry-run
 Expected: rewrite tests and both builds pass, explicit and negotiated Markdown
 requests return Markdown locally, and Next prints no middleware deprecation.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web
@@ -396,13 +396,13 @@ git commit -m "chore(web): replace deprecated middleware with rewrites"
 - Consumes existing packed install helper, hub process helper, MCP SDK client,
   and widget test IDs.
 
-- [ ] **Step 1: Add recording-mode fixture assertions**
+- [x] **Step 1: Add recording-mode fixture assertions**
 
 Extend the packed E2E spec to load `?recording=1`, assert the recording shell is
 visible, dispatch `vibe-check-demo-agent-received` only after the real MCP result
 returns, and assert the shell displays the detector/project receipt.
 
-- [ ] **Step 2: Verify red**
+- [x] **Step 2: Verify red**
 
 ```bash
 pnpm test:e2e:mcp
@@ -410,14 +410,14 @@ pnpm test:e2e:mcp
 
 Expected: the recording shell test ID is absent.
 
-- [ ] **Step 3: Implement the recording presentation**
+- [x] **Step 3: Implement the recording presentation**
 
 Render a clean split presentation only for `recording=1`: project status and
 instructions on the left, the real VibeCheck overlay on the right, and a compact
 agent receipt area driven by the custom event. Keep the existing 1,600-node tree
 in the DOM but visually hidden in recording mode.
 
-- [ ] **Step 4: Verify E2E green**
+- [x] **Step 4: Verify E2E green**
 
 ```bash
 pnpm test:e2e:mcp
@@ -425,7 +425,7 @@ pnpm test:e2e:mcp
 
 Expected: packed roundtrip, isolation/handoff, and recording presentation all pass.
 
-- [ ] **Step 5: Implement and run deterministic recording**
+- [x] **Step 5: Implement and run deterministic recording**
 
 The script installs packed packages, starts one hub/app, connects a real stdio
 client, records a 1280×720 Playwright context, performs the watch/send/receive
@@ -436,20 +436,20 @@ ffmpeg to create a 12–15 fps optimized GIF and poster. Cleanup runs in `finall
 pnpm demo:record
 ```
 
-- [ ] **Step 6: Inspect the generated media**
+- [x] **Step 6: Inspect the generated media**
 
 Check dimensions, duration, frame count, and file size with `ffprobe`; inspect
 the poster and representative GIF frames visually; rerun the recording if text
 is clipped, the receipt is not visible, or the asset exceeds 8 MB.
 
-- [ ] **Step 7: Embed the real demo**
+- [x] **Step 7: Embed the real demo**
 
 Replace the README hero recording comment with the GIF. Add
 `RealAgentDemo.tsx` to the landing page near the agent roundtrip section with
 descriptive alt text, a link to quickstart, and a caption explaining that the
 recording uses packed packages and a real MCP SDK client.
 
-- [ ] **Step 8: Verify site asset and build**
+- [x] **Step 8: Verify site asset and build**
 
 ```bash
 test -s apps/web/public/demo/vibe-check-agent-roundtrip.gif
@@ -457,7 +457,7 @@ test -s apps/web/public/demo/vibe-check-agent-roundtrip-poster.png
 pnpm --filter web build
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add e2e/mcp-roundtrip apps/web README.md package.json

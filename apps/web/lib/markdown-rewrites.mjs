@@ -1,3 +1,4 @@
+/** @type {{ type: 'header', key: string, value: string }[]} */
 const markdownAccept = [{
   type: 'header',
   key: 'accept',
