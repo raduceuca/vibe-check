@@ -35,8 +35,9 @@ export const Root = () => (
 ```
 
 Setup does not guess which app entrypoint to modify. The generated component is
-the only source file it creates. Use `--force` only when you want to replace
-that generated file.
+the only source file it creates, and it returns `null` when
+`process.env.NODE_ENV === 'production'`. Use `--force` only when you want to
+replace that generated file.
 
 <Callout type="info" title="Manual equivalent">
   The scaffold performs the package install and generates the same configuration

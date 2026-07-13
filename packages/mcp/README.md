@@ -34,8 +34,10 @@ other servers.
 | `--force` | Replace an existing generated `VibeCheckDevtools.tsx`. Other app files are never rewritten. |
 
 Mount `<VibeCheckDevtools />` once near your React app root, start the hub, and
-paste the project-specific watch instruction printed by setup. The detailed
-manual path below explains every generated piece.
+paste the project-specific watch instruction printed by setup. The generated
+component returns `null` in production, so the monitor and local hub connection
+cannot ship in the production UI. The detailed manual path below explains every
+generated piece.
 
 ### 1. Install the React widget
 

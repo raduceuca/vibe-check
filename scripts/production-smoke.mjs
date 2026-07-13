@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 
 const DEFAULT_ORIGIN = 'https://vibecheck.wcgw.fun'
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 
 const routeSpecs = (origin) => [
   {
@@ -56,13 +57,17 @@ const checkRoute = async ({
   spec,
   fetchImpl,
   attempts,
+  requestTimeoutMs,
   retryDelayMs,
   sleep,
 }) => {
   let lastFailure = failure(spec.path, 0, 'check did not run')
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const response = await fetchImpl(`${origin}${spec.path}`, { redirect: 'follow' })
+      const response = await fetchImpl(`${origin}${spec.path}`, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(requestTimeoutMs),
+      })
       const contentType = response.headers.get('content-type') ?? ''
       const buffer = Buffer.from(await response.arrayBuffer())
       const text = spec.contentType === 'image/png' ? '' : buffer.toString('utf8')
@@ -100,6 +105,7 @@ export const runProductionSmoke = async ({
   origin = DEFAULT_ORIGIN,
   fetchImpl = fetch,
   retries = 3,
+  requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
   retryDelayMs = 1_500,
   sleep = wait,
 } = {}) => {
@@ -110,6 +116,7 @@ export const runProductionSmoke = async ({
     spec,
     fetchImpl,
     attempts,
+    requestTimeoutMs: Math.max(1, requestTimeoutMs),
     retryDelayMs,
     sleep,
   })))

@@ -65,6 +65,39 @@ describe('detectPackageManager', () => {
       await expect(detectPackageManager(root)).resolves.toBe('npm')
     })
   })
+
+  it.each([
+    ['pnpm-lock.yaml', 'pnpm'],
+    ['yarn.lock', 'yarn'],
+    ['bun.lockb', 'bun'],
+  ] as const)('detects ancestor %s for a nested workspace project', async (lockfile, expected) => {
+    await withProject({ name: 'workspace-root', private: true }, async (root) => {
+      const app = join(root, 'packages/storefront')
+      await mkdir(app, { recursive: true })
+      await writeFile(join(app, 'package.json'), JSON.stringify({
+        name: 'storefront',
+        dependencies: { react: '^19.0.0' },
+      }))
+      await writeFile(join(root, lockfile), '')
+
+      await expect(detectPackageManager(app)).resolves.toBe(expected)
+    })
+  })
+
+  it('prefers the nearest packageManager declaration over an ancestor lockfile', async () => {
+    await withProject({ name: 'workspace-root', private: true }, async (root) => {
+      const app = join(root, 'packages/storefront')
+      await mkdir(app, { recursive: true })
+      await writeFile(join(root, 'pnpm-lock.yaml'), '')
+      await writeFile(join(app, 'package.json'), JSON.stringify({
+        name: 'storefront',
+        packageManager: 'yarn@4.9.2',
+        dependencies: { react: '^19.0.0' },
+      }))
+
+      await expect(detectPackageManager(app)).resolves.toBe('yarn')
+    })
+  })
 })
 
 describe('renderDevtoolsComponent', () => {
@@ -74,6 +107,8 @@ describe('renderDevtoolsComponent', () => {
     expect(source).toContain("export const VibeCheckDevtools")
     expect(source).toContain('projectId: "my-storefront"')
     expect(source).toContain("beaconUrl: 'http://127.0.0.1:4200'")
+    expect(source).toContain("process.env.NODE_ENV === 'production'")
+    expect(source).toContain('return null')
     expect(source).not.toContain('export default')
   })
 
@@ -139,6 +174,35 @@ describe('runSetup', () => {
       }, {
         runCommand: async () => ({ exitCode: 1, error: 'registry connection timed out' }),
       })).rejects.toThrow('registry connection timed out')
+    })
+  })
+
+  it('can retry normally after agent configuration fails', async () => {
+    await withProject({
+      name: 'storefront',
+      dependencies: { react: '^19.0.0', '@wcgw/vibe-check': '^0.3.0' },
+    }, async (root) => {
+      let addFails = true
+      const runner: SetupCommandRunner = async (_command, args) => {
+        if (args.includes('get')) return { exitCode: 1 }
+        return addFails
+          ? { exitCode: 1, error: 'agent config write failed' }
+          : { exitCode: 0 }
+      }
+      const options = {
+        cwd: root,
+        agent: 'codex' as const,
+        version: '0.3.0',
+        dryRun: false,
+        force: false,
+      }
+
+      await expect(runSetup(options, { runCommand: runner })).rejects.toThrow('agent config write failed')
+      expect(await exists(join(root, 'VibeCheckDevtools.tsx'))).toBe(false)
+
+      addFails = false
+      await expect(runSetup(options, { runCommand: runner })).resolves.toMatchObject({ projectId: 'storefront' })
+      expect(await exists(join(root, 'VibeCheckDevtools.tsx'))).toBe(true)
     })
   })
 

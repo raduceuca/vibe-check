@@ -375,6 +375,28 @@ html {
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
+.vc-real-demo-control {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 244, 245, 0.24);
+  border-radius: 999px;
+  color: rgba(244, 244, 245, 0.9);
+  background: rgba(9, 9, 11, 0.8);
+  backdrop-filter: blur(8px);
+  font-family: var(--vc-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.vc-real-demo-control:hover,
+.vc-real-demo-control:focus-visible {
+  border-color: rgba(244, 244, 245, 0.5);
+  outline: none;
+}
 .vc-real-demo-caption {
   display: flex;
   align-items: flex-start;

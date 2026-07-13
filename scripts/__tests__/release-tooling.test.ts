@@ -91,6 +91,27 @@ describe('production smoke checks', () => {
     expect(results.find((result) => result.path === '/')).toMatchObject({ ok: true, attempts: 2 })
   })
 
+  it('bounds every production route request with an abort signal', async () => {
+    const signals: AbortSignal[] = []
+    const fetchImpl = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      signals.push(init?.signal as AbortSignal)
+      return passingFetch(input)
+    }
+
+    const results = await runProductionSmoke({
+      origin: ORIGIN,
+      fetchImpl,
+      retries: 1,
+      requestTimeoutMs: 25,
+      retryDelayMs: 0,
+      sleep: async () => undefined,
+    })
+
+    expect(results.every((result) => result.ok)).toBe(true)
+    expect(signals).toHaveLength(6)
+    expect(signals.every((signal) => signal instanceof AbortSignal)).toBe(true)
+  })
+
   it('fails a persistent content-type mismatch with an actionable reason', async () => {
     const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
       const pathname = new URL(String(input)).pathname
@@ -291,9 +312,17 @@ describe('GitHub release and monitoring workflows', () => {
       'cancel-in-progress': false,
     })
     expect(workflow.jobs.release.environment.name).toBe('production')
+    expect(workflow.jobs.release.steps[1].with).toMatchObject({
+      'fetch-depth': 0,
+      'persist-credentials': false,
+    })
     expect(source).not.toContain('NPM_TOKEN')
+    expect(source).toContain('npm@11.5.1')
+    expect(source).not.toContain('npm@^11.5.1')
     expect(source).toContain('pnpm release:publish')
     expect(source).toContain('pnpm --filter web cf:deploy')
+    expect(source).toContain('repos/$GITHUB_REPOSITORY/git/refs')
+    expect(source).not.toContain('git push origin "$tag"')
   })
 
   it('runs the production monitor on schedule and on demand', async () => {
@@ -303,5 +332,6 @@ describe('GitHub release and monitoring workflows', () => {
     expect(workflow.on.schedule).toEqual([{ cron: '17,47 * * * *' }])
     expect(workflow.on.workflow_dispatch.inputs.origin.default).toBe(ORIGIN)
     expect(workflow.jobs.smoke['timeout-minutes']).toBe(10)
+    expect(workflow.jobs.smoke.steps[0].with).toMatchObject({ 'persist-credentials': false })
   })
 })

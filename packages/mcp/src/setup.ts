@@ -51,6 +51,7 @@ export interface SetupResult {
 
 interface PackageJson {
   readonly name?: unknown
+  readonly packageManager?: unknown
   readonly dependencies?: unknown
   readonly devDependencies?: unknown
   readonly peerDependencies?: unknown
@@ -85,10 +86,35 @@ const isDirectory = async (path: string): Promise<boolean> => {
   }
 }
 
+const declaredPackageManager = async (cwd: string): Promise<PackageManager | null> => {
+  const packageJsonPath = join(cwd, 'package.json')
+  if (!await pathExists(packageJsonPath)) return null
+  try {
+    const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as PackageJson
+    if (typeof packageJson.packageManager !== 'string') return null
+    const manager = packageJson.packageManager.split('@')[0]
+    return manager === 'pnpm' || manager === 'npm' || manager === 'yarn' || manager === 'bun'
+      ? manager
+      : null
+  } catch {
+    return null
+  }
+}
+
 export const detectPackageManager = async (cwd: string): Promise<PackageManager> => {
-  if (await pathExists(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm'
-  if (await pathExists(join(cwd, 'yarn.lock'))) return 'yarn'
-  if (await pathExists(join(cwd, 'bun.lock')) || await pathExists(join(cwd, 'bun.lockb'))) return 'bun'
+  let directory = cwd
+  while (true) {
+    const declared = await declaredPackageManager(directory)
+    if (declared) return declared
+    if (await pathExists(join(directory, 'pnpm-lock.yaml'))) return 'pnpm'
+    if (await pathExists(join(directory, 'yarn.lock'))) return 'yarn'
+    if (await pathExists(join(directory, 'bun.lock')) || await pathExists(join(directory, 'bun.lockb'))) return 'bun'
+    if (await pathExists(join(directory, 'package-lock.json'))) return 'npm'
+
+    const parent = dirname(directory)
+    if (parent === directory) break
+    directory = parent
+  }
   return 'npm'
 }
 
@@ -97,14 +123,17 @@ const quoteTs = (value: string): string => JSON.stringify(value)
 export const renderDevtoolsComponent = (projectId: string): string =>
   `'use client'\n\n`
   + `import { PerfToggle } from '${WIDGET_PACKAGE}'\n\n`
-  + `export const VibeCheckDevtools = () => (\n`
-  + `  <PerfToggle\n`
-  + `    vibeCheckProps={{\n`
-  + `      beaconUrl: 'http://127.0.0.1:4200',\n`
-  + `      projectId: ${quoteTs(projectId)},\n`
-  + `    }}\n`
-  + `  />\n`
-  + `)\n`
+  + `export const VibeCheckDevtools = () => {\n`
+  + `  if (process.env.NODE_ENV === 'production') return null\n\n`
+  + `  return (\n`
+  + `    <PerfToggle\n`
+  + `      vibeCheckProps={{\n`
+  + `        beaconUrl: 'http://127.0.0.1:4200',\n`
+  + `        projectId: ${quoteTs(projectId)},\n`
+  + `      }}\n`
+  + `    />\n`
+  + `  )\n`
+  + `}\n`
 
 const installCommand = (manager: PackageManager, version: string): CommandSpec => {
   const packageSpec = `${WIDGET_PACKAGE}@${version}`
@@ -249,8 +278,6 @@ export const runSetup = async (
       }
     }
 
-    await writeAtomic(componentAbsolutePath, renderDevtoolsComponent(projectId))
-
     if (options.agent === 'cursor') {
       await writeAtomic(cursorPath, `${JSON.stringify(cursorConfig(currentCursor ?? {}, options.version), null, 2)}\n`)
     } else {
@@ -265,6 +292,8 @@ export const runSetup = async (
         }
       }
     }
+
+    await writeAtomic(componentAbsolutePath, renderDevtoolsComponent(projectId))
   }
 
   const packageSpec = `${MCP_PACKAGE}@${options.version}`
