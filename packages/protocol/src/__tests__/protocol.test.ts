@@ -6,6 +6,7 @@ import {
   DETECTOR_NAMES,
   DISPATCH_RESULT_CODES,
   HUB_START_COMMAND,
+  MCP_PACKAGE_SPEC,
   SEVERITIES,
   getAgentClientSetup,
   getWatchInstruction,
@@ -111,10 +112,10 @@ describe('protocol enums', () => {
     expect(getAgentClientSetup('codex')).toMatchObject({
       label: 'Codex',
       format: 'command',
-      value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+      value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
     })
     expect(getAgentClientSetup('claude-code').value).toBe(
-      'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+      'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
     )
     expect(getAgentClientSetup('cursor').destination).toBe(
       'Add inside mcpServers in .cursor/mcp.json; if the file is new, create mcpServers first',
@@ -122,11 +123,12 @@ describe('protocol enums', () => {
     expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
       'vibe-check': {
         command: 'npx',
-        args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+        args: ['-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'],
       },
     })
+    expect(MCP_PACKAGE_SPEC).toBe('@wcgw/vibe-check-mcp@0.2.0')
     expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
-    expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp hub')
+    expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.2.0 hub')
   })
 
   it('keeps first-class client setup documentation aligned with the protocol', () => {

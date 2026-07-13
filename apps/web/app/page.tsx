@@ -253,10 +253,10 @@ const LandingPage = () => (
         <h3 className="vc-h3">Connect your coding agent</h3>
         <pre className="vc-pre">
 {`# Run once in a terminal
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 
 # Register the bridge with your agent
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect`}
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect`}
         </pre>
         <p className="vc-p" style={{ marginTop: 8 }}>
           Nine project-scoped MCP tools, an <span className="vc-code">llms.txt</span>, and a

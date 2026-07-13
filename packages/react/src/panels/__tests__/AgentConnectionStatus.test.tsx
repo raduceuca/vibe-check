@@ -55,7 +55,7 @@ describe('AgentConnectionStatus', () => {
   it('shows exact Codex setup and project watch instruction while waiting', async () => {
     render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('no-agent')} />)
 
-    expect(screen.getByText(/codex mcp add vibe-check -- npx -y @wcgw\/vibe-check-mcp connect/)).toBeTruthy()
+    expect(screen.getByText(/codex mcp add vibe-check -- npx -y @wcgw\/vibe-check-mcp@0\.2\.0 connect/)).toBeTruthy()
     expect(screen.getByText(/project_id "project-a"/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /copy codex setup/i }))
     fireEvent.click(screen.getByRole('button', { name: /copy watch instruction/i }))
@@ -63,7 +63,7 @@ describe('AgentConnectionStatus', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
     expect(writeText).toHaveBeenNthCalledWith(
       1,
-      'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+      'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
     )
     expect(writeText.mock.calls[1]?.[0]).toContain('project_id "project-a"')
   })
@@ -88,7 +88,7 @@ describe('AgentConnectionStatus', () => {
       />,
     )
 
-    expect(screen.getByText(/npx -y @wcgw\/vibe-check-mcp hub/)).toBeTruthy()
+    expect(screen.getByText(/npx -y @wcgw\/vibe-check-mcp@0\.2\.0 hub/)).toBeTruthy()
     expect(screen.getByText(/http:\/\/127\.0\.0\.1:4210/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /copy hub command/i })).toBeTruthy()
   })

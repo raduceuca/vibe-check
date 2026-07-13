@@ -41,14 +41,14 @@ import { PerfToggle } from '@wcgw/vibe-check'
 ### 3. Start the local hub, then register the MCP bridge
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Use the exact setup shown in the widget for Codex, Claude Code, or Cursor:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 For Cursor, merge the JSON entry shown in the card into the top-level
@@ -63,7 +63,7 @@ client after registration.
 If any connection step fails, run:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp doctor --project my-project
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-project
 ```
 
 `doctor --json` provides machine-readable checks. `doctor` is read-only and must

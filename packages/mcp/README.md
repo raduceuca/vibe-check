@@ -44,7 +44,7 @@ annotations, and clipboard prompts work, but it cannot communicate with an agent
 Run this in its own terminal and leave it running:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Expected output:
@@ -63,7 +63,7 @@ Choose the same client in the widget setup card and use its exact value.
 #### Codex
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 Verify with `codex mcp get vibe-check --json`.
@@ -71,7 +71,7 @@ Verify with `codex mcp get vibe-check --json`.
 #### Claude Code
 
 ```bash
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 Verify with `claude mcp get vibe-check`.
@@ -87,7 +87,7 @@ already contains other MCP servers, keep them alongside this entry:
     "command": "npx",
     "args": [
       "-y",
-      "@wcgw/vibe-check-mcp",
+      "@wcgw/vibe-check-mcp@0.2.0",
       "connect"
     ]
   }
@@ -197,8 +197,8 @@ project through the private API.
 For a port override, update all three places together:
 
 ```bash
-VIBE_CHECK_PORT=4210 npx -y @wcgw/vibe-check-mcp hub
-VIBE_CHECK_HUB_URL=http://127.0.0.1:4210 npx -y @wcgw/vibe-check-mcp connect
+VIBE_CHECK_PORT=4210 npx -y @wcgw/vibe-check-mcp@0.2.0 hub
+VIBE_CHECK_HUB_URL=http://127.0.0.1:4210 npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 ```tsx
@@ -232,9 +232,9 @@ lease on shutdown.
 releases a watcher lease.
 
 ```bash
-npx -y @wcgw/vibe-check-mcp doctor
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront --json
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront --json
 ```
 
 Options and environment:
@@ -249,7 +249,7 @@ The result states are:
 
 - **ready** — exits `0` when the hub is reachable, the selected browser snapshot
   is fresh, and its owner state is `watching` or `busy`;
-- **offline** — exits `1`; start `npx -y @wcgw/vibe-check-mcp hub`;
+- **offline** — exits `1`; start `npx -y @wcgw/vibe-check-mcp@0.2.0 hub`;
 - **ambiguous** — exits `1`; rerun `doctor --project <id>` with a listed project;
 - **missing** — exits `1`; open or reload the requested browser project;
 - **stale** — exits `1`; reload a stale browser snapshot or reconnect a stale

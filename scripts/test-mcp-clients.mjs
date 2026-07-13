@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { getAgentClientSetup } from '../packages/protocol/dist/index.js'
+import { MCP_PACKAGE_SPEC, getAgentClientSetup } from '../packages/protocol/dist/index.js'
 
 const execFile = promisify(execFileCallback)
 const commandTimeoutMs = 30_000
@@ -131,7 +131,7 @@ const checkCodex = async (root) => {
   const env = { CODEX_HOME: home }
   await run(executable, commandArguments('codex'), { env })
   const configured = await run(executable, ['mcp', 'get', 'vibe-check', '--json'], { env })
-  requireFragments(configured, ['vibe-check', 'npx', '@wcgw/vibe-check-mcp', 'connect'])
+  requireFragments(configured, ['vibe-check', 'npx', MCP_PACKAGE_SPEC, 'connect'])
   return { client: 'Codex', status: 'PASS', detail: await getVersion(executable) }
 }
 
@@ -146,7 +146,7 @@ const checkClaude = async (root) => {
   const env = { HOME: home, CLAUDE_CONFIG_DIR: config }
   await run(executable, commandArguments('claude-code'), { cwd: project, env })
   const configured = await run(executable, ['mcp', 'get', 'vibe-check'], { cwd: project, env })
-  requireFragments(configured, ['vibe-check', 'npx', '@wcgw/vibe-check-mcp', 'connect'])
+  requireFragments(configured, ['vibe-check', 'npx', MCP_PACKAGE_SPEC, 'connect'])
   return { client: 'Claude Code', status: 'PASS', detail: await getVersion(executable) }
 }
 

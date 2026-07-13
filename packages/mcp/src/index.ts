@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createHubClient } from './hubClient.js'
 import { createHubServer } from './hubServer.js'
 import { createLeaseManager } from './leaseManager.js'
+import { exitOnFatalError } from './fatal.js'
 import { runMain } from './main.js'
 import { createMcpServer } from './mcpServer.js'
 
@@ -53,7 +54,4 @@ const main = async (): Promise<void> => {
   process.stdin.on('close', () => { void shutdown() })
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`[vibe-check] Fatal error: ${error instanceof Error ? error.message : String(error)}\n`)
-  process.exitCode = 1
-})
+main().catch(exitOnFatalError)

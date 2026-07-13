@@ -6,13 +6,13 @@ description: Connect Claude Code to a running VibeCheck hub.
 Start the shared hub outside Claude Code:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Then register the stdio bridge:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 Everything after `--` is the command Claude Code spawns. `connect` talks to the
@@ -22,10 +22,10 @@ existing hub and never tries to bind port 4200.
 
 ```bash
 # Commit the MCP config with this project
-claude mcp add --scope project vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope project vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 
 # Make the bridge available in every project
-claude mcp add --scope user vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope user vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 The hub is still a separate local process regardless of config scope.

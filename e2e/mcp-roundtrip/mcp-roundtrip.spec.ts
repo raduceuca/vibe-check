@@ -2,7 +2,12 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { AGENT_CLIENTS, getAgentClientSetup, type AgentClientId } from '@wcgw/vibe-check-protocol'
+import {
+  AGENT_CLIENTS,
+  MCP_PACKAGE_SPEC,
+  getAgentClientSetup,
+  type AgentClientId,
+} from '@wcgw/vibe-check-protocol'
 import { expect, test, type Page } from '@playwright/test'
 import { installFixture, type InstalledFixture } from './helpers/installFixture.js'
 import { freePort, startProcess, waitForHttp, waitForJson, type ManagedProcess } from './helpers/processes.js'
@@ -68,7 +73,7 @@ const connectClient = async (name: string, setupClient?: AgentClientId): Promise
   let mode = 'connect'
   if (setupClient) {
     const transport = getSetupTransport(setupClient)
-    const packageIndex = transport.args.indexOf('@wcgw/vibe-check-mcp')
+    const packageIndex = transport.args.indexOf(MCP_PACKAGE_SPEC)
     mode = transport.args[packageIndex + 1] ?? ''
     if (transport.command !== 'npx' || packageIndex < 0 || mode !== 'connect') {
       throw new Error(`${setupClient} setup does not describe the VibeCheck npx connect bridge`)

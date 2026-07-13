@@ -98,12 +98,12 @@ The card has three compact selectors: **Codex**, **Claude Code**, and **Cursor**
 Each client shows one authoritative local-project setup method:
 
 - Codex:
-  `codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect`
+  `codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect`
 - Claude Code:
-  `claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect`
+  `claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect`
 - Cursor: merge a `vibe-check` stdio server into the existing `mcpServers` object
   in `.cursor/mcp.json` without replacing other servers. Its command is `npx` and arguments are
-  `[-y, @wcgw/vibe-check-mcp, connect]`.
+  `[-y, @wcgw/vibe-check-mcp@0.2.0, connect]`.
 
 Every variant then says to restart or open a new agent session and supplies this
 copyable, project-specific instruction:
@@ -122,9 +122,9 @@ accessible names. Copying setup text never changes delivery state.
 Add these commands:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp doctor
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront --json
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront --json
 ```
 
 `VIBE_CHECK_HUB_URL` selects a non-default hub, matching `connect`.
@@ -134,9 +134,9 @@ The doctor is read-only. It uses the existing hub client to check, in order:
 1. supported Node.js runtime (20 or newer);
 2. hub reachability and VibeCheck identity/version;
 3. active browser projects;
-4. requested-project existence or project ambiguity;
-5. snapshot freshness and page origin;
-6. watcher state, lease freshness, queue depth, and recent conflict state.
+4. requested-project existence or project ambiguity, including its reported origin;
+5. snapshot presence and freshness;
+6. watcher readiness and recent conflict state.
 
 Human output uses `PASS`, `WARN`, and `FAIL`, prints the selected project ID, and
 ends with numbered next steps. When no watcher owns the selected project, those

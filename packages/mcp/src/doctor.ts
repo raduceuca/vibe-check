@@ -62,7 +62,7 @@ const setupSteps = (projectId: string): readonly string[] => {
   return [
     `Configure Codex: ${codex.value}`,
     `Configure Claude Code: ${claude.value}`,
-    `Configure Cursor: ${cursor.destination}.`,
+    `Configure Cursor: ${cursor.destination}.\n${cursor.value}`,
     'Restart or open a new agent session after changing its MCP configuration.',
     getWatchInstruction(projectId),
   ]

@@ -21,7 +21,7 @@ The widget has no `beaconUrl`. Mount it with both routing values:
 Start the hub and check its public health route:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 curl http://127.0.0.1:4200/api/health
 ```
 
@@ -57,8 +57,8 @@ A VibeCheck hub may already own it; reuse that one for all projects. To choose a
 different port:
 
 ```bash
-VIBE_CHECK_PORT=4300 npx -y @wcgw/vibe-check-mcp hub
-VIBE_CHECK_HUB_URL=http://127.0.0.1:4300 npx -y @wcgw/vibe-check-mcp connect
+VIBE_CHECK_PORT=4300 npx -y @wcgw/vibe-check-mcp@0.2.0 hub
+VIBE_CHECK_HUB_URL=http://127.0.0.1:4300 npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 ## The bridge does not appear in the agent

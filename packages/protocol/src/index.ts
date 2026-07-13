@@ -276,7 +276,8 @@ export interface AgentClientSetup {
   readonly verifyCommand: string
 }
 
-export const HUB_START_COMMAND = 'npx -y @wcgw/vibe-check-mcp hub'
+export const MCP_PACKAGE_SPEC = '@wcgw/vibe-check-mcp@0.2.0'
+export const HUB_START_COMMAND = `npx -y ${MCP_PACKAGE_SPEC} hub`
 
 const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
   codex: {
@@ -284,7 +285,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     label: 'Codex',
     format: 'command',
     destination: 'Run in the project directory',
-    value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    value: `codex mcp add vibe-check -- npx -y ${MCP_PACKAGE_SPEC} connect`,
     verifyCommand: 'codex mcp get vibe-check --json',
   },
   'claude-code': {
@@ -292,7 +293,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     label: 'Claude Code',
     format: 'command',
     destination: 'Run in the project directory',
-    value: 'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    value: `claude mcp add --scope local vibe-check -- npx -y ${MCP_PACKAGE_SPEC} connect`,
     verifyCommand: 'claude mcp get vibe-check',
   },
   cursor: {
@@ -303,7 +304,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     value: JSON.stringify({
       'vibe-check': {
         command: 'npx',
-        args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+        args: ['-y', MCP_PACKAGE_SPEC, 'connect'],
       },
     }, null, 2),
     verifyCommand: 'cursor-agent mcp list-tools vibe-check',

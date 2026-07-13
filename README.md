@@ -143,7 +143,7 @@ Use this order for the first end-to-end connection:
 Start the shared hub:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Point every local widget at that hub and give each project an explicit stable ID:
@@ -162,7 +162,7 @@ Register the bridge once with the client you use.
 Run in the project directory:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 Verify with `codex mcp get vibe-check --json`.
@@ -170,7 +170,7 @@ Verify with `codex mcp get vibe-check --json`.
 ### Claude Code
 
 ```bash
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 Verify with `claude mcp get vibe-check`.
@@ -187,7 +187,7 @@ any servers already configured:
     "command": "npx",
     "args": [
       "-y",
-      "@wcgw/vibe-check-mcp",
+      "@wcgw/vibe-check-mcp@0.2.0",
       "connect"
     ]
   }
@@ -219,8 +219,8 @@ behavior, port overrides, and troubleshooting.
 freshness, and watcher ownership without claiming a project:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront
-npx -y @wcgw/vibe-check-mcp doctor --project my-storefront --json
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront --json
 ```
 
 Set `VIBE_CHECK_HUB_URL` when the hub is not on port 4200. Exit code `0` means a

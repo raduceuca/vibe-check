@@ -79,7 +79,7 @@ describe('runDoctor', () => {
       level: 'fail',
       message: `Cannot reach the VibeCheck hub at ${HUB_URL}.`,
     })
-    expect(report.nextSteps).toContain('Start the hub: npx -y @wcgw/vibe-check-mcp hub')
+    expect(report.nextSteps).toContain('Start the hub: npx -y @wcgw/vibe-check-mcp@0.2.0 hub')
   })
 
   it('fails closed when several projects exist and none was selected', async () => {
@@ -135,6 +135,8 @@ describe('runDoctor', () => {
     expect(report.nextSteps.join('\n')).toContain('codex mcp add vibe-check')
     expect(report.nextSteps.join('\n')).toContain('claude mcp add --scope local')
     expect(report.nextSteps.join('\n')).toContain('.cursor/mcp.json')
+    expect(report.nextSteps.join('\n')).toContain('"vibe-check"')
+    expect(report.nextSteps.join('\n')).toContain('@wcgw/vibe-check-mcp@0.2.0')
     expect(report.nextSteps.join('\n')).toContain('project_id "project-a"')
   })
 

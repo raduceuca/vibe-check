@@ -66,19 +66,19 @@ expect(AGENT_CLIENTS).toEqual(['codex', 'claude-code', 'cursor'])
 expect(getAgentClientSetup('codex')).toMatchObject({
   label: 'Codex',
   format: 'command',
-  value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+  value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
 })
 expect(getAgentClientSetup('claude-code').value).toBe(
-  'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+  'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
 )
 expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
   'vibe-check': {
     command: 'npx',
-    args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+    args: ['-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'],
   },
 })
 expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
-expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp hub')
+expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.2.0 hub')
 ```
 
 - [ ] **Step 2: Run the protocol test and verify RED**
@@ -108,7 +108,7 @@ export interface AgentClientSetup {
   readonly verifyCommand: string
 }
 
-export const HUB_START_COMMAND = 'npx -y @wcgw/vibe-check-mcp hub'
+export const HUB_START_COMMAND = 'npx -y @wcgw/vibe-check-mcp@0.2.0 hub'
 
 const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
   codex: {
@@ -116,7 +116,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     label: 'Codex',
     format: 'command',
     destination: 'Run in the project directory',
-    value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
     verifyCommand: 'codex mcp get vibe-check --json',
   },
   'claude-code': {
@@ -124,7 +124,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     label: 'Claude Code',
     format: 'command',
     destination: 'Run in the project directory',
-    value: 'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp connect',
+    value: 'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
     verifyCommand: 'claude mcp get vibe-check',
   },
   cursor: {
@@ -135,7 +135,7 @@ const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {
     value: JSON.stringify({
       'vibe-check': {
         command: 'npx',
-        args: ['-y', '@wcgw/vibe-check-mcp', 'connect'],
+        args: ['-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'],
       },
     }, null, 2),
     verifyCommand: 'cursor-agent mcp list-tools vibe-check',
@@ -650,15 +650,19 @@ The script must:
 Use these configuration commands:
 
 ```js
-await run(codex, ['mcp', 'add', 'vibe-check', '--', 'npx', '-y', '@wcgw/vibe-check-mcp', 'connect'], {
+await run(codex, ['mcp', 'add', 'vibe-check', '--', 'npx', '-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'], {
   CODEX_HOME: join(root, 'codex-home'),
 })
 await run(codex, ['mcp', 'get', 'vibe-check', '--json'], codexEnv)
 
-await run(claude, ['mcp', 'add', '--scope', 'local', 'vibe-check', '--', 'npx', '-y', '@wcgw/vibe-check-mcp', 'connect'], claudeEnv)
+await run(claude, ['mcp', 'add', '--scope', 'local', 'vibe-check', '--', 'npx', '-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'], claudeEnv)
 await run(claude, ['mcp', 'get', 'vibe-check'], claudeEnv)
 
-await writeFile(join(cursorProject, '.cursor/mcp.json'), cursorSetupValue)
+await mkdir(join(cursorProject, '.cursor'), { recursive: true })
+await writeFile(
+  join(cursorProject, '.cursor/mcp.json'),
+  `${JSON.stringify({ mcpServers: JSON.parse(cursorSetupValue) }, null, 2)}\n`,
+)
 await run(cursorAgent, ['mcp', 'list'], cursorEnv)
 await run(cursorAgent, ['mcp', 'list-tools', 'vibe-check'], cursorEnv)
 ```
