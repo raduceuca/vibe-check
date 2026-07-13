@@ -7,3 +7,6 @@ coverage/
 *.tsbuildinfo
 *.map
 .worktrees/
+.playwright-cli/
+.superpowers/
+output/
