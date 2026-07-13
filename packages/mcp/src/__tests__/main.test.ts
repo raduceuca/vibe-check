@@ -71,4 +71,40 @@ describe('runMain', () => {
       config: { role: 'connect', hubUrl: 'http://127.0.0.1:4200' },
     })
   })
+
+  it('runs setup as a finite command and prints actions plus next steps', async () => {
+    const stdout: string[] = []
+    const setupCalls: unknown[] = []
+    const result = await runMain(
+      ['setup', '--agent', 'codex', '--project', 'storefront', '--dry-run'],
+      {},
+      { stdout: (value) => stdout.push(value), stderr: () => undefined },
+      {
+        cwd: '/tmp/storefront',
+        version: '0.3.0',
+        runSetup: async (options) => {
+          setupCalls.push(options)
+          return {
+            projectId: 'storefront',
+            componentPath: 'src/VibeCheckDevtools.tsx',
+            actions: ['Install widget', 'Configure Codex'],
+            nextSteps: ['Mount the component', 'Start the hub'],
+          }
+        },
+      },
+    )
+
+    expect(result).toEqual({ kind: 'exit', code: 0 })
+    expect(setupCalls).toEqual([{
+      cwd: '/tmp/storefront',
+      agent: 'codex',
+      projectId: 'storefront',
+      version: '0.3.0',
+      dryRun: true,
+      force: false,
+    }])
+    expect(stdout.join('')).toContain('VibeCheck setup — storefront (dry run)')
+    expect(stdout.join('')).toContain('1. Install widget')
+    expect(stdout.join('')).toContain('1. Mount the component')
+  })
 })

@@ -36,6 +36,40 @@ describe('parseCliConfig', () => {
     })
   })
 
+  it('parses setup with an agent and optional project controls', () => {
+    expect(parseCliConfig(['setup', '--agent', 'codex'], {})).toEqual({
+      role: 'setup',
+      agent: 'codex',
+      projectId: undefined,
+      dryRun: false,
+      force: false,
+    })
+    expect(parseCliConfig([
+      'setup',
+      '--agent',
+      'cursor',
+      '--project',
+      'storefront',
+      '--dry-run',
+      '--force',
+    ], {})).toEqual({
+      role: 'setup',
+      agent: 'cursor',
+      projectId: 'storefront',
+      dryRun: true,
+      force: true,
+    })
+  })
+
+  it('rejects invalid, missing, unknown, and duplicate setup options', () => {
+    expect(() => parseCliConfig(['setup'], {})).toThrow('Setup --agent is required')
+    expect(() => parseCliConfig(['setup', '--agent'], {})).toThrow('requires an agent')
+    expect(() => parseCliConfig(['setup', '--agent', 'windsurf'], {})).toThrow('Unknown setup agent')
+    expect(() => parseCliConfig(['setup', '--agent', 'codex', '--project'], {})).toThrow('requires a project ID')
+    expect(() => parseCliConfig(['setup', '--agent', 'codex', '--dry-run', '--dry-run'], {})).toThrow('Duplicate setup option')
+    expect(() => parseCliConfig(['setup', '--agent', 'codex', '--unknown'], {})).toThrow('Unknown setup option')
+  })
+
   it('rejects unknown, incomplete, and duplicate doctor options', () => {
     expect(() => parseCliConfig(['doctor', '--unknown'], {})).toThrow('Unknown doctor option')
     expect(() => parseCliConfig(['doctor', '--project'], {})).toThrow('requires a project ID')
@@ -44,7 +78,7 @@ describe('parseCliConfig', () => {
   })
 
   it('rejects a missing or unknown role', () => {
-    expect(() => parseCliConfig([], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor')
-    expect(() => parseCliConfig(['serve'], {})).toThrow('vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor')
+    expect(() => parseCliConfig([], {})).toThrow('vibe-check-mcp setup --agent')
+    expect(() => parseCliConfig(['serve'], {})).toThrow('vibe-check-mcp setup --agent')
   })
 })

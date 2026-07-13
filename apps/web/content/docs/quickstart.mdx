@@ -6,7 +6,42 @@ description: Go from an unconfigured React app to a real widget-to-agent issue d
 This tutorial proves the entire local round trip: browser → hub → one watching
 agent session. You need Node.js 20+, React 18+, and an MCP-capable coding agent.
 
-## 1. Install and mount the widget
+## 1. Scaffold the widget and agent
+
+Run setup from an existing React project. Pick the coding agent you actually
+use:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@latest setup --agent codex --project my-storefront
+```
+
+`--agent` accepts `codex`, `claude-code`, or `cursor`. Setup detects pnpm, npm,
+Yarn, or Bun; installs the matching widget; creates
+`src/VibeCheckDevtools.tsx` when your project has `src/`; and configures the MCP
+client. Existing Cursor servers are preserved. Use `--dry-run` to see every
+action without writing or running commands.
+
+Mount the generated component once near your app root:
+
+```tsx
+import { VibeCheckDevtools } from './VibeCheckDevtools'
+
+export const Root = () => (
+  <>
+    <App />
+    <VibeCheckDevtools />
+  </>
+)
+```
+
+Setup does not guess which app entrypoint to modify. The generated component is
+the only source file it creates. Use `--force` only when you want to replace
+that generated file.
+
+<Callout type="info" title="Manual equivalent">
+  The scaffold performs the package install and generates the same configuration
+  shown below. Continue manually when you prefer to own every line.
+</Callout>
 
 ```bash
 pnpm add -D @wcgw/vibe-check
@@ -15,7 +50,7 @@ pnpm add -D @wcgw/vibe-check
 ```tsx
 import { PerfToggle } from '@wcgw/vibe-check'
 
-export function Root() {
+export const Root = () => {
   return (
     <>
       <App />

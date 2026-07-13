@@ -13,6 +13,9 @@ const main = async (): Promise<void> => {
   const result = await runMain(process.argv.slice(2), process.env, {
     stdout: (value) => process.stdout.write(value),
     stderr: (value) => process.stderr.write(value),
+  }, {
+    cwd: process.cwd(),
+    version: __VIBE_CHECK_VERSION__,
   })
   if (result.kind === 'exit') {
     process.exitCode = result.code

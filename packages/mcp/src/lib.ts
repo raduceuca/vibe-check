@@ -14,6 +14,17 @@ export {
   type DoctorOptions,
   type DoctorReport,
 } from './doctor.js'
+export {
+  detectPackageManager,
+  renderDevtoolsComponent,
+  runSetup,
+  type PackageManager,
+  type SetupCommandResult,
+  type SetupCommandRunner,
+  type SetupDependencies,
+  type SetupOptions,
+  type SetupResult,
+} from './setup.js'
 export type {
   Severity,
   DetectorName,

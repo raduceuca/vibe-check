@@ -29,6 +29,22 @@ is the supported path until they are.
 
 ## Quick start (React)
 
+From an existing React project, scaffold the widget and one supported agent in
+one command:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@latest setup --agent codex --project my-storefront
+```
+
+Use `claude-code` or `cursor` instead of `codex` for those clients. The command
+detects your package manager, installs the matching widget version, creates
+`src/VibeCheckDevtools.tsx` (or a root-level file when there is no `src/`), and
+configures the selected MCP client without deleting existing Cursor servers.
+Mount `<VibeCheckDevtools />` once near the app root, then follow the printed hub
+and watch steps. Preview every action without changing anything with `--dry-run`.
+
+The equivalent manual widget-only setup is:
+
 ```bash
 npm install @wcgw/vibe-check
 ```

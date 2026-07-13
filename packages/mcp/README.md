@@ -12,6 +12,31 @@ second HTTP server to port 4200, and several dev servers remain isolated by
 
 You need Node.js 20+ and an MCP-capable coding agent.
 
+### Fast path: scaffold the project and agent
+
+Run this from an existing React project:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@latest setup --agent codex --project my-storefront
+```
+
+Supported agents are `codex`, `claude-code`, and `cursor`. The command detects
+pnpm, npm, Yarn, or Bun; installs the widget at the same version as the MCP CLI;
+creates a named `VibeCheckDevtools` component; and configures the selected MCP
+client. Cursor configuration is merged into `.cursor/mcp.json` without removing
+other servers.
+
+| Setup option | Meaning |
+|---|---|
+| `--agent <id>` | Required: `codex`, `claude-code`, or `cursor`. |
+| `--project <id>` | Stable routing ID. Defaults to `package.json` name. |
+| `--dry-run` | Print install, file, agent, hub, and watch steps without changing anything. |
+| `--force` | Replace an existing generated `VibeCheckDevtools.tsx`. Other app files are never rewritten. |
+
+Mount `<VibeCheckDevtools />` once near your React app root, start the hub, and
+paste the project-specific watch instruction printed by setup. The detailed
+manual path below explains every generated piece.
+
 ### 1. Install the React widget
 
 ```bash
