@@ -50,6 +50,11 @@ describe('HubClient', () => {
     await expect(client.health()).resolves.toEqual({ status: 'ok', service: 'vibe-check-hub', version: '0.2.0' })
     await expect(client.listProjects()).resolves.toMatchObject([{ projectId: 'project-a' }])
     await expect(client.getSnapshot('project-a')).resolves.toMatchObject({ domNodeCount: 10 })
+    await expect(client.getProjectStatus('project-a')).resolves.toMatchObject({
+      projectId: 'project-a',
+      state: 'no-agent',
+      queueDepth: 0,
+    })
     await expect(client.acquireLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })
     await expect(client.heartbeatLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })
     await expect(client.releaseLease('project-a', 'agent-a')).resolves.toBeUndefined()

@@ -1,5 +1,7 @@
 # vibe-check
 
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/raduceuca/vibe-check?utm_source=oss&utm_medium=github&utm_campaign=raduceuca%2Fvibe-check&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+
 Browser performance and quality monitoring for the age of AI-assisted coding. It
 runs in your app, catches the issues vibe-coded sites ship with — janky frames,
 DOM bloat, duplicate fetches, memory leaks, unoptimized images, missing SEO/AEO
@@ -126,10 +128,22 @@ Browser/project B  -----------^             MCP bridge  <-  agent session B
 
 ## Connect an agent
 
-From a new terminal, start one hub for your machine:
+Use this order for the first end-to-end connection:
+
+1. Add the widget with a stable `projectId`.
+2. Start one local hub and leave it running.
+3. Open the widget's **Agent** tab and choose Codex, Claude Code, or Cursor in
+   the setup card.
+4. Run or save the setup value shown there.
+5. Restart the agent client or open a new agent session.
+6. Copy the project-specific watch instruction from the widget into that session.
+7. Wait until the connection card turns green and says **Agent connected**.
+8. Expand an issue and click **Send to agent**.
+
+Start the shared hub:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Point every local widget at that hub and give each project an explicit stable ID:
@@ -141,24 +155,82 @@ Point every local widget at that hub and give each project an explicit stable ID
 }} />
 ```
 
-Register the bridge with your agent (once), then restart the agent client so it
-loads the tools:
+Register the bridge once with the client you use.
+
+### Codex
+
+Run in the project directory:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
-Ask the agent to call `list_projects`, then `watch_for_issue` with
-`project_id: "my-storefront"`. The widget changes from **Waiting for an agent**
-to **Agent connected**. Open its Agent tab, expand an issue, and click **Send to
-agent**. The pending `watch_for_issue` call returns the exact issue and its fix
-suggestion.
+Verify with `codex mcp get vibe-check --json`.
+
+### Claude Code
+
+```bash
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+```
+
+Verify with `claude mcp get vibe-check`.
+
+### Cursor
+
+Open `.cursor/mcp.json` and find its top-level `mcpServers` object. Create that
+object if the file is new, then merge the entry below into it without removing
+any servers already configured:
+
+```json
+{
+  "vibe-check": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@wcgw/vibe-check-mcp@0.2.0",
+      "connect"
+    ]
+  }
+}
+```
+
+The copied object is the contents to add inside `mcpServers`, not a replacement
+for the whole file. Approve the project MCP when Cursor asks, then verify with
+`cursor-agent mcp list-tools vibe-check`.
+
+After restarting or opening a new session, use the instruction copied from the
+widget. For this example it is:
+
+```text
+Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "my-storefront" and keep waiting for the next issue I send from the widget.
+```
+
+The pending `watch_for_issue` call returns the exact issue and fix suggestion.
 
 Run only one hub even when several dev servers are active. Project IDs isolate
 their snapshots and queues; separate agent sessions can watch separate projects.
 The same project cannot have two simultaneous watchers. See the
 [MCP package guide](./packages/mcp/README.md) for client configuration, lease
 behavior, port overrides, and troubleshooting.
+
+### Diagnose a connection
+
+`doctor` checks Node.js, hub reachability, active projects, browser snapshot
+freshness, and watcher ownership without claiming a project:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront --json
+```
+
+Set `VIBE_CHECK_HUB_URL` when the hub is not on port 4200. Exit code `0` means a
+fresh browser project has a `watching` or `busy` owner; offline, ambiguous,
+stale, missing, or waiting states exit `1` with exact next steps. The JSON form
+returns the versioned `DoctorReport` object for automation.
+
+Maintainers can run `pnpm test:clients` to validate isolated Codex, Claude Code,
+and Cursor configuration plus the built bridge transport without making a model
+request or editing real user configuration.
 
 ## Try the demo
 
@@ -176,6 +248,7 @@ See [`demo/README.md`](./demo/README.md) for what each section does wrong.
 pnpm install
 pnpm build
 pnpm test
+pnpm test:clients    # Isolated Codex / Claude Code / Cursor MCP acceptance
 pnpm lint            # TypeScript type-check
 pnpm test:coverage   # Coverage report
 pnpm gen:docs        # Regenerate the detector reference in the READMEs + skill

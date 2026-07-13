@@ -45,6 +45,11 @@ export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beacon
         {mode === 'vibe' ? 'Settings' : 'Configuration'}
       </div>
 
+      <div style={{ ...sectionTitle, marginTop: 4 }}>
+        {mode === 'vibe' ? 'AI Connection' : 'MCP Status'}
+      </div>
+      <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
+
       <div style={{ ...infoRowStyle, paddingBottom: 8 }}>
         <span style={{ color: T.textSecondary }}>
           {mode === 'vibe' ? 'Wording' : 'Mode'}
@@ -72,11 +77,6 @@ export const SettingsPanel = memo(({ prefs, onUpdate, mode, onToggleMode, beacon
         checked={prefs.keepHistory}
         onChange={(checked) => onUpdate({ keepHistory: checked })}
       />
-
-      <div style={sectionTitle}>
-        {mode === 'vibe' ? 'AI Connection' : 'MCP Status'}
-      </div>
-      <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
 
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}

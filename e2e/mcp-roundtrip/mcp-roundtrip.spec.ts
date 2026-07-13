@@ -2,6 +2,12 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import {
+  AGENT_CLIENTS,
+  MCP_PACKAGE_SPEC,
+  getAgentClientSetup,
+  type AgentClientId,
+} from '@wcgw/vibe-check-protocol'
 import { expect, test, type Page } from '@playwright/test'
 import { installFixture, type InstalledFixture } from './helpers/installFixture.js'
 import { freePort, startProcess, waitForHttp, waitForJson, type ManagedProcess } from './helpers/processes.js'
@@ -9,6 +15,11 @@ import { freePort, startProcess, waitForHttp, waitForJson, type ManagedProcess }
 interface RunningClient {
   readonly client: Client
   close(): Promise<void>
+}
+
+interface SetupTransport {
+  readonly command: string
+  readonly args: readonly string[]
 }
 
 interface ToolPayload {
@@ -27,16 +38,50 @@ let appAUrl: string
 let appBUrl: string
 const processes: ManagedProcess[] = []
 
-const payload = (result: Awaited<ReturnType<Client['callTool']>>): ToolPayload => {
+const jsonPayload = (result: Awaited<ReturnType<Client['callTool']>>): unknown => {
   const block = result.content[0]
   if (!block || block.type !== 'text') throw new Error('Expected MCP text result')
-  return JSON.parse(block.text) as ToolPayload
+  return JSON.parse(block.text) as unknown
 }
 
-const connectClient = async (name: string): Promise<RunningClient> => {
+const payload = (result: Awaited<ReturnType<Client['callTool']>>): ToolPayload =>
+  jsonPayload(result) as ToolPayload
+
+const getSetupTransport = (client: AgentClientId): SetupTransport => {
+  const setup = getAgentClientSetup(client)
+  if (setup.format === 'command') {
+    const bridge = setup.value.split(' -- ')[1]
+    if (!bridge) throw new Error(`${setup.label} setup does not contain a stdio bridge`)
+    const [command, ...args] = bridge.trim().split(/\s+/)
+    if (!command) throw new Error(`${setup.label} setup has no bridge command`)
+    return { command, args }
+  }
+
+  const entries = JSON.parse(setup.value) as Readonly<Record<string, {
+    readonly command?: unknown
+    readonly args?: unknown
+  }>>
+  const bridge = entries['vibe-check']
+  if (!bridge || typeof bridge.command !== 'string' || !Array.isArray(bridge.args) ||
+    !bridge.args.every((arg) => typeof arg === 'string')) {
+    throw new Error(`${setup.label} setup does not contain a valid vibe-check stdio bridge`)
+  }
+  return { command: bridge.command, args: bridge.args as readonly string[] }
+}
+
+const connectClient = async (name: string, setupClient?: AgentClientId): Promise<RunningClient> => {
+  let mode = 'connect'
+  if (setupClient) {
+    const transport = getSetupTransport(setupClient)
+    const packageIndex = transport.args.indexOf(MCP_PACKAGE_SPEC)
+    mode = transport.args[packageIndex + 1] ?? ''
+    if (transport.command !== 'npx' || packageIndex < 0 || mode !== 'connect') {
+      throw new Error(`${setupClient} setup does not describe the VibeCheck npx connect bridge`)
+    }
+  }
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [fixture.hubBin, 'connect'],
+    args: [fixture.hubBin, mode],
     env: { PATH: process.env.PATH ?? '', VIBE_CHECK_HUB_URL: hubUrl },
     stderr: 'pipe',
   })
@@ -99,6 +144,12 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
   const agent = await connectClient('single-agent')
   try {
     await openAgentIssue(page, appAUrl)
+    const connection = page.getByTestId('vibe-check-agent-status')
+    await expect(connection).toContainText('Waiting for')
+    await expect(connection).toContainText(appAUrl)
+    await expect(connection).toContainText(/codex mcp add vibe-check/)
+    await expect(connection).toContainText(`project_id "${appAUrl}"`)
+    await expect(page.getByRole('button', { name: /copy codex setup/i })).toBeVisible()
     const receivedPromise = watch(agent.client, appAUrl)
     await expect(page.getByTestId('vibe-check-agent-status')).toContainText(/Agent connected|AI agent connected/, { timeout: 10_000 })
     await page.getByTestId(/vibe-check-send-/).click()
@@ -111,6 +162,18 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
     await expect(page.getByRole('tab', { name: /sent \(1\)/i })).toBeVisible()
   } finally {
     await agent.close()
+  }
+})
+
+test('every documented client setup reaches list_projects through the packed bridge', async () => {
+  for (const clientId of AGENT_CLIENTS) {
+    const agent = await connectClient(`compatibility-${clientId}`, clientId)
+    try {
+      const projects = jsonPayload(await agent.client.callTool({ name: 'list_projects', arguments: {} }))
+      expect(Array.isArray(projects)).toBe(true)
+    } finally {
+      await agent.close()
+    }
   }
 })
 

@@ -2,6 +2,7 @@ import type {
   DetectorName,
   LeaseResult,
   ProjectSummary,
+  ProjectStatus,
   QueuedIssue,
   Severity,
   VibeIssue,
@@ -32,6 +33,7 @@ export interface HubClient {
   health(): Promise<HubHealth>
   listProjects(): Promise<readonly ProjectSummary[]>
   getSnapshot(projectId: string): Promise<VibeSnapshot | null>
+  getProjectStatus(projectId: string): Promise<ProjectStatus | null>
   getDetectedIssues(
     projectId: string,
     filters?: { readonly severity?: Severity; readonly detector?: DetectorName },
@@ -92,6 +94,14 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
 
     async getSnapshot(projectId): Promise<VibeSnapshot | null> {
       return await request<VibeSnapshot | null>(`${projectPath(projectId)}/snapshot`)
+    },
+
+    async getProjectStatus(projectId): Promise<ProjectStatus | null> {
+      return await request<ProjectStatus>(
+        `/api/projects/${encodeURIComponent(projectId)}/status`,
+        undefined,
+        true,
+      )
     },
 
     async getDetectedIssues(projectId, filters = {}): Promise<readonly VibeIssue[]> {

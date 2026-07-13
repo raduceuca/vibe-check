@@ -32,11 +32,18 @@ export type {
   DispatchIssueResponse,
   QueuedIssue,
   LeaseResult,
+  AgentClientId,
+  AgentClientSetup,
 } from '@wcgw/vibe-check-protocol'
 
 export {
+  AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
   DISPATCH_RESULT_CODES,
+  MCP_PACKAGE_SPEC,
+  HUB_START_COMMAND,
+  getAgentClientSetup,
+  getWatchInstruction,
 } from '@wcgw/vibe-check-protocol'
 
 import type {

@@ -19,6 +19,7 @@ import { PromptsPanel } from './panels/PromptsPanel.js'
 import { SettingsPanel } from './panels/SettingsPanel.js'
 import { AuditPanel } from './panels/AuditPanel.js'
 import { AnnotationOverlay } from './panels/AnnotationOverlay.js'
+import { getAgentDisplayState } from './panels/AgentConnectionStatus.js'
 
 export interface VibeCheckProps {
   readonly enabled?: boolean
@@ -92,6 +93,7 @@ export const VibeCheck = memo(({
   // settings indicator reflects whether snapshots actually reach the MCP server
   // rather than merely "a beaconUrl is configured". Null when no beacon.
   const beaconStatus: BeaconStatus | null = beaconUrl ? (engine?.getBeaconStatus() ?? null) : null
+  const agentConnectionState = getAgentDisplayState(beaconUrl, beaconStatus)
 
   // "Clear annotations on send": when enabled, hide the on-page markers as
   // issues are dispatched to the agent. Wrap the mark-sent handlers so the
@@ -225,6 +227,7 @@ export const VibeCheck = memo(({
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
+                beaconUrl={beaconUrl}
                 beaconStatus={beaconStatus}
                 onDispatch={handleDispatch}
                 onMarkSent={handleMarkSent}
@@ -284,7 +287,13 @@ export const VibeCheck = memo(({
         </div>
 
         {/* ── Bottom navigation ───────────────────────────────────────── */}
-        <BottomNav activeView={activeView} onSelect={setActiveView} mode={mode} counts={navCounts} />
+        <BottomNav
+          activeView={activeView}
+          onSelect={setActiveView}
+          mode={mode}
+          counts={navCounts}
+          agentConnectionState={agentConnectionState}
+        />
       </div>
     </VibeCheckProvider>
   )

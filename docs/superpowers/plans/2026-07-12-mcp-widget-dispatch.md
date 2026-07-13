@@ -817,7 +817,7 @@ Use this order and commands:
 
 ```bash
 pnpm add -D @wcgw/vibe-check
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 ```tsx
@@ -835,7 +835,7 @@ Agent config must spawn only the bridge:
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
+      "args": ["-y", "@wcgw/vibe-check-mcp@0.2.0", "connect"]
     }
   }
 }

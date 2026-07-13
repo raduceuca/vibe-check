@@ -2,7 +2,7 @@
 
 A deliberately "vibe-coded" landing page — `VibeShip` — wired up so every common
 AI-generated performance mistake is present and trips a real detector. Open the
-panel (bottom-right, or **Ctrl+Shift+P**) and watch it light up.
+panel (bottom-right, or **Alt+Shift+V**) and watch it light up.
 
 ## Run it
 
@@ -10,7 +10,7 @@ Start the demo and the shared hub in separate terminals:
 
 ```bash
 pnpm dev                                # from demo/ — http://localhost:5173
-npx -y @wcgw/vibe-check-mcp hub         # shared local hub on 127.0.0.1:4200
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub   # shared local hub on 127.0.0.1:4200
 ```
 
 The page uses project ID `vibe-check-demo` and beacons to
@@ -48,13 +48,25 @@ For on-demand extras beyond the baked-in issues:
 
 ## Agent round-trip
 
-Register the bridge once, then restart your agent client:
+Open the widget's **Agent** tab and choose Codex, Claude Code, or Cursor. Register
+the bridge once, then restart your agent client. The commands for the first two
+clients are:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
-Ask the agent to call `watch_for_issue` with `project_id: "vibe-check-demo"`.
+For Cursor, merge the card's `vibe-check` entry into `mcpServers` in
+`.cursor/mcp.json`; do not replace existing server entries. Then copy this
+project-specific instruction:
+
+```text
+Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "vibe-check-demo" and keep waiting for the next issue I send from the widget.
+```
+
 When the widget says **Agent connected**, open **Agent**, expand a detected
 issue, and click **Send to agent**. The pending tool call returns that issue and
-its fix guide. **Copy prompt** remains a clipboard-only fallback.
+its fix guide. **Copy prompt** remains a clipboard-only fallback. If the state
+does not turn green, run
+`npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project vibe-check-demo`.

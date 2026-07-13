@@ -18,6 +18,7 @@ interface AgentPanelProps {
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
+  readonly beaconUrl?: string
   readonly beaconStatus: BeaconStatus | null
   readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
@@ -152,7 +153,7 @@ const IssueRow = ({
 }
 
 export const AgentPanel = memo(({
-  tracked, mode, copiedId, onCopy, beaconStatus, onDispatch, onMarkSent, onMarkResolved, onClearResolved,
+  tracked, mode, copiedId, onCopy, beaconUrl, beaconStatus, onDispatch, onMarkSent, onMarkResolved, onClearResolved,
 }: AgentPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>('active')
 
@@ -177,7 +178,7 @@ export const AgentPanel = memo(({
 
   return (
     <div style={{ paddingTop: 4 }}>
-      <AgentConnectionStatus mode={mode} beaconUrl={beaconStatus?.configured ? 'configured' : undefined} status={beaconStatus} />
+      <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
       <SectionHeader
         count={active.length}
         action={currentIssues.length > 0 ? (

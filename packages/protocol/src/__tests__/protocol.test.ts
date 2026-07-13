@@ -1,9 +1,15 @@
+import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
 import {
+  AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
   DETECTOR_NAMES,
   DISPATCH_RESULT_CODES,
+  HUB_START_COMMAND,
+  MCP_PACKAGE_SPEC,
   SEVERITIES,
+  getAgentClientSetup,
+  getWatchInstruction,
 } from '../index.js'
 import type {
   DetectorName,
@@ -99,5 +105,62 @@ describe('protocol enums', () => {
       'invalid-issue',
       'failed',
     ])
+  })
+
+  it('defines exact setup values for every first-class agent client', () => {
+    expect(AGENT_CLIENTS).toEqual(['codex', 'claude-code', 'cursor'])
+    expect(getAgentClientSetup('codex')).toMatchObject({
+      label: 'Codex',
+      format: 'command',
+      value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
+    })
+    expect(getAgentClientSetup('claude-code').value).toBe(
+      'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect',
+    )
+    expect(getAgentClientSetup('cursor').destination).toBe(
+      'Add inside mcpServers in .cursor/mcp.json; if the file is new, create mcpServers first',
+    )
+    expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
+      'vibe-check': {
+        command: 'npx',
+        args: ['-y', '@wcgw/vibe-check-mcp@0.2.0', 'connect'],
+      },
+    })
+    expect(MCP_PACKAGE_SPEC).toBe('@wcgw/vibe-check-mcp@0.2.0')
+    expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
+    expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.2.0 hub')
+  })
+
+  it('keeps first-class client setup documentation aligned with the protocol', () => {
+    const documentationUrls = [
+      new URL('../../../../README.md', import.meta.url),
+      new URL('../../../../packages/mcp/README.md', import.meta.url),
+      new URL('../../../../packages/react/README.md', import.meta.url),
+      new URL('../../../../demo/README.md', import.meta.url),
+      new URL('../../../../skills/vibe-check/SKILL.md', import.meta.url),
+    ]
+    const documents = documentationUrls.map((url) => readFileSync(url, 'utf8'))
+
+    for (const document of documents) {
+      expect(document).toContain('Codex')
+      expect(document).toContain('Claude Code')
+      expect(document).toContain('Cursor')
+    }
+
+    const primaryDocuments = documents.slice(0, 2)
+    for (const document of primaryDocuments) {
+      expect(document).toContain(HUB_START_COMMAND)
+      expect(document).toContain(getAgentClientSetup('codex').value)
+      expect(document).toContain(getAgentClientSetup('claude-code').value)
+      expect(document).toContain(getAgentClientSetup('cursor').value)
+      expect(document).toContain('doctor --project')
+      expect(document).toContain(getWatchInstruction('docs-project').split('project_id')[0])
+    }
+
+    const mcpReadme = documents[1] ?? ''
+    expect(mcpReadme).toContain('Merge the `vibe-check` entry into `mcpServers`')
+    expect(mcpReadme).toContain('**ready** — exits `0`')
+    expect(mcpReadme).toContain('**stale** —')
+    expect(mcpReadme).toContain('**missing** —')
   })
 })

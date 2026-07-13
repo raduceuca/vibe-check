@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "pretest": "pnpm --filter @wcgw/vibe-check-protocol build",
     "test": "playwright test"
   },
   "devDependencies": {
+    "@wcgw/vibe-check-protocol": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@playwright/test": "^1.51.1",
     "@vitejs/plugin-react": "^6.0.1",

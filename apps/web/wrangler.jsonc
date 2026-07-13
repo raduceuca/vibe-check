@@ -2,10 +2,16 @@
   // Cloudflare Worker config for the VibeCheck site (Next.js via OpenNext).
   //   pnpm cf:build    → build the Worker bundle into .open-next/
   //   pnpm cf:preview  → run it locally on workerd (no account needed)
-  //   pnpm cf:deploy   → ship it (needs `wrangler login`)
+  //   pnpm cf:deploy   → ship it (needs `wrangler login` or CLOUDFLARE_API_TOKEN)
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "vibe-check-web",
   "main": ".open-next/worker.js",
+  "routes": [
+    {
+      "pattern": "vibecheck.wcgw.fun",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2025-06-01",
   // nodejs_compat: the /api/scan SSRF guard uses node:dns (resolve4/resolve6),
   // node:net (BlockList/isIP) and Buffer — all provided under this flag.

@@ -44,7 +44,7 @@ annotations, and clipboard prompts work, but it cannot communicate with an agent
 Run this in its own terminal and leave it running:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp hub
+npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 ```
 
 Expected output:
@@ -58,24 +58,45 @@ communication works; no agent session owns the project yet.
 
 ### 3. Add the MCP bridge to your agent
 
-For Claude Code:
+Choose the same client in the widget setup card and use its exact value.
+
+#### Codex
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
-For clients that accept `mcpServers` JSON:
+Verify with `codex mcp get vibe-check --json`.
+
+#### Claude Code
+
+```bash
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+```
+
+Verify with `claude mcp get vibe-check`.
+
+#### Cursor
+
+Merge the `vibe-check` entry into `mcpServers` in `.cursor/mcp.json`. If the file
+already contains other MCP servers, keep them alongside this entry:
 
 ```json
 {
-  "mcpServers": {
-    "vibe-check": {
-      "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp", "connect"]
-    }
+  "vibe-check": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@wcgw/vibe-check-mcp@0.2.0",
+      "connect"
+    ]
   }
 }
 ```
+
+Create the top-level `mcpServers` object first when starting from an empty file.
+Approve the project MCP when Cursor asks. Verify it with
+`cursor-agent mcp list-tools vibe-check`.
 
 Restart the agent client after editing its MCP configuration. The bridge expects
 the hub at `http://127.0.0.1:4200`; set `VIBE_CHECK_HUB_URL` when the hub uses a
@@ -86,7 +107,7 @@ different local port.
 Ask the agent:
 
 ```text
-Call list_projects, then watch_for_issue for project my-storefront.
+Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "my-storefront" and keep waiting for the next issue I send from the widget.
 ```
 
 `watch_for_issue` acquires the project's exclusive watcher lease and waits. The
@@ -176,8 +197,8 @@ project through the private API.
 For a port override, update all three places together:
 
 ```bash
-VIBE_CHECK_PORT=4210 npx -y @wcgw/vibe-check-mcp hub
-VIBE_CHECK_HUB_URL=http://127.0.0.1:4210 npx -y @wcgw/vibe-check-mcp connect
+VIBE_CHECK_PORT=4210 npx -y @wcgw/vibe-check-mcp@0.2.0 hub
+VIBE_CHECK_HUB_URL=http://127.0.0.1:4210 npx -y @wcgw/vibe-check-mcp@0.2.0 connect
 ```
 
 ```tsx
@@ -204,6 +225,44 @@ const mcp = createMcpServer(client, leases, '0.2.0')
 
 The CLI's `connect` mode also attaches `StdioServerTransport` and releases its
 lease on shutdown.
+
+## Doctor command
+
+`doctor` is a read-only check across the full local path. It never acquires or
+releases a watcher lease.
+
+```bash
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront --json
+```
+
+Options and environment:
+
+| Input | Meaning |
+|---|---|
+| `--project <id>` | Select one project explicitly. Required when several browser projects are active. |
+| `--json` | Emit the stable, versioned `DoctorReport` JSON shape. |
+| `VIBE_CHECK_HUB_URL` | Override the hub URL used by `doctor` and `connect`. |
+
+The result states are:
+
+- **ready** — exits `0` when the hub is reachable, the selected browser snapshot
+  is fresh, and its owner state is `watching` or `busy`;
+- **offline** — exits `1`; start `npx -y @wcgw/vibe-check-mcp@0.2.0 hub`;
+- **ambiguous** — exits `1`; rerun `doctor --project <id>` with a listed project;
+- **missing** — exits `1`; open or reload the requested browser project;
+- **stale** — exits `1`; reload a stale browser snapshot or reconnect a stale
+  agent watcher;
+- **waiting** — exits `1`; configure Codex, Claude Code, or Cursor, restart it,
+  and paste the project-specific watch instruction.
+
+JSON output contains `schemaVersion`, `ok`, `hubUrl`, `generatedAt`,
+`selectedProjectId`, `checks`, `projects`, and `nextSteps`.
+
+Repository maintainers can run `pnpm test:clients`. It uses temporary Codex,
+Claude Code, and Cursor configuration, launches the built bridge through a
+temporary hub, and makes no model request.
 
 ## Troubleshooting
 

@@ -35,7 +35,7 @@ const Image = async ({ params }: Props) => {
     return renderOgImage({
       kicker: c.label,
       title: c.tagline,
-      footer: 'vibecheck.dev/fix',
+      footer: 'vibecheck.wcgw.fun/fix',
       tag: 'Fix guides',
     })
   }
@@ -45,7 +45,7 @@ const Image = async ({ params }: Props) => {
     return renderOgImage({
       kicker: 'Fix guides',
       title: 'Catch what your agent broke',
-      footer: 'vibecheck.dev/fix',
+      footer: 'vibecheck.wcgw.fun/fix',
     })
   }
 
@@ -53,7 +53,7 @@ const Image = async ({ params }: Props) => {
     kicker: CATEGORY_LABELS[problem.category],
     title: problem.h1,
     severity: problem.severity,
-    footer: 'vibecheck.dev/fix',
+    footer: 'vibecheck.wcgw.fun/fix',
     tag: 'Fix guide',
   })
 }
