@@ -4,6 +4,16 @@ export { createHubClient, HubClientError, type HubClient } from './hubClient.js'
 export { createLeaseManager, type LeaseManager } from './leaseManager.js'
 export { createMcpServer, type McpServerContext } from './mcpServer.js'
 export { getSuggestion } from './suggestions/index.js'
+export {
+  formatDoctorHuman,
+  formatDoctorJson,
+  runDoctor,
+  type DoctorCheck,
+  type DoctorCheckId,
+  type DoctorLevel,
+  type DoctorOptions,
+  type DoctorReport,
+} from './doctor.js'
 export type {
   Severity,
   DetectorName,
