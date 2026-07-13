@@ -1,5 +1,7 @@
 # vibe-check
 
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/raduceuca/vibe-check?utm_source=oss&utm_medium=github&utm_campaign=raduceuca%2Fvibe-check&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+
 Browser performance and quality monitoring for the age of AI-assisted coding. It
 runs in your app, catches the issues vibe-coded sites ship with — janky frames,
 DOM bloat, duplicate fetches, memory leaks, unoptimized images, missing SEO/AEO
