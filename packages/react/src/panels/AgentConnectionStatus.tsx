@@ -35,7 +35,7 @@ export const AGENT_DISPLAY_COLORS: Readonly<Record<AgentDisplayState, string>> =
   offline: T.red,
   waiting: T.yellow,
   connected: T.green,
-  busy: T.blue,
+  busy: T.green,
   stale: T.red,
 }
 

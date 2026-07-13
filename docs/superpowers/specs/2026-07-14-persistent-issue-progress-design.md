@@ -158,6 +158,10 @@ Every expanded issue row shows:
 - the existing shared copy, send, and verification actions appropriate for its
   current phase.
 
+Connection colors remain semantic: connected and Agent working are both green,
+waiting is yellow, and offline or stale is red. Blue remains reserved for
+informational findings and navigation indicators, not healthy agent activity.
+
 Fixed records remain inspectable. Clearing the fixed view removes them from the
 browser presentation but does not erase the durable regression baseline. A
 separate explicit “forget history” operation would be required to destroy that
@@ -307,4 +311,3 @@ and a deterministic control path. The user will be able to send a finding,
 watch its timeline advance as the real MCP bridge receives and resolves it,
 confirm the browser-verified fix, refresh without losing widget state or
 placement, and deliberately replay the finding to see the regression reopen.
-
