@@ -58,11 +58,11 @@ export const VibeCheck = memo(({
   storageKey,
 }: VibeCheckProps) => {
   useAnimations()
-  const [collapsed, setCollapsed] = useState(startCollapsed)
   const [activeView, setActiveView] = useState<ViewTab>('monitor')
   const config = useMemo(() => beaconUrl ? { beaconUrl, projectId } : undefined, [beaconUrl, projectId])
   const { engine, snapshot } = useVibeCheck(config, enabled, providedEngine)
-  const { prefs, updatePrefs, toggleMode } = usePreferences(storageKey)
+  const { prefs, updatePrefs, toggleMode } = usePreferences(storageKey, projectId, startCollapsed)
+  const collapsed = prefs.collapsed
   const { copiedId, copy } = useClipboard()
   const { tracked, markSent, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
   const mode = prefs.mode
@@ -124,7 +124,9 @@ export const VibeCheck = memo(({
     }
   }, [snapshot.issues, onIssue])
 
-  const toggle = useCallback(() => setCollapsed((p) => !p), [])
+  const toggle = useCallback(() => {
+    updatePrefs({ collapsed: !collapsed })
+  }, [collapsed, updatePrefs])
   const h = useMemo(() => getHealth(snapshot), [snapshot])
   const ps = useMemo(() => new Set(panels), [panels])
 
@@ -141,7 +143,10 @@ export const VibeCheck = memo(({
   )
 
   if (!enabled) return null
-  const pos = POS[position]
+  const effectivePosition = collapsed
+    ? prefs.collapsedPosition ?? position
+    : prefs.expandedPosition ?? position
+  const pos = POS[effectivePosition]
 
   const annotationOverlay = (
     <AnnotationOverlay
@@ -175,7 +180,12 @@ export const VibeCheck = memo(({
       <div
         data-testid="vibe-check-overlay" data-wcgw data-wcgw-theme={prefs.theme}
         role="complementary" aria-label="Vibe check performance monitor"
-        onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setCollapsed(true) } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            updatePrefs({ collapsed: true })
+          }
+        }}
         style={{
           ...surfaceStyle,
           position: 'fixed', zIndex: T.zPanel, width: 320, maxWidth: 'calc(100vw - 24px)', fontFamily: T.font, fontSize: 14,
