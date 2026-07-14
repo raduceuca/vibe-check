@@ -27,6 +27,7 @@
 - Create `apps/web/components/brand/NavigationBrand.tsx` — reusable rosette, wordmark, and proof-version furniture.
 - Create `apps/web/components/brand/NavigationBrand.test.tsx` — brand markup and semantics.
 - Modify `apps/web/components/site/SiteSidebar.tsx` — consume the shared navigation brand furniture.
+- Modify `apps/web/lib/layout.shared.tsx` — use the same identity in the Fumadocs navigation shell.
 - Modify `apps/web/components/brand/ProofMarks.tsx` — expose semantic proof weight on the site control strip.
 - Modify `apps/web/components/brand/ProofMarks.test.tsx` — verify semantic proof weight.
 - Modify `apps/web/app/global.css` — navigation brand styling and stronger proof furniture.
@@ -50,6 +51,7 @@
 - Create: `apps/web/components/brand/NavigationBrand.tsx`
 - Create: `apps/web/components/brand/NavigationBrand.test.tsx`
 - Modify: `apps/web/components/site/SiteSidebar.tsx`
+- Modify: `apps/web/lib/layout.shared.tsx`
 - Modify: `apps/web/app/global.css`
 
 **Interfaces:**
@@ -125,7 +127,7 @@ export const ProofVersion = ({ version }: { readonly version: string }) => (
 )
 ```
 
-In `SiteSidebar.tsx`, delete the internal `Wordmark`, import the new components, render `NavigationWordmark` in all three existing locations, and render `ProofVersion` in both top bars and `SidebarFooter`.
+In `SiteSidebar.tsx`, delete the internal `Wordmark`, import the new components, render `NavigationWordmark` in all three existing locations, and render `ProofVersion` in both top bars and `SidebarFooter`. In `layout.shared.tsx`, render `NavigationWordmarkLabel` and `ProofVersion` in `nav.title`, then use `ProofVersion` again in `DocsSidebarFooter`.
 
 Replace the old dot/badge CSS with:
 
@@ -165,7 +167,7 @@ Expected: 2 tests PASS; TypeScript exits 0.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add apps/web/components/brand/NavigationBrand.tsx apps/web/components/brand/NavigationBrand.test.tsx apps/web/components/site/SiteSidebar.tsx apps/web/app/global.css
+git add apps/web/components/brand/NavigationBrand.tsx apps/web/components/brand/NavigationBrand.test.tsx apps/web/components/site/SiteSidebar.tsx apps/web/lib/layout.shared.tsx apps/web/app/global.css docs/superpowers/plans/2026-07-14-live-press-check.md
 git commit -m "feat(site): add press-check navigation identity"
 ```
 

@@ -2,11 +2,15 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { GITHUB_URL } from './site'
 import { SITE_VERSION } from './nav'
 import { GithubMark, ExtArrow } from '@/components/site/navIcons'
+import {
+  NavigationWordmarkLabel,
+  ProofVersion,
+} from '@/components/brand/NavigationBrand'
 
 // Shared config for the Fumadocs docs layout. The docs sidebar is skinned (in
 // global.css, under .vc-docs) to match the marketing SiteSidebar, so the whole
 // site reads as one nav. Here we feed it the same pieces:
-//   • nav.title  → the "vibe check" wordmark (status dot + name) + version badge
+//   • nav.title  → the VibeCheck wordmark (press rosette + name) + proof version
 //   • links      → the primary destinations (Home · Scan · Fix guides · Docs)
 //   • DocsSidebarFooter → the Resources group + the version / GitHub footer
 // (rendered into the sidebar's `footer` slot by app/docs/layout.tsx).
@@ -15,11 +19,8 @@ export const baseOptions = (): BaseLayoutProps => ({
   nav: {
     title: (
       <>
-        <span className="vc-side-brand-dot" aria-hidden="true" />
-        <span className="vc-side-brand-name">
-          vibe<span className="vc-side-brand-2">check</span>
-        </span>
-        <span className="vc-side-ver-badge vc-mono">{SITE_VERSION}</span>
+        <NavigationWordmarkLabel />
+        <ProofVersion version={SITE_VERSION} />
       </>
     ),
     url: '/',
@@ -64,7 +65,7 @@ export const DocsSidebarFooter = () => (
       </li>
     </ul>
     <div className="vc-side-footer">
-      <span>v{SITE_VERSION}</span>
+      <ProofVersion version={SITE_VERSION} />
       <span aria-hidden="true">·</span>
       <a
         className="vc-side-foot-gh"

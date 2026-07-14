@@ -1051,7 +1051,7 @@ html {
    SiteSidebar — the persistent left nav (landing / scan / fix)
    A narrow, hairline-ruled rail translating Agentation's sidebar into the Quiet
    Instrument identity: muted labels, a monochrome active state with a short
-   fault-red tick, a fault-red version badge, thin vertical guide lines down the
+   fault-red tick, a proof-edition version notation, thin vertical guide lines down the
    expanded sub-lists. The docs (Fumadocs) sidebar is matched to this in the block
    directly below, so marketing + docs read as ONE nav. All colour comes from the
    --vc-* tokens on the .vc-landing / .vc-docs scope. Shared width: --vc-side-w.
@@ -1109,27 +1109,53 @@ html {
   font-size: 15px;
   font-weight: 660;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
-.vc-side-brand-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--vc-ok);
+[data-vc-press-rosette] {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
   flex: none;
+}
+.vc-press-rosette-c {
+  stroke: var(--vc-proof-c);
+  transform: translate(-0.5px, 0.25px);
+}
+.vc-press-rosette-m {
+  stroke: var(--vc-proof-m);
+  transform: translate(0.5px, -0.25px);
+}
+.vc-press-rosette-k {
+  stroke: var(--vc-proof-k);
+}
+[data-vc-press-rosette] g {
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
 }
 .vc-side-brand-2 {
   color: var(--vc-ink-3);
   font-weight: 620;
 }
-.vc-side-ver-badge {
-  font-size: 10.5px;
-  letter-spacing: 0.01em;
-  color: var(--vc-sig);
-  background: var(--vc-sig-bg);
-  border: 1px solid color-mix(in srgb, var(--vc-sig) 26%, transparent);
-  border-radius: 5px;
-  padding: 1px 5px;
-  line-height: 1.4;
+.vc-proof-version {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--vc-mono);
+  font-size: 9px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--vc-ink-4);
+  white-space: nowrap;
+}
+.vc-proof-version-rule {
+  width: 16px;
+  height: 1px;
+  background: var(--vc-line-strong);
+  flex: none;
+}
+.vc-proof-version-label {
+  letter-spacing: 0.13em;
 }
 
 /* Nav list + rows */
@@ -1361,7 +1387,7 @@ html {
    The docs pages keep Fumadocs' own DocsLayout (it renders the page tree with
    native group expansion, active states and the mobile drawer), but we wrap it in
    .vc-docs and re-skin the sidebar so it reads identically to the SiteSidebar:
-   same 232px width, the same neutrals, a fault-red active tick and version badge,
+   same 232px width, the same neutrals, a fault-red active tick and proof version,
    and our wordmark / primary links / Resources injected via nav.title + links +
    the footer slot. Scoped to #nd-sidebar so the docs *content* is untouched.
    ════════════════════════════════════════════════════════════════════════════ */
@@ -1399,7 +1425,7 @@ html {
   background: var(--vc-sig) !important;
   transform: translateY(-50%);
 }
-/* The wordmark dot + version badge live in nav.title; the Resources group +
+/* The wordmark rosette + proof version live in nav.title; the Resources group +
    version footer live in the footer slot. Give the footer version line the same
    mono treatment as SiteSidebar. */
 .vc-docs .vc-side-footer {

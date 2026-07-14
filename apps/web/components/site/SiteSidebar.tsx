@@ -5,25 +5,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { NavItem, SidebarData } from '@/lib/nav'
 import { GithubMark, ExtArrow } from './navIcons'
+import {
+  NavigationWordmark,
+  ProofVersion,
+} from '@/components/brand/NavigationBrand'
 
 // ── The persistent left nav ───────────────────────────────────────────────────
 // A narrow, hairline-ruled sidebar shared across the landing, /scan and /fix. Its
 // look is the "Quiet Instrument" translation of Agentation's sidebar: muted
-// labels, a monochrome active state with a short fault-red tick, a fault-red
-// version badge, thin vertical guide lines down expanded sub-lists. The docs
+// labels, a monochrome active state with a short fault-red tick, a proof-edition
+// version notation, thin vertical guide lines down expanded sub-lists. The docs
 // (Fumadocs) sidebar is styled to match this exactly, so the whole site reads as
 // one nav. Client-only for active-route awareness (usePathname) + the mobile
 // drawer; the fix tree is handed in pre-built from the server (no problem content
 // in the client bundle).
-
-const Wordmark = () => (
-  <Link href="/" className="vc-side-brand" aria-label="VibeCheck home">
-    <span className="vc-side-brand-dot" aria-hidden="true" />
-    <span className="vc-side-brand-name">
-      vibe<span className="vc-side-brand-2">check</span>
-    </span>
-  </Link>
-)
 
 // A leaf row (primary destination, doc group, fix category, problem, resource).
 const SideRow = ({
@@ -170,7 +165,7 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
 
 const SidebarFooter = ({ data }: { data: SidebarData }) => (
   <div className="vc-side-footer">
-    <span className="vc-side-ver">v{data.version}</span>
+    <ProofVersion version={data.version} />
     <span className="vc-side-foot-sep" aria-hidden="true">
       ·
     </span>
@@ -216,8 +211,8 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
       {/* Desktop: sticky rail */}
       <aside className="vc-side">
         <div className="vc-side-top">
-          <Wordmark />
-          <span className="vc-side-ver-badge vc-mono">{data.version}</span>
+          <NavigationWordmark />
+          <ProofVersion version={data.version} />
         </div>
         <div className="vc-side-scroll">
           <SidebarBody data={data} />
@@ -227,8 +222,8 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
 
       {/* Mobile: slim top bar with a hamburger */}
       <div className="vc-side-bar">
-        <Wordmark />
-        <span className="vc-side-ver-badge vc-mono">{data.version}</span>
+        <NavigationWordmark />
+        <ProofVersion version={data.version} />
         <button
           type="button"
           className="vc-side-burger"
@@ -259,8 +254,8 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
         aria-hidden={open ? undefined : true}
       >
         <div className="vc-side-top">
-          <Wordmark />
-          <span className="vc-side-ver-badge vc-mono">{data.version}</span>
+          <NavigationWordmark />
+          <ProofVersion version={data.version} />
           <button
             type="button"
             className="vc-side-close"
