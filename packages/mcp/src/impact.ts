@@ -110,3 +110,36 @@ export const deriveProjectImpact = (
     metrics: [...grouped.values()],
   }
 }
+
+const impactSentence = (impact: ProjectImpactSummary): string =>
+  `VibeCheck caught ${impact.regressionsCaught} regressions and helped verify ${impact.verifiedFixes} fixes.`
+
+export const formatImpactMarkdown = (impact: ProjectImpactSummary): string => {
+  const metrics = impact.metrics.map((metric) =>
+    `- ${metric.value} ${metric.unit} ${metric.label} — ${metric.scope}${
+      metric.confidence === 'estimated' ? ' (estimated)' : ''
+    }`)
+  return [
+    `## VibeCheck impact — ${impact.projectId}`,
+    '',
+    impactSentence(impact),
+    '',
+    `- ${impact.uniqueIssuesFixed} unique issues fixed`,
+    `- ${impact.verificationFailures} verification failures caught`,
+    ...metrics,
+  ].join('\n') + '\n'
+}
+
+export const formatImpactHuman = (impact: ProjectImpactSummary): string => [
+  `VibeCheck impact — ${impact.projectId}`,
+  impactSentence(impact),
+  `${impact.uniqueIssuesFixed} unique issues fixed`,
+  `${impact.verificationFailures} verification failures caught`,
+  ...impact.metrics.map((metric) =>
+    `${metric.value} ${metric.unit} ${metric.label} (${metric.scope})${
+      metric.confidence === 'estimated' ? ' — estimated' : ''
+    }`),
+].join('\n') + '\n'
+
+export const formatImpactJson = (impact: ProjectImpactSummary): string =>
+  `${JSON.stringify(impact, null, 2)}\n`

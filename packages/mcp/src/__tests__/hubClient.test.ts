@@ -72,6 +72,12 @@ describe('HubClient', () => {
       projectId: 'project-a',
       issues: [{ issue: { id: 'dom-1' }, phase: 'detected' }],
     })
+    await expect(client.getProjectImpact('project-a')).resolves.toMatchObject({
+      projectId: 'project-a',
+      detected: 1,
+    })
+    await expect(client.resetProjectImpact('project-a')).resolves.toBeUndefined()
+    await expect(client.getProjectImpact('project-a')).resolves.toMatchObject({ detected: 0 })
     await expect(client.requestVerification('project-a', 'dom-1')).resolves.toBeUndefined()
     await expect(client.getWorkflow('project-a')).resolves.toMatchObject({
       issues: [{ phase: 'verifying' }],

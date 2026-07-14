@@ -62,6 +62,29 @@ describe('runMain', () => {
     })
   })
 
+  it('prints persisted project impact as JSON and Markdown', async () => {
+    const hubUrl = await startHub()
+    const jsonOutput: string[] = []
+    await expect(runMain(
+      ['stats', '--project', 'project-a', '--json'],
+      { VIBE_CHECK_HUB_URL: hubUrl },
+      { stdout: (value) => jsonOutput.push(value), stderr: () => undefined },
+    )).resolves.toEqual({ kind: 'exit', code: 0 })
+    expect(JSON.parse(jsonOutput.join(''))).toMatchObject({
+      projectId: 'project-a',
+      verifiedFixes: 0,
+    })
+
+    const markdownOutput: string[] = []
+    await runMain(
+      ['stats', '--project', 'project-a', '--markdown'],
+      { VIBE_CHECK_HUB_URL: hubUrl },
+      { stdout: (value) => markdownOutput.push(value), stderr: () => undefined },
+    )
+    expect(markdownOutput.join('')).toContain('VibeCheck impact — project-a')
+    expect(markdownOutput.join('')).toContain('helped verify 0 fixes')
+  })
+
   it('returns long-running hub and connect configurations without starting them', async () => {
     await expect(runMain(['hub'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' }, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',

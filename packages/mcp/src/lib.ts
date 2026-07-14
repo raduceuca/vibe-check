@@ -11,7 +11,14 @@ export {
   type ProjectRegistryEntry,
 } from './projectRegistry.js'
 export { readPersistedWorkflow, writePersistedWorkflow } from './persistence.js'
-export { appendImpactReceipts, deriveProjectImpact, impactReceiptId } from './impact.js'
+export {
+  appendImpactReceipts,
+  deriveProjectImpact,
+  formatImpactHuman,
+  formatImpactJson,
+  formatImpactMarkdown,
+  impactReceiptId,
+} from './impact.js'
 export { createMcpServer, type McpServerContext } from './mcpServer.js'
 export {
   compactWorkflowIssues,

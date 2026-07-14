@@ -9,6 +9,7 @@ import {
   dispatchIssue,
   findProjectIssue,
   getActiveIssues,
+  getProjectImpact,
   getProjectWorkflow,
   getProjectStatus,
   heartbeatLease,
@@ -18,6 +19,7 @@ import {
   recordSnapshot,
   releaseLease,
   requestProjectVerification,
+  resetProjectImpact,
   resolveProjectIssue,
   type HubStore,
 } from './hubStore.js'
@@ -267,6 +269,25 @@ export const createHubServer = ({
       if (method === 'GET' && parts[0] === 'api' && parts[1] === 'projects' && parts[3] === 'workflow') {
         const workflow = getProjectWorkflow(store, parts[2] ?? '')
         sendJson(res, workflow ? 200 : 404, workflow ?? { error: 'Project not found' }, true)
+        return
+      }
+
+      if (method === 'GET' && parts[0] === 'api' && parts[1] === 'projects' && parts[3] === 'impact') {
+        const impact = getProjectImpact(store, parts[2] ?? '')
+        sendJson(res, impact ? 200 : 404, impact ?? { error: 'Project not found' }, true)
+        return
+      }
+
+      if (method === 'POST' && parts[0] === 'api' && parts[1] === 'projects'
+        && parts[3] === 'impact' && parts[4] === 'reset') {
+        const projectId = parts[2] ?? ''
+        if (!store.projects.has(projectId)) {
+          sendJson(res, 404, { error: 'Project not found' }, true)
+          return
+        }
+        store = resetProjectImpact(store, projectId, now())
+        schedulePersist(projectId)
+        sendJson(res, 200, { reset: true, projectId }, true)
         return
       }
 

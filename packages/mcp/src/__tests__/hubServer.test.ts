@@ -214,6 +214,36 @@ describe('hubServer', () => {
     })
   })
 
+  it('returns isolated impact and resets only the selected project', async () => {
+    let clock = 1
+    const base = await start(() => clock)
+    for (const projectId of ['project-a', 'project-b']) {
+      const project = encodeURIComponent(projectId)
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [makeIssue()], '/impact', clock))
+      clock += 1
+      await post(`${base}/api/projects/${project}/issues/dom-1/verify`, {})
+      clock += 1
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [], '/impact', clock))
+      clock += 1
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [], '/impact', clock))
+      clock += 1
+    }
+
+    const projectA = encodeURIComponent('project-a')
+    const projectB = encodeURIComponent('project-b')
+    expect((await json(`${base}/api/projects/${projectA}/impact`)).body)
+      .toMatchObject({ projectId: 'project-a', verifiedFixes: 1 })
+    expect((await json(`${base}/api/projects/${projectB}/impact`)).body)
+      .toMatchObject({ projectId: 'project-b', verifiedFixes: 1 })
+
+    const reset = await post(`${base}/api/projects/${projectA}/impact/reset`, {})
+    expect(reset.response.status).toBe(200)
+    expect((await json(`${base}/api/projects/${projectA}/impact`)).body)
+      .toMatchObject({ verifiedFixes: 0 })
+    expect((await json(`${base}/api/projects/${projectB}/impact`)).body)
+      .toMatchObject({ verifiedFixes: 1 })
+  })
+
   it('restores a fixed workflow from the registered project after hub restart', async () => {
     const root = await mkdtemp(join(tmpdir(), 'vibe-check-hub-state-'))
     const projectRoot = join(root, 'project')

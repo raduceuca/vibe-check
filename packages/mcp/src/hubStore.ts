@@ -5,7 +5,7 @@ import {
   type VibeStore,
 } from './store.js'
 import { getStableIssueKey } from '@wcgw/vibe-check-protocol'
-import { appendImpactReceipts } from './impact.js'
+import { appendImpactReceipts, deriveProjectImpact } from './impact.js'
 import { createImpactReceipts, type ImpactBaseline } from './impactAdapters.js'
 import {
   createProjectWorkflow,
@@ -22,6 +22,7 @@ import type {
   ProjectStatus,
   ProjectSummary,
   ProjectWorkflow,
+  ProjectImpactSummary,
   QueuedIssue,
   Severity,
   DetectorName,
@@ -415,6 +416,31 @@ export const getProjectWorkflow = (
   store: HubStore,
   projectId: string,
 ): ProjectWorkflow | null => store.projects.get(projectId)?.workflow ?? null
+
+export const getProjectImpact = (
+  store: HubStore,
+  projectId: string,
+): ProjectImpactSummary | null => {
+  const workflow = getProjectWorkflow(store, projectId)
+  return workflow ? deriveProjectImpact(workflow, workflow.impactReceipts) : null
+}
+
+export const resetProjectImpact = (
+  store: HubStore,
+  projectId: string,
+  now: number,
+): HubStore => {
+  const project = store.projects.get(projectId)
+  if (!project) return store
+  return replaceProject(store, {
+    ...project,
+    workflow: {
+      ...project.workflow,
+      revision: project.workflow.revision + 1,
+      impactResetAt: now,
+    },
+  })
+}
 
 export const acknowledgeProjectIssue = (
   store: HubStore,

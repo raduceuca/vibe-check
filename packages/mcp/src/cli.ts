@@ -22,6 +22,12 @@ export type CliConfig =
       readonly json: boolean
     }
   | {
+      readonly role: 'stats'
+      readonly hubUrl: string
+      readonly projectId: string
+      readonly format: 'human' | 'json' | 'markdown'
+    }
+  | {
       readonly role: 'setup'
       readonly agent: SetupAgent
       readonly projectId: string | undefined
@@ -87,6 +93,37 @@ export const parseCliConfig = (
       hubUrl: env['VIBE_CHECK_HUB_URL'] ?? DEFAULT_HUB_URL,
       projectId,
       json,
+    }
+  }
+  if (role === 'stats') {
+    let projectId: string | undefined
+    let format: 'human' | 'json' | 'markdown' = 'human'
+    const seen = new Set<string>()
+    for (let index = 1; index < argv.length; index += 1) {
+      const option = argv[index]
+      if (!option) continue
+      if (seen.has(option)) throw new Error(`Duplicate stats option: ${option}`)
+      seen.add(option)
+      if (option === '--project') {
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Stats --project requires a project ID')
+        projectId = value
+        index += 1
+        continue
+      }
+      if (option === '--json' || option === '--markdown') {
+        if (format !== 'human') throw new Error('Stats accepts only one output format')
+        format = option === '--json' ? 'json' : 'markdown'
+        continue
+      }
+      throw new Error(`Unknown stats option: ${option}`)
+    }
+    if (!projectId) throw new Error('Stats --project is required')
+    return {
+      role,
+      hubUrl: env['VIBE_CHECK_HUB_URL'] ?? DEFAULT_HUB_URL,
+      projectId,
+      format,
     }
   }
   if (role === 'setup') {
@@ -156,6 +193,7 @@ export const parseCliConfig = (
   }
   throw new Error(
     'Usage: vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor [--project <id>] [--json] | '
+    + 'vibe-check-mcp stats --project <id> [--json|--markdown] | '
     + 'vibe-check-mcp setup --agent <codex|claude-code|cursor> [--project <id>] [--dry-run] [--force] | '
     + 'vibe-check-mcp register --project <id> [--root <path>]',
   )

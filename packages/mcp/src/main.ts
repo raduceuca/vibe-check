@@ -7,6 +7,8 @@ import {
   type SetupResult,
 } from './setup.js'
 import { registerProjectRoot } from './projectRegistry.js'
+import { createHubClient } from './hubClient.js'
+import { formatImpactHuman, formatImpactJson, formatImpactMarkdown } from './impact.js'
 
 export interface CliIo {
   readonly stdout: (value: string) => void
@@ -70,6 +72,19 @@ export const runMain = async (
       ...result.nextSteps.map((step, index) => `${index + 1}. ${step}`),
     ]
     io.stdout(`${lines.join('\n')}\n`)
+    return { kind: 'exit', code: 0 }
+  }
+  if (config.role === 'stats') {
+    const impact = await createHubClient(config.hubUrl).getProjectImpact(config.projectId)
+    if (!impact) {
+      io.stderr(`VibeCheck project "${config.projectId}" is not active. Open it with the widget enabled, then retry.\n`)
+      return { kind: 'exit', code: 1 }
+    }
+    io.stdout(config.format === 'json'
+      ? formatImpactJson(impact)
+      : config.format === 'markdown'
+        ? formatImpactMarkdown(impact)
+        : formatImpactHuman(impact))
     return { kind: 'exit', code: 0 }
   }
   if (config.role !== 'doctor') return { kind: 'continue', config }

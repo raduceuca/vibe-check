@@ -97,6 +97,18 @@ export const createMcpServer = (
   })
 
   server.tool(
+    'get_project_impact',
+    'Get persisted, browser-verified VibeCheck outcome statistics for one project',
+    { project_id: projectIdSchema },
+    async ({ project_id }) => withProject(project_id, async (projectId) => {
+      const impact = await client.getProjectImpact(projectId)
+      return impact
+        ? jsonResult(impact)
+        : jsonResult({ error: 'Project impact not found', code: 'project-not-found', projectId }, true)
+    }),
+  )
+
+  server.tool(
     'get_performance_snapshot',
     'Get the latest browser performance snapshot for one project',
     { project_id: projectIdSchema },

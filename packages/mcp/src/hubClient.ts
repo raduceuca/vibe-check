@@ -3,6 +3,7 @@ import type {
   LeaseResult,
   ProjectSummary,
   ProjectStatus,
+  ProjectImpactSummary,
   ProjectWorkflow,
   QueuedIssue,
   Severity,
@@ -36,6 +37,8 @@ export interface HubClient {
   getSnapshot(projectId: string): Promise<VibeSnapshot | null>
   getProjectStatus(projectId: string): Promise<ProjectStatus | null>
   getWorkflow(projectId: string): Promise<ProjectWorkflow | null>
+  getProjectImpact(projectId: string): Promise<ProjectImpactSummary | null>
+  resetProjectImpact(projectId: string): Promise<void>
   requestVerification(projectId: string, issueId: string): Promise<void>
   getDetectedIssues(
     projectId: string,
@@ -113,6 +116,18 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
         undefined,
         true,
       )
+    },
+
+    async getProjectImpact(projectId): Promise<ProjectImpactSummary | null> {
+      return await request<ProjectImpactSummary>(
+        `/api/projects/${encodeURIComponent(projectId)}/impact`,
+        undefined,
+        true,
+      )
+    },
+
+    async resetProjectImpact(projectId): Promise<void> {
+      await post(`/api/projects/${encodeURIComponent(projectId)}/impact/reset`, {})
     },
 
     async requestVerification(projectId, issueId): Promise<void> {

@@ -88,6 +88,22 @@ describe('parseCliConfig', () => {
     )
   })
 
+  it('parses project impact stats formats', () => {
+    expect(parseCliConfig(['stats', '--project', 'storefront'], {})).toEqual({
+      role: 'stats',
+      hubUrl: 'http://127.0.0.1:4200',
+      projectId: 'storefront',
+      format: 'human',
+    })
+    expect(parseCliConfig(['stats', '--project', 'storefront', '--markdown'], {
+      VIBE_CHECK_HUB_URL: 'http://127.0.0.1:4210',
+    })).toMatchObject({ format: 'markdown', hubUrl: 'http://127.0.0.1:4210' })
+    expect(() => parseCliConfig(['stats', '--json'], {})).toThrow('Stats --project is required')
+    expect(() => parseCliConfig([
+      'stats', '--project', 'storefront', '--json', '--markdown',
+    ], {})).toThrow('one output format')
+  })
+
   it('rejects invalid, missing, unknown, and duplicate setup options', () => {
     expect(() => parseCliConfig(['setup'], {})).toThrow('Setup --agent is required')
     expect(() => parseCliConfig(['setup', '--agent'], {})).toThrow('requires an agent')
