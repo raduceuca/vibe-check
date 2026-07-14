@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { PillProofRegister, ProofControlStrip, TopProofRegister } from './ProofMarks.js'
+import {
+  PillProofRegister,
+  ProofControlStrip,
+  ProofDivider,
+  TopProofRegister,
+} from './ProofMarks.js'
 
 describe('proof-control marks', () => {
   it('renders a varied density strip instead of four equal dashes', () => {
@@ -43,5 +48,19 @@ describe('proof-control marks', () => {
 
     expect(top.querySelector('[data-wcgw-registration-target]')?.getAttribute('width')).toBe('14')
     expect(pill.querySelector('[data-wcgw-registration-target]')?.getAttribute('width')).toBe('8')
+  })
+
+  it('renders colored major dividers and neutral minor cut dividers', () => {
+    const { container } = render(
+      <>
+        <ProofDivider kind="major" />
+        <ProofDivider kind="minor" />
+      </>,
+    )
+
+    expect(container.querySelectorAll('[data-wcgw-proof-divider="major"]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-wcgw-proof-divider="minor"]')).toHaveLength(1)
+    expect(container.querySelector('[data-wcgw-proof-divider="major"] [data-wcgw-proof-patch]')).not.toBeNull()
+    expect(container.querySelector('[data-wcgw-proof-divider="minor"] [data-wcgw-proof-patch]')).toBeNull()
   })
 })

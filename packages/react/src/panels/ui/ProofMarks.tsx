@@ -87,6 +87,18 @@ export const CropTicks = memo(({ corner = 'top-left', size = 12 }: CropTicksProp
   )
 })
 
+export const ProofDivider = memo(({ kind = 'major' }: { readonly kind?: 'major' | 'minor' }) => (
+  <span
+    data-wcgw-proof-divider={kind}
+    aria-hidden="true"
+    style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', height: 8, pointerEvents: 'none' }}
+  >
+    <CropTicks size={8} />
+    {kind === 'major' ? <ProofControlStrip compact /> : null}
+    <span style={{ height: 1, flex: 1, minWidth: 8, background: kind === 'major' ? T.border : T.borderSubtle }} />
+  </span>
+))
+
 export const ProofLabel = ({ children }: { readonly children: ReactNode }) => (
   <span aria-hidden="true" style={{ fontFamily: T.fontMono, fontSize: 8, lineHeight: 1, letterSpacing: '0.12em', color: T.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>
     {children}

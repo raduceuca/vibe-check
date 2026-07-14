@@ -62,6 +62,8 @@ describe('monitor proof details', () => {
     expect(container.querySelectorAll('[data-wcgw-audit-plate]')).toHaveLength(2)
     expect(container.querySelectorAll('[data-wcgw-issue-register]')).toHaveLength(1)
     expect(container.querySelector('[data-wcgw-proof-marks-heading]')?.textContent).toBe('proof marks')
+    expect(container.querySelectorAll('[data-wcgw-proof-divider="major"]')).toHaveLength(2)
+    expect(container.querySelectorAll('[data-wcgw-proof-divider="minor"]')).toHaveLength(1)
   })
 
   it('labels the active navigation view as a proof plate', () => {

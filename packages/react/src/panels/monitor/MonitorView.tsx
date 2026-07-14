@@ -13,7 +13,7 @@ import { getSuggestionCached } from '../suggestionCache.js'
 // and the browser has a working canvas (CANVAS_OK).
 const Liveline = lazy(() => import('liveline').then((m) => ({ default: m.Liveline })))
 import {
-  DISPLAY_PX, T_UNIT, T_LABEL, FINE, DIVIDER, SUBKICKER, KICKER,
+  DISPLAY_PX, T_UNIT, T_LABEL, SUBSECTION_GAP, SECTION_GAP, SUBKICKER, KICKER,
   STAT_GRID, STAT_VALUE, STAT_LABEL,
 } from '../ui/typography.js'
 import { auditScore, gradeFor, scoreColor } from '../ui/ScoreRing.js'
@@ -23,7 +23,7 @@ import { Tabs } from '../ui/Tabs.js'
 import { sevVar, sevHex, sevGlow, fpsKey, vitalKey, fmtMs } from './severity.js'
 import { FpsTrace, WINDOW_OPTIONS, CANVAS_OK } from './FpsTrace.js'
 import { ImpactCard } from '../ImpactCard.js'
-import { CalibrationRuler, ProofLabel, RegistrationTarget } from '../ui/ProofMarks.js'
+import { CalibrationRuler, ProofDivider, ProofLabel, RegistrationTarget } from '../ui/ProofMarks.js'
 
 // Visually-hidden text — announced to screen readers, off-screen visually.
 const SR_ONLY: CSSProperties = {
@@ -153,7 +153,8 @@ export const MonitorView = memo(({
 
           {/* Secondary metrics — stacked under the FPS, left-aligned, fine separation */}
           {(panels.has('vitals') || panels.has('memory')) && (
-            <div style={{ ...FINE, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
+            <div style={{ ...SUBSECTION_GAP, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
+              <span style={{ gridColumn: '1 / -1' }}><ProofDivider kind="minor" /></span>
               {panels.has('vitals') && (['lcp', 'inp', 'cls'] as const).map((key) => {
                 const v = snapshot.webVitals[key]
                 const poor = !!v && v.rating !== 'good'
@@ -229,8 +230,9 @@ export const MonitorView = memo(({
       )}
 
       {/* AUDITS — SEO + AEO scores on the same grid; click opens the tab */}
-      <div style={{ ...DIVIDER, paddingBottom: 14 }}>
-        <div style={SUBKICKER}>audits</div>
+      <div style={{ ...SECTION_GAP, paddingBottom: 14 }}>
+        <ProofDivider kind="major" />
+        <div style={{ ...SUBKICKER, marginTop: 8 }}>audits</div>
         {/* Two chips only — a 2-col grid (not the 3-col STAT_GRID) so the vibe
             label never truncates at the panel's default 320px width. */}
         <div style={{ ...STAT_GRID, gridTemplateColumns: '1fr 1fr' }}>
@@ -241,8 +243,9 @@ export const MonitorView = memo(({
 
       {/* ISSUES — count heading + borderless tick rows */}
       {panels.has('issues') && (
-        <div style={DIVIDER}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={SECTION_GAP}>
+          <ProofDivider kind="major" />
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 }}>
             <div style={KICKER}>
               <span data-wcgw-proof-marks-heading={mode === 'vibe' ? '' : undefined}>
                 {mode === 'vibe' ? 'proof marks' : 'issues'}
