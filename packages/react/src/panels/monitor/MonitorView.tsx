@@ -244,7 +244,9 @@ export const MonitorView = memo(({
         <div style={DIVIDER}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={KICKER}>
-              {mode === 'vibe' ? 'problems' : 'issues'}
+              <span data-wcgw-proof-marks-heading={mode === 'vibe' ? '' : undefined}>
+                {mode === 'vibe' ? 'proof marks' : 'issues'}
+              </span>
               {activeCount > 0 && <span style={{ color: T.textSecondary, marginLeft: 6, fontWeight: 600 }}>{activeCount}</span>}
             </div>
             {activeCount > 0 && (
