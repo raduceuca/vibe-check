@@ -5,8 +5,10 @@ import {
   CropTicks,
   ProofControlStrip,
   ProofLabel,
+  ProofRail,
   RegistrationConstellation,
   RegistrationTarget,
+  StructuralRuleMark,
 } from './ProofMarks'
 
 describe('proof marks', () => {
@@ -42,6 +44,31 @@ describe('proof marks', () => {
     expect(markup).toContain('PROOF 01')
     expect(markup).toContain('data-vc-calibration-ruler')
     expect(markup).toContain('data-vc-registration-target')
+  })
+
+  it('composes a numbered section proof rail from the shared marks', () => {
+    const markup = renderToStaticMarkup(
+      <ProofRail label="PROOF 03" weight="section" />,
+    )
+
+    expect(markup).toContain('data-vc-proof-rail="section"')
+    expect(markup).toContain('PROOF 03')
+    expect(markup).toContain('data-vc-proof-control-strip')
+    expect(markup).toContain('data-vc-crop-ticks="top-left"')
+    expect(markup).toContain('data-vc-registration-target')
+  })
+
+  it('renders colored structural marks and neutral cut terminals', () => {
+    const markup = renderToStaticMarkup(
+      <>
+        <StructuralRuleMark orientation="horizontal" color />
+        <StructuralRuleMark orientation="vertical" />
+      </>,
+    )
+
+    expect(markup).toContain('data-vc-structural-rule="horizontal"')
+    expect(markup).toContain('data-vc-rule-color="true"')
+    expect(markup).toContain('data-vc-structural-rule="vertical"')
   })
 
   it('renders a decorative registration constellation', () => {

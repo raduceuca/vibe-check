@@ -4,6 +4,20 @@ interface ProofMarkProps {
   readonly className?: string
 }
 
+interface ProofRailProps extends ProofMarkProps {
+  readonly label: string
+  readonly weight?: 'hero' | 'section' | 'compact'
+}
+
+interface ProofControlStripProps extends ProofMarkProps {
+  readonly weight?: 'hero' | 'section' | 'compact'
+}
+
+interface StructuralRuleMarkProps extends ProofMarkProps {
+  readonly orientation?: 'horizontal' | 'vertical'
+  readonly color?: boolean
+}
+
 const CONTROL_PATCHES = [
   { ink: 'c', width: 7 },
   { ink: 'm', width: 10 },
@@ -27,12 +41,15 @@ interface ProofLabelProps extends ProofMarkProps {
   readonly children: ReactNode
 }
 
-export const ProofControlStrip = ({ className }: ProofMarkProps) => (
+export const ProofControlStrip = ({
+  className,
+  weight = 'hero',
+}: ProofControlStripProps) => (
   <span
     className={className}
     aria-hidden="true"
     data-vc-proof-control-strip=""
-    data-vc-proof-weight="hero"
+    data-vc-proof-weight={weight}
     style={{ display: 'inline-flex' }}
   >
     {CONTROL_PATCHES.map(({ ink, width }, index) => (
@@ -43,6 +60,37 @@ export const ProofControlStrip = ({ className }: ProofMarkProps) => (
         style={{ background: `var(--vc-proof-${ink})`, width }}
       />
     ))}
+  </span>
+)
+
+export const ProofRail = ({
+  className,
+  label,
+  weight = 'section',
+}: ProofRailProps) => (
+  <span className={className} data-vc-proof-rail={weight} aria-hidden="true">
+    <CropTicks />
+    <ProofControlStrip weight={weight} />
+    <ProofLabel>{label}</ProofLabel>
+    <span data-vc-proof-rule="" />
+    <RegistrationTarget />
+  </span>
+)
+
+export const StructuralRuleMark = ({
+  className,
+  orientation = 'horizontal',
+  color = false,
+}: StructuralRuleMarkProps) => (
+  <span
+    className={className}
+    data-vc-structural-rule={orientation}
+    data-vc-rule-color={color ? 'true' : undefined}
+    aria-hidden="true"
+  >
+    <i />
+    <i />
+    {color ? <ProofControlStrip weight="compact" /> : null}
   </span>
 )
 
