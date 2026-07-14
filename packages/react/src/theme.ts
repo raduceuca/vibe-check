@@ -82,7 +82,9 @@ export const ANIMATIONS_CSS = `
 [data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="m"] { transform: translate(1px,-0.4px); }
 [data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="y"] { transform: translate(0.3px,0.8px); }
 [data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
-[data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
+[data-wcgw-pill]:hover {
+  background: linear-gradient(rgba(var(--wcgw-fg),0.06), rgba(var(--wcgw-fg),0.06)), var(--wcgw-bg) !important;
+}
 [data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
 /* Background-based hover (not a filter): most buttons are transparent, so a
    brightness filter did nothing visible while still forcing filter compositing
