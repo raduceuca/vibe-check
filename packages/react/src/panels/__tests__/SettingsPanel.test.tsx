@@ -99,7 +99,7 @@ describe('SettingsPanel', () => {
     />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Export impact as Markdown' }))
-    expect(onCopyImpact).toHaveBeenCalledWith(expect.stringContaining('helped verify 1 fixes'))
+    expect(onCopyImpact).toHaveBeenCalledWith(expect.stringContaining('helped verify 1 fix'))
     fireEvent.click(screen.getByRole('button', { name: 'Reset impact stats' }))
     expect(onResetImpact).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Confirm reset impact stats' }))

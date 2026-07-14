@@ -420,7 +420,7 @@ test('persists a verified fix and reopens its regression', async ({ page }) => {
     await expect(page.getByLabel('VibeCheck impact')).toContainText('2 verified fixes', {
       timeout: 10_000,
     })
-    await expect(page.getByLabel('VibeCheck impact')).toContainText('1 regressions caught')
+    await expect(page.getByLabel('VibeCheck impact')).toContainText('1 regression caught')
 
     await restartHub()
     expect(await projectImpact(appAUrl)).toEqual(beforeRestart)

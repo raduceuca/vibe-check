@@ -173,10 +173,10 @@ const RecordingShell = () => {
       <section data-testid="vibe-check-demo-impact" style={cardStyle}>
         <div style={labelStyle}>Persisted project impact</div>
         <strong style={{ display: 'block', marginTop: 12, color: '#4ade80', fontSize: 17 }}>
-          {impact?.verifiedFixes ?? 0} verified fixes
+          {impact?.verifiedFixes === 1 ? '1 verified fix' : `${impact?.verifiedFixes ?? 0} verified fixes`}
         </strong>
         <div style={{ marginTop: 7, color: '#d4d4d8', fontSize: 14 }}>
-          {impact?.regressionsCaught ?? 0} regressions caught
+          {impact?.regressionsCaught === 1 ? '1 regression caught' : `${impact?.regressionsCaught ?? 0} regressions caught`}
         </div>
         {impact?.metrics.map((metric) => (
           <div key={metric.kind} style={{ marginTop: 7, color: '#a1a1aa', fontSize: 13 }}>

@@ -17,7 +17,7 @@ const impact: ProjectImpactSummary = {
 describe('impact exports', () => {
   it('creates privacy-safe Markdown and exact JSON', () => {
     const markdown = formatImpactMarkdown(impact)
-    expect(markdown).toContain('helped verify 1 fixes')
+    expect(markdown).toContain('helped verify 1 fix')
     expect(markdown).not.toMatch(/session|filesystem|\/Users\//i)
     expect(JSON.parse(formatImpactJson(impact))).toEqual(impact)
   })

@@ -15,6 +15,9 @@ const statStyle = {
   fontVariantNumeric: 'tabular-nums',
 } as const
 
+const countLabel = (value: number, singular: string, plural = `${singular}s`): string =>
+  `${value} ${value === 1 ? singular : plural}`
+
 export const ImpactCard = ({ impact, compact, onCopy }: ImpactCardProps) => {
   const metrics = compact ? impact.metrics.slice(0, 1) : impact.metrics
   return (
@@ -32,8 +35,12 @@ export const ImpactCard = ({ impact, compact, onCopy }: ImpactCardProps) => {
         Project impact
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-        <div style={{ ...statStyle, color: T.green }}>{impact.verifiedFixes} verified fixes</div>
-        <div style={{ ...statStyle, color: T.yellow }}>{impact.regressionsCaught} regressions caught</div>
+        <div style={{ ...statStyle, color: T.green }}>
+          {countLabel(impact.verifiedFixes, 'verified fix', 'verified fixes')}
+        </div>
+        <div style={{ ...statStyle, color: T.yellow }}>
+          {countLabel(impact.regressionsCaught, 'regression')} caught
+        </div>
       </div>
       {metrics.length > 0 && (
         <div style={{ display: 'grid', gap: 5, marginTop: 8 }}>

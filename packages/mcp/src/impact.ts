@@ -32,6 +32,9 @@ const METRIC_COPY: Readonly<Record<ImpactMetricKind, {
   },
 }
 
+const countLabel = (value: number, singular: string, plural = `${singular}s`): string =>
+  `${value} ${value === 1 ? singular : plural}`
+
 export const impactReceiptId = (
   issueKey: string,
   occurrence: number,
@@ -112,7 +115,7 @@ export const deriveProjectImpact = (
 }
 
 const impactSentence = (impact: ProjectImpactSummary): string =>
-  `VibeCheck caught ${impact.regressionsCaught} regressions and helped verify ${impact.verifiedFixes} fixes.`
+  `VibeCheck caught ${countLabel(impact.regressionsCaught, 'regression')} and helped verify ${countLabel(impact.verifiedFixes, 'fix', 'fixes')}.`
 
 export const formatImpactMarkdown = (impact: ProjectImpactSummary): string => {
   const metrics = impact.metrics.map((metric) =>
@@ -124,8 +127,8 @@ export const formatImpactMarkdown = (impact: ProjectImpactSummary): string => {
     '',
     impactSentence(impact),
     '',
-    `- ${impact.uniqueIssuesFixed} unique issues fixed`,
-    `- ${impact.verificationFailures} verification failures caught`,
+    `- ${countLabel(impact.uniqueIssuesFixed, 'unique issue')} fixed`,
+    `- ${countLabel(impact.verificationFailures, 'verification failure')} caught`,
     ...metrics,
   ].join('\n') + '\n'
 }
@@ -133,8 +136,8 @@ export const formatImpactMarkdown = (impact: ProjectImpactSummary): string => {
 export const formatImpactHuman = (impact: ProjectImpactSummary): string => [
   `VibeCheck impact — ${impact.projectId}`,
   impactSentence(impact),
-  `${impact.uniqueIssuesFixed} unique issues fixed`,
-  `${impact.verificationFailures} verification failures caught`,
+  `${countLabel(impact.uniqueIssuesFixed, 'unique issue')} fixed`,
+  `${countLabel(impact.verificationFailures, 'verification failure')} caught`,
   ...impact.metrics.map((metric) =>
     `${metric.value} ${metric.unit} ${metric.label} (${metric.scope})${
       metric.confidence === 'estimated' ? ' — estimated' : ''
