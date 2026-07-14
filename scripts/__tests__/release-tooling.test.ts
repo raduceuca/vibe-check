@@ -316,6 +316,15 @@ describe('GitHub release and monitoring workflows', () => {
       'fetch-depth': 0,
       'persist-credentials': false,
     })
+    const steps = workflow.jobs.release.steps as Array<{ name?: string; run?: string }>
+    const buildLibrariesIndex = steps.findIndex((step) => step.name === 'Build workspace libraries for app type-checks')
+    const typeCheckIndex = steps.findIndex((step) => step.name === 'Type-check packages and apps')
+
+    expect(buildLibrariesIndex).toBeGreaterThan(-1)
+    expect(typeCheckIndex).toBeGreaterThan(buildLibrariesIndex)
+    expect(steps[buildLibrariesIndex]?.run).toBe(
+      'pnpm --filter @wcgw/vibe-check-protocol --filter @wcgw/vibe-check-core --filter @wcgw/vibe-check build',
+    )
     expect(source).not.toContain('NPM_TOKEN')
     expect(source).toContain('npm@11.5.1')
     expect(source).not.toContain('npm@^11.5.1')
