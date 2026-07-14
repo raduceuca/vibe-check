@@ -15,6 +15,7 @@ import {
   type HeapMemory,
 } from '@wcgw/vibe-check-core'
 import { CalibrationRuler } from '@/components/brand/ProofMarks'
+import { LANDING_COPY } from '@/lib/landingCopy'
 
 // ── Live gauges — the always-measuring layer ─────────────────────────────────
 // The measurement half of the story the bestiary tells the catching half of.
@@ -147,9 +148,9 @@ export const LiveGauges = () => {
     <div className="vc-gauges" aria-label="Live performance readings for this page">
       <div className="vc-gauges-head">
         <span className="vc-gauges-live" aria-hidden="true" />
-        <span className="vc-gauges-live-label">Live · this page, right now</span>
+        <span className="vc-gauges-live-label">{LANDING_COPY.gauges.header}</span>
         <CalibrationRuler className="vc-gauges-ruler" />
-        <span className="vc-gauges-note">read straight off the collectors the widget ships</span>
+        <span className="vc-gauges-note">{LANDING_COPY.gauges.note}</span>
       </div>
       <div className="vc-gauges-grid">
         {gauges.map((g, index) => {

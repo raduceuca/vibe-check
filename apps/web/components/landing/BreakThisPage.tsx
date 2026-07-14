@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LANDING_COPY } from '@/lib/landingCopy'
 
 // ── Real fault triggers ───────────────────────────────────────────────────────
 // Each button induces a genuine performance fault on THIS page; the live widget
 // in the corner catches it. Reuses the anti-pattern shapes from the demo app.
-// "Reset the instrument" undoes every fault and returns the page to calm.
+// "Clear the proof" undoes every fault and returns the page to register.
 
 const DUPLICATE_URL = '/vibe-check/duplicate-probe'
 const INJECT_NODE_COUNT = 10_000
@@ -199,10 +200,10 @@ export const BreakThisPage = () => {
           type="button"
           className="vc-btn vc-btn-ok"
           onClick={reset}
-          title="Undo every fault and return the widget to calm green."
+          title="Clear every fault and bring the page back into register."
         >
           <span className="vc-btn-dot" />
-          <span>Reset the instrument</span>
+          <span>{LANDING_COPY.demo.reset}</span>
         </button>
       </div>
 
@@ -210,7 +211,7 @@ export const BreakThisPage = () => {
         <span className="vc-live-dot" data-armed={armed.size > 0} />
         {armed.size > 0
           ? `${armed.size} fault${armed.size > 1 ? 's' : ''} live — watch the corner widget catch ${armed.size > 1 ? 'them' : 'it'}.`
-          : 'Calm at rest. Trip a fault above; the widget in the corner notices within a few seconds.'}
+          : LANDING_COPY.demo.calm}
       </div>
 
       {/* Bounded sink for injected DOM nodes so the page stays usable. */}
