@@ -198,6 +198,12 @@ html {
   width: 100%;
   color: var(--vc-ink-4);
 }
+[data-vc-proof-weight='hero'] {
+  height: 8px;
+}
+[data-vc-proof-weight='hero'] i {
+  height: 7px;
+}
 [data-vc-proof-weight='section'] {
   height: 6px;
 }

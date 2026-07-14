@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import {
@@ -12,6 +13,11 @@ import {
 } from './ProofMarks'
 
 describe('proof marks', () => {
+  const globalStyles = readFileSync(
+    new URL('../../app/global.css', import.meta.url),
+    'utf8',
+  )
+
   it('renders a varied, theme-driven control strip', () => {
     const markup = renderToStaticMarkup(<ProofControlStrip className="strip" />)
 
@@ -28,6 +34,17 @@ describe('proof marks', () => {
     const markup = renderToStaticMarkup(<ProofControlStrip />)
 
     expect(markup).toContain('data-vc-proof-weight="hero"')
+  })
+
+  it('defines visible dimensions for the semantic hero weight', () => {
+    expect(
+      /\[data-vc-proof-weight='hero'\]\s*{\s*height: 8px;/.test(globalStyles),
+    ).toBe(true)
+    expect(
+      /\[data-vc-proof-weight='hero'\] i\s*{\s*height: 7px;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
   })
 
   it('renders reusable proof-control furniture', () => {
@@ -59,16 +76,18 @@ describe('proof marks', () => {
   })
 
   it('renders colored structural marks and neutral cut terminals', () => {
-    const markup = renderToStaticMarkup(
-      <>
-        <StructuralRuleMark orientation="horizontal" color />
-        <StructuralRuleMark orientation="vertical" />
-      </>,
+    const coloredMarkup = renderToStaticMarkup(
+      <StructuralRuleMark orientation="horizontal" color />,
+    )
+    const neutralMarkup = renderToStaticMarkup(
+      <StructuralRuleMark orientation="vertical" />,
     )
 
-    expect(markup).toContain('data-vc-structural-rule="horizontal"')
-    expect(markup).toContain('data-vc-rule-color="true"')
-    expect(markup).toContain('data-vc-structural-rule="vertical"')
+    expect(coloredMarkup).toContain('data-vc-structural-rule="horizontal"')
+    expect(coloredMarkup).toContain('data-vc-rule-color="true"')
+    expect(neutralMarkup).toContain('data-vc-structural-rule="vertical"')
+    expect(neutralMarkup).not.toContain('data-vc-rule-color="true"')
+    expect(neutralMarkup).not.toContain('data-vc-proof-control-strip')
   })
 
   it('renders a decorative registration constellation', () => {
