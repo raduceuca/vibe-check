@@ -1,31 +1,36 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { VibeIssue } from '@wcgw/vibe-check-core'
 import { createIssueStore } from '../store/issueStore.js'
 import type { IssueStore, IssueStoreState } from '../store/issueStore.js'
 
 // Singleton store instance per page (browser only)
-let sharedStore: IssueStore | null = null
+const sharedStores = new Map<string, IssueStore>()
 
-const getStore = (): IssueStore => {
+const getStore = (projectId?: string): IssueStore => {
   if (typeof window === 'undefined') {
-    return createIssueStore()
+    return createIssueStore(projectId)
   }
-  if (!sharedStore) {
-    sharedStore = createIssueStore()
-  }
-  return sharedStore
+  const key = projectId ?? ''
+  const existing = sharedStores.get(key)
+  if (existing) return existing
+  const store = createIssueStore(projectId)
+  sharedStores.set(key, store)
+  return store
 }
 
 /** Reset singleton — for testing only */
 export const __resetIssueStore = (): void => {
-  sharedStore = null
+  sharedStores.clear()
 }
 
-export const useIssueStore = (liveIssues: readonly VibeIssue[]) => {
-  const store = useRef(getStore()).current
+export const useIssueStore = (liveIssues: readonly VibeIssue[], projectId?: string) => {
+  const store = useMemo(() => getStore(projectId), [projectId])
   const [state, setState] = useState<IssueStoreState>(store.getState)
 
-  useEffect(() => store.subscribe(setState), [store])
+  useEffect(() => {
+    setState(store.getState())
+    return store.subscribe(setState)
+  }, [store])
 
   // Sync live issues into the store
   useEffect(() => {

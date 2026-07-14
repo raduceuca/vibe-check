@@ -23,6 +23,10 @@ export interface IssueStoreState {
 const STORAGE_KEY = 'vibe-check:issues'
 const MAX_ISSUES = 200
 
+export const issueStorageKey = (projectId?: string): string => projectId
+  ? `${STORAGE_KEY}:${encodeURIComponent(projectId)}`
+  : STORAGE_KEY
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const isValidTrackedIssue = (item: unknown): item is TrackedIssue => {
@@ -39,10 +43,10 @@ const isValidTrackedIssue = (item: unknown): item is TrackedIssue => {
   )
 }
 
-const readFromStorage = (): IssueStoreState => {
+const readFromStorage = (storageKey: string): IssueStoreState => {
   try {
     if (typeof localStorage === 'undefined') return { issues: [], clearedIds: [] }
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey)
     if (!raw) return { issues: [], clearedIds: [] }
     const parsed = JSON.parse(raw) as Partial<IssueStoreState>
     return {
@@ -56,10 +60,10 @@ const readFromStorage = (): IssueStoreState => {
   }
 }
 
-const writeToStorage = (state: IssueStoreState): void => {
+const writeToStorage = (storageKey: string, state: IssueStoreState): void => {
   try {
     if (typeof localStorage === 'undefined') return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(storageKey, JSON.stringify(state))
   } catch {
     // Storage full or unavailable — silently continue
   }
@@ -89,8 +93,9 @@ export interface IssueStore {
   getResolved(): readonly TrackedIssue[]
 }
 
-export const createIssueStore = (): IssueStore => {
-  let state = readFromStorage()
+export const createIssueStore = (projectId?: string): IssueStore => {
+  const storageKey = issueStorageKey(projectId)
+  let state = readFromStorage(storageKey)
   const listeners = new Set<StoreListener>()
 
   const notify = (): void => {
@@ -101,7 +106,7 @@ export const createIssueStore = (): IssueStore => {
 
   const update = (next: IssueStoreState): void => {
     state = next
-    writeToStorage(state)
+    writeToStorage(storageKey, state)
     notify()
   }
 

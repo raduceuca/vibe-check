@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type {
   BeaconStatus,
   DispatchIssueResponse,
+  TrackedProjectIssue,
   SuggestionMode,
   VibeIssue,
 } from '@wcgw/vibe-check-core'
@@ -24,6 +25,8 @@ interface IssueActionsProps {
   readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved?: (issueId: string) => void
+  readonly workflow?: TrackedProjectIssue | null
+  readonly onRequestVerification?: (issueId: string) => Promise<void>
 }
 
 const DELIVERY_LABEL: Partial<Record<DeliveryState, string>> = {
@@ -64,13 +67,21 @@ export const IssueActions = ({
   onDispatch,
   onMarkSent,
   onMarkResolved,
+  workflow = null,
+  onRequestVerification,
 }: IssueActionsProps) => {
   const [delivery, setDelivery] = useState<DeliveryState>('idle')
+  const [verification, setVerification] = useState<'idle' | 'requesting' | 'failed'>('idle')
   const suggestion = getSuggestionCached(tracked.issue, mode)
   const canDispatch = beaconStatus?.lastOk === true
     && (beaconStatus.projectStatus?.state === 'watching'
       || beaconStatus.projectStatus?.state === 'busy')
-  const sent = tracked.status === 'sent-to-agent' || delivery === 'dispatched'
+  const workflowSent = workflow?.phase === 'sent'
+    || workflow?.phase === 'working'
+    || workflow?.phase === 'verifying'
+    || workflow?.phase === 'fixed'
+  const sent = tracked.status === 'sent-to-agent' || workflowSent || delivery === 'dispatched'
+  const fixed = tracked.status === 'resolved' || workflow?.phase === 'fixed'
 
   const handleDispatch = async (): Promise<void> => {
     setDelivery('sending')
@@ -89,11 +100,22 @@ export const IssueActions = ({
     }
   }
 
+  const handleVerification = async (): Promise<void> => {
+    if (!onRequestVerification) return
+    setVerification('requesting')
+    try {
+      await onRequestVerification(tracked.issue.id)
+      setVerification('idle')
+    } catch {
+      setVerification('failed')
+    }
+  }
+
   const deliveryLabel = DELIVERY_LABEL[delivery]
 
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-      {tracked.status !== 'resolved' && (
+      {!fixed && (
         <Button
           size="sm"
           disabled={!canDispatch || delivery === 'sending' || sent}
@@ -104,7 +126,13 @@ export const IssueActions = ({
           testId={`vibe-check-send-${tracked.issue.id}`}
           title={sent ? 'This issue was sent to the connected agent' : dispatchTitle(beaconStatus, canDispatch)}
         >
-          {delivery === 'sending' ? 'Sending…' : sent ? 'Sent' : 'Send to agent'}
+          {delivery === 'sending'
+            ? 'Sending…'
+            : workflow?.phase === 'working'
+              ? 'With agent'
+              : workflow?.phase === 'verifying'
+                ? 'Verifying'
+                : sent ? 'Sent' : 'Send to agent'}
         </Button>
       )}
       <CopyButton
@@ -112,7 +140,22 @@ export const IssueActions = ({
         onClick={() => { void onCopy(suggestion.prompt, tracked.issue.id) }}
         label="Copy prompt"
       />
-      {onMarkResolved && tracked.status !== 'resolved' && (
+      {onRequestVerification && workflow && !fixed ? (
+        <Button
+          variant="success"
+          size="sm"
+          disabled={workflow.phase === 'verifying' || verification === 'requesting'}
+          onClick={(event) => {
+            event.stopPropagation()
+            void handleVerification()
+          }}
+          icon={<ResolveIcon />}
+        >
+          {workflow.phase === 'verifying' || verification === 'requesting'
+            ? (mode === 'vibe' ? 'checking fix…' : 'verifying…')
+            : (mode === 'vibe' ? 'check this fix' : 'verify fix')}
+        </Button>
+      ) : onMarkResolved && !fixed && (
         <Button
           variant="success"
           size="sm"
@@ -124,6 +167,11 @@ export const IssueActions = ({
         >
           {mode === 'vibe' ? 'mark as fixed' : 'resolve'}
         </Button>
+      )}
+      {verification === 'failed' && (
+        <span role="status" style={{ color: T.red, fontSize: 13 }}>
+          verification failed
+        </span>
       )}
       {deliveryLabel && delivery !== 'sending' && (
         <span

@@ -15,6 +15,7 @@ export { useWebVitals } from './hooks/useWebVitals.js'
 export { useMemory } from './hooks/useMemory.js'
 export { useDetectedIssues } from './hooks/useDetectedIssues.js'
 export { useIssueStore } from './hooks/useIssueStore.js'
+export { useIssueWorkflow } from './hooks/useIssueWorkflow.js'
 export { usePreferences } from './hooks/usePreferences.js'
 export { useClipboard } from './hooks/useClipboard.js'
 
@@ -33,4 +34,8 @@ export type {
   SuggestionMode,
   Suggestion,
   ProactivePrompt,
+  IssuePhase,
+  IssueWorkflowEvent,
+  TrackedProjectIssue,
+  ProjectWorkflow,
 } from '@wcgw/vibe-check-core'

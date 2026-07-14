@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { AgentPanel } from '../AgentPanel.js'
-import type { BeaconStatus, DispatchIssueResponse, VibeIssue } from '@wcgw/vibe-check-core'
+import type {
+  BeaconStatus,
+  DispatchIssueResponse,
+  ProjectWorkflow,
+  TrackedProjectIssue,
+  VibeIssue,
+} from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../../store/issueStore.js'
 
 const issue: VibeIssue = {
@@ -57,5 +63,55 @@ describe('AgentPanel delivery', () => {
     fireEvent.click(screen.getByRole('button', { name: /send to agent/i }))
     await waitFor(() => expect(screen.getByText('queue full')).toBeTruthy())
     expect(onMarkSent).not.toHaveBeenCalled()
+  })
+
+  it('groups durable phases and keeps regressions actionable', () => {
+    const workflowIssue = (
+      id: string,
+      phase: TrackedProjectIssue['phase'],
+    ): TrackedProjectIssue => ({
+      issueKey: `stable-${id}`,
+      pageUrl: 'http://project-a/pricing',
+      issue: { ...issue, id, title: `Issue ${id}` },
+      occurrenceIds: [id],
+      phase,
+      occurrenceCount: phase === 'regressed' ? 2 : 1,
+      regressionCount: phase === 'regressed' ? 1 : 0,
+      verificationMisses: 0,
+      firstSeenAt: 1,
+      lastSeenAt: 2,
+      events: [{
+        type: phase === 'regressed' ? 'regressed' : phase === 'fixed' ? 'fixed' : 'working',
+        at: 2,
+        occurrence: 1,
+      }],
+    })
+    const workflow: ProjectWorkflow = {
+      schemaVersion: 1,
+      projectId: 'project-a',
+      revision: 4,
+      issues: [
+        workflowIssue('regressed', 'regressed'),
+        workflowIssue('working', 'working'),
+        workflowIssue('fixed', 'fixed'),
+      ],
+    }
+
+    render(<AgentPanel
+      tracked={[]} workflow={workflow} workflowStale mode="technical"
+      copiedId={null} onCopy={vi.fn(async () => true)}
+      beaconUrl="http://127.0.0.1:4200" beaconStatus={connected}
+      onDispatch={vi.fn()} onMarkSent={vi.fn()} onMarkResolved={vi.fn()}
+      onRequestVerification={vi.fn(async () => undefined)}
+      onClearResolved={vi.fn()} onHideFixed={vi.fn()}
+    />)
+
+    expect(screen.getByRole('tab', { name: /active \(1\)/i })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /in progress \(1\)/i })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /resolved \(1\)/i })).toBeTruthy()
+    expect(screen.getByText(/last known/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Issue regressed/i }))
+    expect(screen.getByText(/Occurrence 2/i)).toBeTruthy()
+    expect(screen.getByText(/Regressed 1 time/i)).toBeTruthy()
   })
 })

@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef, memo, type CSSProper
 import type { VibeIssue, BeaconStatus, DispatchIssueResponse, VibeEngine } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
+import { useIssueWorkflow } from './hooks/useIssueWorkflow.js'
 import { usePreferences } from './hooks/usePreferences.js'
 import { useClipboard } from './hooks/useClipboard.js'
 import { useFpsHistory } from './hooks/useFpsHistory.js'
@@ -58,13 +59,29 @@ export const VibeCheck = memo(({
   storageKey,
 }: VibeCheckProps) => {
   useAnimations()
+  const resolvedProjectId = projectId ?? (
+    typeof window !== 'undefined' && window.location.origin !== 'null'
+      ? window.location.origin
+      : undefined
+  )
   const [activeView, setActiveView] = useState<ViewTab>('monitor')
   const config = useMemo(() => beaconUrl ? { beaconUrl, projectId } : undefined, [beaconUrl, projectId])
   const { engine, snapshot } = useVibeCheck(config, enabled, providedEngine)
-  const { prefs, updatePrefs, toggleMode } = usePreferences(storageKey, projectId, startCollapsed)
+  const { prefs, updatePrefs, toggleMode } = usePreferences(
+    storageKey,
+    projectId,
+    startCollapsed,
+  )
   const collapsed = prefs.collapsed
   const { copiedId, copy } = useClipboard()
-  const { tracked, markSent, markResolved, clearResolved, clearAll } = useIssueStore(snapshot.issues)
+  const { tracked, markSent, markResolved, clearResolved, clearAll } = useIssueStore(
+    snapshot.issues,
+    projectId,
+  )
+  const issueWorkflow = useIssueWorkflow({
+    beaconUrl,
+    projectId: resolvedProjectId,
+  })
   const mode = prefs.mode
 
   // ── Focus management ───────────────────────────────────────────────────────
@@ -108,10 +125,18 @@ export const VibeCheck = memo(({
     return Promise.resolve({
       ok: false,
       code: 'unconfigured',
-      projectId: projectId ?? 'unknown-project',
+      projectId: resolvedProjectId ?? 'unknown-project',
       queueDepth: 0,
     })
-  }, [engine, projectId])
+  }, [engine, resolvedProjectId])
+
+  const handleMarkResolved = useCallback((issueId: string): void => {
+    if (beaconUrl && resolvedProjectId) {
+      void issueWorkflow.requestVerification(issueId)
+      return
+    }
+    markResolved(issueId)
+  }, [beaconUrl, issueWorkflow.requestVerification, markResolved, resolvedProjectId])
 
   const reportedRef = useRef(new Set<string>())
   useEffect(() => {
@@ -133,9 +158,17 @@ export const VibeCheck = memo(({
   const hKey = healthKey(snapshot)
   const hColor = sevVar(hKey)
 
-  const activeCount = tracked.filter((t) => t.status === 'new').length
-  const seoCount = tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
-  const aeoCount = tracked.filter((t) => t.issue.detector === 'aeo' && t.status === 'new').length
+  const actionableWorkflowIssues = issueWorkflow.workflow?.issues.filter(
+    (item) => item.phase === 'detected' || item.phase === 'regressed',
+  )
+  const activeCount = actionableWorkflowIssues?.length
+    ?? tracked.filter((t) => t.status === 'new').length
+  const seoCount = actionableWorkflowIssues
+    ? actionableWorkflowIssues.filter((item) => item.issue.detector === 'seo').length
+    : tracked.filter((t) => t.issue.detector === 'seo' && t.status === 'new').length
+  const aeoCount = actionableWorkflowIssues
+    ? actionableWorkflowIssues.filter((item) => item.issue.detector === 'aeo').length
+    : tracked.filter((t) => t.issue.detector === 'aeo' && t.status === 'new').length
   // Stable identity so React.memo(BottomNav) skips re-render on pure FPS ticks.
   const navCounts = useMemo(
     () => ({ agent: activeCount, seo: seoCount, aeo: aeoCount }),
@@ -159,7 +192,7 @@ export const VibeCheck = memo(({
       beaconStatus={beaconStatus}
       onDispatch={handleDispatch}
       onMarkSent={handleMarkSent}
-      onMarkResolved={markResolved}
+      onMarkResolved={handleMarkResolved}
     />
   )
 
@@ -237,6 +270,8 @@ export const VibeCheck = memo(({
             <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
               <AgentPanel
                 tracked={tracked}
+                workflow={issueWorkflow.workflow}
+                workflowStale={issueWorkflow.stale}
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
@@ -244,8 +279,10 @@ export const VibeCheck = memo(({
                 beaconStatus={beaconStatus}
                 onDispatch={handleDispatch}
                 onMarkSent={handleMarkSent}
-                onMarkResolved={markResolved}
+                onMarkResolved={handleMarkResolved}
+                onRequestVerification={issueWorkflow.requestVerification}
                 onClearResolved={clearResolved}
+                onHideFixed={issueWorkflow.hideFixed}
               />
             </div>
           )}
