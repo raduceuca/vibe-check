@@ -1153,6 +1153,10 @@ html {
   bottom: 10px;
   transform: scaleY(-1);
 }
+.vc-docs #nd-sidebar .vc-side-rail-mark-top,
+.vc-docs #nd-sidebar-mobile .vc-side-rail-mark-top {
+  top: 6px;
+}
 .vc-docs #nd-sidebar-mobile .vc-side-rail-marks {
   inset: 0 auto 0 -1px;
 }

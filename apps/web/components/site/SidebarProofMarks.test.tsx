@@ -128,6 +128,14 @@ describe('sidebar proof marks', () => {
     ).toBe(true)
   })
 
+  it('keeps the Fumadocs top terminal above the sidebar toggle hit area', () => {
+    expect(
+      /\.vc-docs #nd-sidebar \.vc-side-rail-mark-top,\s*\.vc-docs #nd-sidebar-mobile \.vc-side-rail-mark-top\s*{[^}]*top: 6px;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+  })
+
   it('gives only Fumadocs mobile sidebar triggers a 40px minimum hit area', () => {
     expect(
       globalStyles.includes(
