@@ -1104,6 +1104,7 @@ html {
    ════════════════════════════════════════════════════════════════════════════ */
 :root {
   --vc-side-w: 232px;
+  --vc-side-boundary-inset: 23px;
 }
 
 /* Shell: sticky sidebar + fluid content column */
@@ -1131,7 +1132,8 @@ html {
 }
 .vc-side,
 .vc-side-drawer,
-.vc-docs #nd-sidebar {
+.vc-docs #nd-sidebar,
+.vc-docs #nd-sidebar-mobile {
   isolation: isolate;
 }
 .vc-side-rail-marks {
@@ -1150,6 +1152,19 @@ html {
 .vc-side-rail-mark-bottom {
   bottom: 10px;
   transform: scaleY(-1);
+}
+.vc-docs #nd-sidebar-mobile .vc-side-rail-marks {
+  inset: 0 auto 0 -1px;
+}
+.vc-docs #nd-sidebar-mobile .vc-side-rail-mark {
+  right: auto;
+  left: 0;
+}
+.vc-docs #nd-sidebar-mobile .vc-side-rail-mark-top {
+  transform: scaleX(-1);
+}
+.vc-docs #nd-sidebar-mobile .vc-side-rail-mark-bottom {
+  transform: scale(-1, -1);
 }
 .vc-side-scroll {
   flex: 1 1 auto;
@@ -1339,10 +1354,22 @@ html {
   margin-top: 18px;
 }
 .vc-side-boundary {
+  --vc-side-boundary-local-inset: var(--vc-side-boundary-inset);
   display: block;
-  margin: 12px 9px 6px;
-  width: calc(100% - 18px);
+  margin: 12px 0 6px;
+  margin-inline: var(--vc-side-boundary-local-inset);
+  width: calc(
+    100% - var(--vc-side-boundary-local-inset) -
+      var(--vc-side-boundary-local-inset)
+  );
   pointer-events: none;
+}
+.vc-side-scroll .vc-side-boundary {
+  --vc-side-boundary-local-inset: calc(var(--vc-side-boundary-inset) - 14px);
+}
+.vc-docs #nd-sidebar .vc-side-boundary,
+.vc-docs #nd-sidebar-mobile .vc-side-boundary {
+  --vc-side-boundary-local-inset: calc(var(--vc-side-boundary-inset) - 16px);
 }
 .vc-side-boundary-footer {
   margin-block: 0;
@@ -1497,6 +1524,11 @@ html {
   background: var(--vc-bg);
   border-inline-end: 1px solid var(--vc-line-2);
   font-family: var(--vc-sans);
+}
+.vc-docs #nd-subnav > button:has(> .lucide-panel-left),
+.vc-docs #nd-sidebar-mobile button:has(> .lucide-panel-left) {
+  min-width: 40px;
+  min-height: 40px;
 }
 /* Active item — match SiteSidebar exactly: whisper-quiet panel pill, bold ink, and
    a short fault-red tick at the left edge. Fumadocs' own ::before bar is
