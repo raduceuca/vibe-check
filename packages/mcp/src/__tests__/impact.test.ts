@@ -53,6 +53,7 @@ const workflow: ProjectWorkflow = {
   projectId: 'project-a',
   revision: 10,
   impactResetAt: null,
+  impactReceipts: [],
   issues: [tracked],
 }
 

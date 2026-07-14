@@ -9,6 +9,7 @@ import {
   findProjectIssue,
   getActiveIssues,
   getProjectStatus,
+  getProjectWorkflow,
   heartbeatLease,
   listActiveProjects,
   markLeaseBusy,
@@ -17,6 +18,7 @@ import {
   releaseLease,
   resolveProjectIssue,
 } from '../hubStore.js'
+import { deriveProjectImpact } from '../impact.js'
 import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../types.js'
 
 const makeIssue = (id = 'dom-1'): VibeIssue => ({
@@ -183,5 +185,52 @@ describe('hubStore', () => {
     hub = resolveProjectIssue(hub, 'project-a', 'history-1', 4_000)
     expect(findProjectIssue(hub, 'project-a', 'history-1')?.id).toBe('history-1')
     expect(getActiveIssues(hub, 'missing')).toEqual([])
+  })
+
+  it('records measured impact only when browser evidence confirms a fix', () => {
+    const duplicate: VibeIssue = {
+      ...makeIssue('duplicate-1'),
+      detector: 'duplicate-requests',
+      evidence: { count: 5, url: '/api/menu', method: 'GET' },
+    }
+    const measuredSnapshot = (
+      timestamp: number,
+      issues: readonly VibeIssue[],
+      domNodeCount: number,
+      transferKB: number,
+    ): VibeSnapshot => ({
+      ...makeSnapshot(issues),
+      timestamp,
+      domNodeCount,
+      resources: { ...makeSnapshot().resources, totalTransferKB: transferKB },
+    })
+    const envelope = (snapshot: VibeSnapshot): ProjectSnapshotEnvelope => ({
+      ...makeEnvelope('project-a', 'browser-a'),
+      snapshot,
+    })
+
+    let hub = recordSnapshot(
+      createHubStore(),
+      envelope(measuredSnapshot(10, [duplicate], 1_200, 900)),
+      10,
+    )
+    hub = acquireLease(hub, 'project-a', 'agent-a', 11).store
+    hub = dispatchIssue(hub, 'project-a', 'http://project-a/fixture', duplicate, 12).store
+    hub = dequeueIssue(hub, 'project-a', 'agent-a', 13).store
+    hub = resolveProjectIssue(hub, 'project-a', duplicate.id, 14)
+    hub = recordSnapshot(hub, envelope(measuredSnapshot(20, [], 800, 600)), 20)
+    hub = recordSnapshot(hub, envelope(measuredSnapshot(21, [], 800, 600)), 21)
+
+    const workflow = getProjectWorkflow(hub, 'project-a')
+    if (!workflow) throw new Error('Expected workflow')
+    expect(deriveProjectImpact(workflow, workflow.impactReceipts)).toMatchObject({
+      uniqueIssuesFixed: 1,
+      verifiedFixes: 1,
+      metrics: expect.arrayContaining([
+        expect.objectContaining({ kind: 'duplicate-requests-removed', value: 4 }),
+        expect.objectContaining({ kind: 'dom-nodes-reduced', value: 400 }),
+        expect.objectContaining({ kind: 'transfer-kb-reduced', value: 300 }),
+      ]),
+    })
   })
 })

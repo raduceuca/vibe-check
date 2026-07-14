@@ -5,6 +5,8 @@ import {
   type VibeStore,
 } from './store.js'
 import { getStableIssueKey } from '@wcgw/vibe-check-protocol'
+import { appendImpactReceipts } from './impact.js'
+import { createImpactReceipts, type ImpactBaseline } from './impactAdapters.js'
 import {
   createProjectWorkflow,
   markWorkflowDispatched,
@@ -51,6 +53,7 @@ export interface HubProject {
   readonly instances: ReadonlyMap<string, BrowserInstance>
   readonly store: VibeStore
   readonly workflow: ProjectWorkflow
+  readonly impactBaselines: ReadonlyMap<string, ImpactBaseline>
   readonly queue: readonly QueuedIssue[]
   readonly lease: AgentLease | null
   readonly conflictAt: number | null
@@ -123,15 +126,34 @@ export const recordSnapshot = (
     lastSeenAt: now,
   })
 
+  const previousWorkflow = current?.workflow ?? restoredWorkflow ?? createProjectWorkflow(envelope.projectId)
+  const recordedWorkflow = recordWorkflowSnapshot(previousWorkflow, envelope, now)
+  const previousByKey = new Map(previousWorkflow.issues.map((tracked) => [tracked.issueKey, tracked]))
+  const newlyFixed = recordedWorkflow.issues.filter((tracked) =>
+    tracked.phase === 'fixed' && previousByKey.get(tracked.issueKey)?.phase === 'verifying')
+  const verifyingIssueKeys = newlyFixed.map((tracked) => tracked.issueKey)
+  const impactBaselines = new Map(current?.impactBaselines ?? [])
+  const impactReceipts = newlyFixed.flatMap((tracked) => {
+    const baseline = impactBaselines.get(tracked.issueKey)
+    return baseline ? createImpactReceipts({
+      tracked,
+      baseline,
+      verification: envelope,
+      verifyingIssueKeys,
+    }) : []
+  })
+  for (const tracked of newlyFixed) impactBaselines.delete(tracked.issueKey)
+  const workflow = impactReceipts.length > 0 ? {
+    ...recordedWorkflow,
+    impactReceipts: appendImpactReceipts(recordedWorkflow.impactReceipts, impactReceipts),
+  } : recordedWorkflow
+
   const project: HubProject = {
     projectId: envelope.projectId,
     instances,
     store: updateSnapshot(current?.store ?? createStore(), envelope.snapshot),
-    workflow: recordWorkflowSnapshot(
-      current?.workflow ?? restoredWorkflow ?? createProjectWorkflow(envelope.projectId),
-      envelope,
-      now,
-    ),
+    workflow,
+    impactBaselines,
     queue: current?.queue ?? [],
     lease: current?.lease ?? null,
     conflictAt: current?.conflictAt ?? null,
@@ -330,8 +352,12 @@ export const dispatchIssue = (
     queue[queue.length - 1]!.issueKey,
     now,
   )
+  const impactBaselines = new Map(project.impactBaselines).set(
+    queue[queue.length - 1]!.issueKey,
+    { pageUrl, snapshot: project.store.latestSnapshot },
+  )
   return {
-    store: replaceProject(store, { ...project, queue, workflow }),
+    store: replaceProject(store, { ...project, queue, workflow, impactBaselines }),
     result: { ok: true, code: 'dispatched', projectId, queueDepth: queue.length },
   }
 }

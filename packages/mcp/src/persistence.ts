@@ -34,11 +34,34 @@ const trackedProjectIssueSchema = z.object({
   events: z.array(workflowEventSchema).max(50),
 })
 
+const impactReceiptSchema = z.object({
+  id: z.string().min(1),
+  issueKey: z.string().min(1),
+  occurrence: z.number().int().min(1),
+  detector: issueSchema.shape.detector,
+  pageUrl: z.string(),
+  baselineSnapshotAt: z.number(),
+  verificationSnapshotAt: z.number(),
+  kind: z.enum([
+    'duplicate-requests-removed',
+    'console-calls-reduced',
+    'dom-nodes-reduced',
+    'transfer-kb-reduced',
+    'blocking-ms-reduced',
+  ]),
+  before: z.number().finite(),
+  after: z.number().finite(),
+  delta: z.number().positive(),
+  unit: z.enum(['requests', 'calls', 'nodes', 'KB', 'ms']),
+  confidence: z.enum(['measured', 'estimated']),
+})
+
 const projectWorkflowSchema = z.object({
   schemaVersion: z.literal(1),
   projectId: z.string().min(1),
   revision: z.number().int().min(0),
   impactResetAt: z.number().nullable().default(null),
+  impactReceipts: z.array(impactReceiptSchema).max(1_000).default([]),
   issues: z.array(trackedProjectIssueSchema).max(200),
 })
 

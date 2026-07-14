@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createProjectWorkflow } from '../workflow.js'
 import { readPersistedWorkflow, writePersistedWorkflow } from '../persistence.js'
-import type { ProjectWorkflow } from '../types.js'
+import type { ImpactReceipt, ProjectWorkflow } from '../types.js'
 
 let root = ''
 
@@ -24,7 +24,26 @@ const workflowFor = (projectId: string, revision = 1): ProjectWorkflow => ({
 describe('workflow persistence', () => {
   it('round-trips versioned atomic state without leaving temporary files', async () => {
     const statePath = join(root, '.vibecheck/state.json')
-    const workflow = workflowFor('storefront', 4)
+    const receipt: ImpactReceipt = {
+      id: 'receipt-1',
+      issueKey: 'issue-key',
+      occurrence: 1,
+      detector: 'duplicate-requests',
+      pageUrl: 'http://localhost/menu',
+      baselineSnapshotAt: 1,
+      verificationSnapshotAt: 2,
+      kind: 'duplicate-requests-removed',
+      before: 4,
+      after: 0,
+      delta: 4,
+      unit: 'requests',
+      confidence: 'measured',
+    }
+    const workflow = {
+      ...workflowFor('storefront', 4),
+      impactResetAt: 3,
+      impactReceipts: [receipt],
+    }
     await writePersistedWorkflow(statePath, workflow)
 
     await expect(readPersistedWorkflow(statePath, 'storefront')).resolves.toEqual(workflow)

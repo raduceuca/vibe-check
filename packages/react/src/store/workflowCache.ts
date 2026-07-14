@@ -15,6 +15,7 @@ export const isProjectWorkflow = (value: unknown): value is ProjectWorkflow => {
     && typeof candidate.projectId === 'string'
     && typeof candidate.revision === 'number'
     && (candidate.impactResetAt === null || typeof candidate.impactResetAt === 'number')
+    && Array.isArray(candidate.impactReceipts)
     && Array.isArray(candidate.issues)
 }
 

@@ -9,6 +9,7 @@ const cached: ProjectWorkflow = {
   projectId: 'project-a',
   revision: 3,
   impactResetAt: null,
+  impactReceipts: [],
   issues: [],
 }
 

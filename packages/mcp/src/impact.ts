@@ -47,7 +47,7 @@ export const appendImpactReceipts = (
 ): readonly ImpactReceipt[] => {
   const byId = new Map(current.map((receipt) => [receipt.id, receipt]))
   for (const receipt of incoming) byId.set(receipt.id, receipt)
-  return [...byId.values()]
+  return [...byId.values()].slice(-1_000)
 }
 
 const median = (values: readonly number[]): number | null => {

@@ -16,6 +16,7 @@ export const createProjectWorkflow = (projectId: string): ProjectWorkflow => ({
   projectId,
   revision: 0,
   impactResetAt: null,
+  impactReceipts: [],
   issues: [],
 })
 

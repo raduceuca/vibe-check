@@ -463,6 +463,7 @@ export interface ProjectWorkflow {
   readonly projectId: string
   readonly revision: number
   readonly impactResetAt: number | null
+  readonly impactReceipts: readonly ImpactReceipt[]
   readonly issues: readonly TrackedProjectIssue[]
 }
 

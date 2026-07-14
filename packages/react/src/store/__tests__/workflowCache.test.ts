@@ -44,6 +44,7 @@ const workflow = (
   projectId,
   revision: 1,
   impactResetAt: null,
+  impactReceipts: [],
   issues: [issueRecord],
 })
 
