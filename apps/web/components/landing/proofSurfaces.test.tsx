@@ -11,9 +11,18 @@ describe('landing proof surfaces', () => {
     )
 
     expect(markup).toContain('data-vc-section-proof="03"')
-    expect(markup).toContain('data-vc-proof-rail="section"')
+    expect(markup.match(/data-vc-proof-rail="section"/g)).toHaveLength(1)
     expect(markup).toContain('PROOF 03')
     expect(markup).not.toContain('PLATE 03')
+    expect(markup).toContain('<h2>Every pass, measured</h2>')
+  })
+
+  it('omits the proof rail when a section is unindexed', () => {
+    const markup = renderToStaticMarkup(
+      <SectionHead title="Every pass, measured" sub="live control strip" />,
+    )
+
+    expect(markup).not.toContain('data-vc-proof-rail')
     expect(markup).toContain('<h2>Every pass, measured</h2>')
   })
 

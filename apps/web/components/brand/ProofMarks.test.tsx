@@ -75,6 +75,19 @@ describe('proof marks', () => {
     expect(markup).toContain('data-vc-registration-target')
   })
 
+  it('sizes section crop tick strokes to the section crop container', () => {
+    expect(
+      /\[data-vc-proof-rail='section'\] \[data-vc-crop-ticks\] i:first-child\s*{\s*width: 10px;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+    expect(
+      /\[data-vc-proof-rail='section'\] \[data-vc-crop-ticks\] i:last-child\s*{\s*height: 10px;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+  })
+
   it('renders colored structural marks and neutral cut terminals', () => {
     const coloredMarkup = renderToStaticMarkup(
       <StructuralRuleMark orientation="horizontal" color />,

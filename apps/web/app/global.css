@@ -220,6 +220,12 @@ html {
   width: 10px;
   height: 10px;
 }
+[data-vc-proof-rail='section'] [data-vc-crop-ticks] i:first-child {
+  width: 10px;
+}
+[data-vc-proof-rail='section'] [data-vc-crop-ticks] i:last-child {
+  height: 10px;
+}
 [data-vc-proof-rail='section'] [data-vc-registration-target] {
   width: 16px;
   height: 16px;
