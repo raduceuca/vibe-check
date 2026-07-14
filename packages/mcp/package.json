@@ -1,6 +1,6 @@
 {
   "name": "@wcgw/vibe-check-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Project-isolated local hub and MCP bridge for VibeCheck browser issues",
   "main": "./dist/lib.cjs",

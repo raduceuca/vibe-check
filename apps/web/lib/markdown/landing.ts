@@ -46,8 +46,8 @@ Drop in the widget:
 
 Connect your coding agent over MCP:
 
-    npx -y @wcgw/vibe-check-mcp@0.2.0 hub
-    claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+    npx -y @wcgw/vibe-check-mcp@0.3.0 hub
+    claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
 
 Nine project-scoped MCP tools, an \`llms.txt\`, and a Claude skill ship in the box. Zero runtime deps in core · open source · MIT.
 

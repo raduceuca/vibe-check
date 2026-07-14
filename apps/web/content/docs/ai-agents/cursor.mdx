@@ -5,7 +5,7 @@ description: Add the VibeCheck MCP server to Cursor.
 
 Cursor reads MCP servers from a JSON file. Add one for VibeCheck and Cursor's
 agent gets all nine tools. Start the shared hub separately with
-`npx -y @wcgw/vibe-check-mcp@0.2.0 hub`.
+`npx -y @wcgw/vibe-check-mcp@0.3.0 hub`.
 
 ## Project config
 
@@ -16,7 +16,7 @@ Create `.cursor/mcp.json` at the root of your project:
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp@0.2.0", "connect"]
+      "args": ["-y", "@wcgw/vibe-check-mcp@0.3.0", "connect"]
     }
   }
 }

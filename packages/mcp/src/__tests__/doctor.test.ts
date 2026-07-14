@@ -43,7 +43,7 @@ const status = (
 })
 
 const makeClient = (overrides: Partial<HubClient> = {}): HubClient => ({
-  health: async () => ({ status: 'ok', service: 'vibe-check-hub', version: '0.2.0' }),
+  health: async () => ({ status: 'ok', service: 'vibe-check-hub', version: '0.3.0' }),
   listProjects: async () => [project()],
   getSnapshot: async () => snapshot,
   getProjectStatus: async () => status(),
@@ -79,7 +79,7 @@ describe('runDoctor', () => {
       level: 'fail',
       message: `Cannot reach the VibeCheck hub at ${HUB_URL}.`,
     })
-    expect(report.nextSteps).toContain('Start the hub: npx -y @wcgw/vibe-check-mcp@0.2.0 hub')
+    expect(report.nextSteps).toContain('Start the hub: npx -y @wcgw/vibe-check-mcp@0.3.0 hub')
   })
 
   it('fails closed when several projects exist and none was selected', async () => {
@@ -136,7 +136,7 @@ describe('runDoctor', () => {
     expect(report.nextSteps.join('\n')).toContain('claude mcp add --scope local')
     expect(report.nextSteps.join('\n')).toContain('.cursor/mcp.json')
     expect(report.nextSteps.join('\n')).toContain('"vibe-check"')
-    expect(report.nextSteps.join('\n')).toContain('@wcgw/vibe-check-mcp@0.2.0')
+    expect(report.nextSteps.join('\n')).toContain('@wcgw/vibe-check-mcp@0.3.0')
     expect(report.nextSteps.join('\n')).toContain('project_id "project-a"')
   })
 

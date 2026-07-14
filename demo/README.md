@@ -10,7 +10,7 @@ Start the demo and the shared hub in separate terminals:
 
 ```bash
 pnpm dev                                # from demo/ — http://localhost:5173
-npx -y @wcgw/vibe-check-mcp@0.2.0 hub   # shared local hub on 127.0.0.1:4200
+npx -y @wcgw/vibe-check-mcp@0.3.0 hub   # shared local hub on 127.0.0.1:4200
 ```
 
 The page uses project ID `vibe-check-demo` and beacons to
@@ -53,8 +53,8 @@ the bridge once, then restart your agent client. The commands for the first two
 clients are:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
 ```
 
 For Cursor, merge the card's `vibe-check` entry into `mcpServers` in
@@ -69,4 +69,4 @@ When the widget says **Agent connected**, open **Agent**, expand a detected
 issue, and click **Send to agent**. The pending tool call returns that issue and
 its fix guide. **Copy prompt** remains a clipboard-only fallback. If the state
 does not turn green, run
-`npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project vibe-check-demo`.
+`npx -y @wcgw/vibe-check-mcp@0.3.0 doctor --project vibe-check-demo`.
