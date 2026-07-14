@@ -410,10 +410,59 @@ export interface TrackedProjectIssue {
   readonly events: readonly IssueWorkflowEvent[]
 }
 
+export type ImpactConfidence = 'measured' | 'estimated'
+
+export type ImpactMetricKind =
+  | 'duplicate-requests-removed'
+  | 'console-calls-reduced'
+  | 'dom-nodes-reduced'
+  | 'transfer-kb-reduced'
+  | 'blocking-ms-reduced'
+
+export type ImpactUnit = 'requests' | 'calls' | 'nodes' | 'KB' | 'ms'
+
+export interface ImpactReceipt {
+  readonly id: string
+  readonly issueKey: string
+  readonly occurrence: number
+  readonly detector: DetectorName
+  readonly pageUrl: string
+  readonly baselineSnapshotAt: number
+  readonly verificationSnapshotAt: number
+  readonly kind: ImpactMetricKind
+  readonly before: number
+  readonly after: number
+  readonly delta: number
+  readonly unit: ImpactUnit
+  readonly confidence: ImpactConfidence
+}
+
+export interface ImpactMetric {
+  readonly kind: ImpactMetricKind
+  readonly value: number
+  readonly unit: ImpactUnit
+  readonly confidence: ImpactConfidence
+  readonly label: string
+  readonly scope: string
+}
+
+export interface ProjectImpactSummary {
+  readonly projectId: string
+  readonly detected: number
+  readonly sent: number
+  readonly uniqueIssuesFixed: number
+  readonly verifiedFixes: number
+  readonly regressionsCaught: number
+  readonly verificationFailures: number
+  readonly medianFixTimeMs: number | null
+  readonly metrics: readonly ImpactMetric[]
+}
+
 export interface ProjectWorkflow {
   readonly schemaVersion: 1
   readonly projectId: string
   readonly revision: number
+  readonly impactResetAt: number | null
   readonly issues: readonly TrackedProjectIssue[]
 }
 

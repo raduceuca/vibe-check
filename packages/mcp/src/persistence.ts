@@ -38,6 +38,7 @@ const projectWorkflowSchema = z.object({
   schemaVersion: z.literal(1),
   projectId: z.string().min(1),
   revision: z.number().int().min(0),
+  impactResetAt: z.number().nullable().default(null),
   issues: z.array(trackedProjectIssueSchema).max(200),
 })
 

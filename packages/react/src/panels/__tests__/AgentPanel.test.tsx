@@ -90,6 +90,7 @@ describe('AgentPanel delivery', () => {
       schemaVersion: 1,
       projectId: 'project-a',
       revision: 4,
+      impactResetAt: null,
       issues: [
         workflowIssue('regressed', 'regressed'),
         workflowIssue('working', 'working'),

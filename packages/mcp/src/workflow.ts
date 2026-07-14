@@ -15,6 +15,7 @@ export const createProjectWorkflow = (projectId: string): ProjectWorkflow => ({
   schemaVersion: 1,
   projectId,
   revision: 0,
+  impactResetAt: null,
   issues: [],
 })
 

@@ -39,7 +39,13 @@ const tracked = (
 const workflow = (
   projectId: string,
   issueRecord: TrackedProjectIssue,
-): ProjectWorkflow => ({ schemaVersion: 1, projectId, revision: 1, issues: [issueRecord] })
+): ProjectWorkflow => ({
+  schemaVersion: 1,
+  projectId,
+  revision: 1,
+  impactResetAt: null,
+  issues: [issueRecord],
+})
 
 describe('workflow cache', () => {
   beforeEach(() => localStorage.clear())

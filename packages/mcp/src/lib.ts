@@ -11,6 +11,7 @@ export {
   type ProjectRegistryEntry,
 } from './projectRegistry.js'
 export { readPersistedWorkflow, writePersistedWorkflow } from './persistence.js'
+export { appendImpactReceipts, deriveProjectImpact, impactReceiptId } from './impact.js'
 export { createMcpServer, type McpServerContext } from './mcpServer.js'
 export {
   compactWorkflowIssues,
@@ -66,6 +67,12 @@ export type {
   IssueWorkflowEvent,
   TrackedProjectIssue,
   ProjectWorkflow,
+  ImpactConfidence,
+  ImpactMetricKind,
+  ImpactUnit,
+  ImpactReceipt,
+  ImpactMetric,
+  ProjectImpactSummary,
   LeaseResult,
   AgentClientId,
   AgentClientSetup,

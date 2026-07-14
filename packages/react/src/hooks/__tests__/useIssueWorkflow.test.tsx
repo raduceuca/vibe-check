@@ -8,6 +8,7 @@ const cached: ProjectWorkflow = {
   schemaVersion: 1,
   projectId: 'project-a',
   revision: 3,
+  impactResetAt: null,
   issues: [],
 }
 
