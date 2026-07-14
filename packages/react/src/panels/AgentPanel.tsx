@@ -4,6 +4,7 @@ import type {
   BeaconStatus,
   DispatchIssueResponse,
   IssuePhase,
+  ProjectImpactSummary,
   ProjectWorkflow,
   SuggestionMode,
   TrackedProjectIssue,
@@ -22,11 +23,13 @@ import { EmptyState } from './ui/EmptyState.js'
 import { Tabs, type TabItem } from './ui/Tabs.js'
 import { AgentConnectionStatus } from './AgentConnectionStatus.js'
 import { IssueProgress } from './IssueProgress.js'
+import { ImpactCard } from './ImpactCard.js'
 
 interface AgentPanelProps {
   readonly tracked: readonly TrackedIssue[]
   readonly workflow?: ProjectWorkflow | null
   readonly workflowStale?: boolean
+  readonly impact?: ProjectImpactSummary | null
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
@@ -148,7 +151,7 @@ const IssueRow = ({
 }
 
 export const AgentPanel = memo(({
-  tracked, workflow = null, workflowStale = false, mode, copiedId, onCopy,
+  tracked, workflow = null, workflowStale = false, impact = null, mode, copiedId, onCopy,
   beaconUrl, beaconStatus, onDispatch, onMarkSent, onMarkResolved,
   onRequestVerification, onClearResolved, onHideFixed,
 }: AgentPanelProps) => {
@@ -186,6 +189,13 @@ export const AgentPanel = memo(({
   return (
     <div style={{ paddingTop: 4 }}>
       <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
+      {impact && (
+        <ImpactCard
+          impact={impact}
+          compact={false}
+          onCopy={(text) => onCopy(text, 'impact-summary')}
+        />
+      )}
       <SectionHeader
         count={active.length}
         action={currentIssues.length > 0 ? (

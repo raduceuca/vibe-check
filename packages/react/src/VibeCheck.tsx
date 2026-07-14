@@ -3,6 +3,7 @@ import type { VibeIssue, BeaconStatus, DispatchIssueResponse, VibeEngine } from 
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
 import { useIssueWorkflow } from './hooks/useIssueWorkflow.js'
+import { useProjectImpact } from './hooks/useProjectImpact.js'
 import { usePreferences } from './hooks/usePreferences.js'
 import { useClipboard } from './hooks/useClipboard.js'
 import { useFpsHistory } from './hooks/useFpsHistory.js'
@@ -79,6 +80,10 @@ export const VibeCheck = memo(({
     projectId,
   )
   const issueWorkflow = useIssueWorkflow({
+    beaconUrl,
+    projectId: resolvedProjectId,
+  })
+  const projectImpact = useProjectImpact({
     beaconUrl,
     projectId: resolvedProjectId,
   })
@@ -263,7 +268,7 @@ export const VibeCheck = memo(({
         <div data-testid="vibe-check-body" style={{ height: 'min(420px, calc(100vh - 168px))', overflowY: 'auto', overscrollBehavior: 'contain', padding: '10px 16px 14px' }}>
 
           {activeView === 'monitor' && (
-            <MonitorView snapshot={snapshot} mode={mode} tracked={tracked} panels={ps} theme={prefs.theme} history={fpsHistory} onOpenView={setActiveView} />
+            <MonitorView snapshot={snapshot} mode={mode} tracked={tracked} panels={ps} theme={prefs.theme} history={fpsHistory} onOpenView={setActiveView} impact={projectImpact.impact} />
           )}
 
           {activeView === 'agent' && (
@@ -272,6 +277,7 @@ export const VibeCheck = memo(({
                 tracked={tracked}
                 workflow={issueWorkflow.workflow}
                 workflowStale={issueWorkflow.stale}
+                impact={projectImpact.impact}
                 mode={mode}
                 copiedId={copiedId}
                 onCopy={copy}
@@ -337,7 +343,19 @@ export const VibeCheck = memo(({
 
           {activeView === 'settings' && (
             <div style={{ animation: `vc-fade-in ${T.durationFast} ${T.ease}` }}>
-              <SettingsPanel prefs={prefs} onUpdate={updatePrefs} mode={mode} onToggleMode={toggleMode} beaconUrl={beaconUrl} beaconStatus={beaconStatus} onClearAll={clearAll} defaultPosition={position} />
+              <SettingsPanel
+                prefs={prefs}
+                onUpdate={updatePrefs}
+                mode={mode}
+                onToggleMode={toggleMode}
+                beaconUrl={beaconUrl}
+                beaconStatus={beaconStatus}
+                onClearAll={clearAll}
+                defaultPosition={position}
+                impact={projectImpact.impact}
+                onCopyImpact={(text) => copy(text, 'impact-export')}
+                onResetImpact={projectImpact.resetImpact}
+              />
             </div>
           )}
         </div>

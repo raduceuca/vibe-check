@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SettingsPanel } from '../SettingsPanel.js'
 import type { VibeCheckPreferences } from '../../store/preferences.js'
+import type { ProjectImpactSummary } from '@wcgw/vibe-check-core'
 
 const prefs: VibeCheckPreferences = {
   mode: 'technical',
@@ -81,5 +82,27 @@ describe('SettingsPanel', () => {
       collapsedPosition: null,
       expandedPosition: null,
     })
+  })
+
+  it('exports and separately confirms resetting persisted impact', () => {
+    const impact: ProjectImpactSummary = {
+      projectId: 'storefront', detected: 2, sent: 1, uniqueIssuesFixed: 1,
+      verifiedFixes: 1, regressionsCaught: 0, verificationFailures: 0,
+      medianFixTimeMs: 1_000, metrics: [],
+    }
+    const onCopyImpact = vi.fn()
+    const onResetImpact = vi.fn()
+    render(<SettingsPanel
+      prefs={prefs} onUpdate={vi.fn()} mode="technical" onToggleMode={vi.fn()}
+      beaconStatus={null} onClearAll={vi.fn()} defaultPosition="bottom-right"
+      impact={impact} onCopyImpact={onCopyImpact} onResetImpact={onResetImpact}
+    />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export impact as Markdown' }))
+    expect(onCopyImpact).toHaveBeenCalledWith(expect.stringContaining('helped verify 1 fixes'))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset impact stats' }))
+    expect(onResetImpact).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm reset impact stats' }))
+    expect(onResetImpact).toHaveBeenCalledOnce()
   })
 })

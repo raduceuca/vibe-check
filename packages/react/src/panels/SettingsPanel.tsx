@@ -1,5 +1,5 @@
-import { memo, type CSSProperties } from 'react'
-import type { SuggestionMode, BeaconStatus } from '@wcgw/vibe-check-core'
+import { memo, useState, type CSSProperties } from 'react'
+import type { SuggestionMode, BeaconStatus, ProjectImpactSummary } from '@wcgw/vibe-check-core'
 import { T } from '../tokens.js'
 import { Button } from './ui/Button.js'
 import { sectionLabelStyle } from './ui/SectionHeader.js'
@@ -9,6 +9,7 @@ import { ModeToggle } from './ui/ModeToggle.js'
 import { AgentConnectionStatus } from './AgentConnectionStatus.js'
 import { PositionPicker } from './ui/PositionPicker.js'
 import type { Position } from './types.js'
+import { formatImpactJson, formatImpactMarkdown } from '../utils/impactExport.js'
 
 interface SettingsPanelProps {
   readonly prefs: VibeCheckPreferences
@@ -19,6 +20,9 @@ interface SettingsPanelProps {
   readonly beaconStatus?: BeaconStatus | null
   readonly onClearAll: () => void
   readonly defaultPosition: Position
+  readonly impact?: ProjectImpactSummary | null
+  readonly onCopyImpact?: (text: string) => void | Promise<unknown>
+  readonly onResetImpact?: () => void | Promise<unknown>
 }
 
 const sectionTitle: CSSProperties = {
@@ -50,8 +54,12 @@ export const SettingsPanel = memo(({
   beaconStatus,
   onClearAll,
   defaultPosition,
+  impact = null,
+  onCopyImpact,
+  onResetImpact,
 }: SettingsPanelProps) => {
   const linkedPosition = prefs.expandedPosition ?? prefs.collapsedPosition ?? defaultPosition
+  const [confirmImpactReset, setConfirmImpactReset] = useState(false)
 
   return (
     <div style={{ paddingTop: 4 }}>
@@ -147,6 +155,30 @@ export const SettingsPanel = memo(({
       <div style={sectionTitle}>
         {mode === 'vibe' ? 'Data' : 'Storage'}
       </div>
+      {impact && onCopyImpact && onResetImpact && (
+        <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
+          <Button fullWidth onClick={() => { void onCopyImpact(formatImpactMarkdown(impact)) }}>
+            Export impact as Markdown
+          </Button>
+          <Button fullWidth onClick={() => { void onCopyImpact(formatImpactJson(impact)) }}>
+            Export impact as JSON
+          </Button>
+          <Button
+            variant="danger"
+            fullWidth
+            onClick={() => {
+              if (!confirmImpactReset) {
+                setConfirmImpactReset(true)
+                return
+              }
+              setConfirmImpactReset(false)
+              void onResetImpact()
+            }}
+          >
+            {confirmImpactReset ? 'Confirm reset impact stats' : 'Reset impact stats'}
+          </Button>
+        </div>
+      )}
       <Button variant="danger" fullWidth onClick={onClearAll}>
         {mode === 'vibe' ? 'clear all problems & start fresh' : 'clear all tracked issues'}
       </Button>
