@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
-import type { SuggestionMode } from '@wcgw/vibe-check-core'
+import type {
+  BeaconStatus,
+  DispatchIssueResponse,
+  SuggestionMode,
+  VibeIssue,
+} from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../store/issueStore.js'
 import { T } from '../tokens.js'
 import { getSuggestionCached } from './suggestionCache.js'
-import { CopyButton } from './ui/CopyButton.js'
-import { Button } from './ui/Button.js'
+import { IssueActions } from './IssueActions.js'
 import { CloseButton } from './ui/CloseButton.js'
 import { surfaceStyle } from './ui/surface.js'
 
@@ -17,6 +21,9 @@ interface AnnotationOverlayProps {
   readonly theme: 'dark' | 'light'
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
+  readonly beaconStatus: BeaconStatus | null
+  readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
+  readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
 }
 
@@ -156,13 +163,17 @@ const buildGroups = (
 // ── Marker badge ────────────────────────────────────────────────────────────
 
 const Marker = ({
-  group, index, mode, copiedId, onCopy, onMarkResolved, expanded, onToggle,
+  group, index, mode, copiedId, onCopy, beaconStatus, onDispatch,
+  onMarkSent, onMarkResolved, expanded, onToggle,
 }: {
   readonly group: AnnotationGroup
   readonly index: number
   readonly mode: SuggestionMode
   readonly copiedId: string | null
   readonly onCopy: (text: string, id: string) => Promise<boolean>
+  readonly beaconStatus: BeaconStatus | null
+  readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
+  readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
   readonly expanded: boolean
   readonly onToggle: () => void
@@ -270,9 +281,6 @@ const Marker = ({
           {/* Issue list */}
           {group.issues.map((t, i) => {
             const suggestion = getSuggestionCached(t.issue, mode)
-            const handleCopy = async () => {
-              await onCopy(suggestion.prompt, t.issue.id)
-            }
 
             return (
               <div key={t.issue.id} style={{
@@ -285,23 +293,16 @@ const Marker = ({
                 <div style={{ fontSize: 14, color: T.textTertiary, lineHeight: 1.5, marginBottom: 8 }}>
                   {suggestion.explanation.slice(0, 120)}{suggestion.explanation.length > 120 ? '\u2026' : ''}
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <CopyButton copied={copiedId === t.issue.id} onClick={handleCopy} size="sm" label={mode === 'vibe' ? 'copy for AI' : 'copy prompt'} />
-                  {t.status !== 'resolved' && (
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => onMarkResolved(t.issue.id)}
-                      icon={(
-                        <svg width={12} height={12} viewBox="0 0 16 16" fill="none">
-                          <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    >
-                      {mode === 'vibe' ? 'fixed' : 'resolve'}
-                    </Button>
-                  )}
-                </div>
+                <IssueActions
+                  tracked={t}
+                  mode={mode}
+                  copiedId={copiedId}
+                  beaconStatus={beaconStatus}
+                  onCopy={onCopy}
+                  onDispatch={onDispatch}
+                  onMarkSent={onMarkSent}
+                  onMarkResolved={onMarkResolved}
+                />
               </div>
             )
           })}
@@ -314,7 +315,8 @@ const Marker = ({
 // ── Main Overlay ────────────────────────────────────────────────────────────
 
 export const AnnotationOverlay = memo(({
-  tracked, visible, mode, theme, copiedId, onCopy, onMarkResolved,
+  tracked, visible, mode, theme, copiedId, onCopy, beaconStatus,
+  onDispatch, onMarkSent, onMarkResolved,
 }: AnnotationOverlayProps) => {
   const [groups, setGroups] = useState<readonly AnnotationGroup[]>([])
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
@@ -459,6 +461,9 @@ export const AnnotationOverlay = memo(({
           mode={mode}
           copiedId={copiedId}
           onCopy={onCopy}
+          beaconStatus={beaconStatus}
+          onDispatch={onDispatch}
+          onMarkSent={onMarkSent}
           onMarkResolved={onMarkResolved}
           expanded={expandedIdx === i}
           onToggle={() => setExpandedIdx(expandedIdx === i ? null : i)}

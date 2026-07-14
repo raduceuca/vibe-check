@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMcpServer } from '../mcpServer.js'
 import type { HubClient } from '../hubClient.js'
 import type { LeaseManager } from '../leaseManager.js'
-import type { ProjectSummary, QueuedIssue, VibeIssue, VibeSnapshot } from '../types.js'
+import type { ProjectImpactSummary, ProjectSummary, QueuedIssue, VibeIssue, VibeSnapshot } from '../types.js'
 
 const issue: VibeIssue = {
   id: 'dom-1',
@@ -37,10 +37,26 @@ const project = (projectId: string): ProjectSummary => ({
   agentState: 'no-agent',
 })
 
+const impact: ProjectImpactSummary = {
+  projectId: 'project-a',
+  detected: 4,
+  sent: 3,
+  uniqueIssuesFixed: 2,
+  verifiedFixes: 3,
+  regressionsCaught: 1,
+  verificationFailures: 0,
+  medianFixTimeMs: 2_000,
+  metrics: [],
+}
+
 const makeClient = (): HubClient => ({
   health: vi.fn(),
   listProjects: vi.fn(async () => [project('project-a')]),
   getSnapshot: vi.fn(async () => snapshot),
+  getWorkflow: vi.fn(async () => null),
+  getProjectImpact: vi.fn(async () => impact),
+  resetProjectImpact: vi.fn(),
+  requestVerification: vi.fn(),
   getDetectedIssues: vi.fn(async () => [issue]),
   getIssue: vi.fn(async (_projectId, issueId) => issueId === issue.id ? issue : null),
   waitForSnapshot: vi.fn(async () => snapshot),
@@ -49,6 +65,7 @@ const makeClient = (): HubClient => ({
   releaseLease: vi.fn(),
   waitForIssue: vi.fn(async (): Promise<QueuedIssue> => ({
     projectId: 'project-a',
+    issueKey: 'project-a|fixture|dom-bloat|dom-bloat',
     issue,
     snapshot,
     dispatchedAt: 10,
@@ -108,6 +125,12 @@ describe('project-scoped MCP server', () => {
     expect(JSON.parse(result.text)).toMatchObject([{ projectId: 'project-a' }])
   })
 
+  it('exposes privacy-safe project impact', async () => {
+    const result = await call(context, 'get_project_impact', { project_id: 'project-a' })
+    expect(JSON.parse(result.text)).toEqual(impact)
+    expect(result.text).not.toContain('/Users/')
+  })
+
   it('selects the only active project for existing tools', async () => {
     const result = await call(context, 'get_performance_snapshot')
     expect(JSON.parse(result.text)).toMatchObject({ domNodeCount: 5000 })
@@ -150,7 +173,12 @@ describe('project-scoped MCP server', () => {
     const issues = await call(context, 'get_detected_issues', { severity: 'warning' })
     expect(JSON.parse(issues.text)).toMatchObject({ count: 1, issues: [{ id: 'dom-1' }] })
     await call(context, 'acknowledge_issue', { issue_id: 'dom-1' })
-    await call(context, 'resolve_issue', { issue_id: 'dom-1' })
+    const resolving = await call(context, 'resolve_issue', { issue_id: 'dom-1' })
+    expect(JSON.parse(resolving.text)).toEqual({
+      verifying: true,
+      projectId: 'project-a',
+      issue_id: 'dom-1',
+    })
     expect(client.acknowledgeIssue).toHaveBeenCalledWith('project-a', 'dom-1')
     expect(client.resolveIssue).toHaveBeenCalledWith('project-a', 'dom-1')
   })

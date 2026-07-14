@@ -1,19 +1,31 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { SuggestionMode } from '@wcgw/vibe-check-core'
-import { readPreferences, writePreferences } from '../store/preferences.js'
+import { readPreferences, resolvePreferencesKey, writePreferences } from '../store/preferences.js'
 import type { VibeCheckPreferences } from '../store/preferences.js'
 
-// `storageKey` lets multiple widget instances keep separate preference buckets.
-export const usePreferences = (storageKey?: string) => {
-  const [prefs, setPrefs] = useState<VibeCheckPreferences>(() => readPreferences(storageKey))
+// `storageKey` lets callers own a preference bucket. Without one, `projectId`
+// isolates widgets from independent local projects.
+export const usePreferences = (
+  storageKey?: string,
+  projectId?: string,
+  startCollapsed = false,
+) => {
+  const resolvedKey = resolvePreferencesKey(storageKey, projectId)
+  const [prefs, setPrefs] = useState<VibeCheckPreferences>(
+    () => readPreferences(resolvedKey, startCollapsed),
+  )
+
+  useEffect(() => {
+    setPrefs(readPreferences(resolvedKey, startCollapsed))
+  }, [resolvedKey, startCollapsed])
 
   const updatePrefs = useCallback((updates: Partial<VibeCheckPreferences>) => {
     setPrefs((prev) => {
       const next = { ...prev, ...updates }
-      writePreferences(next, storageKey)
+      writePreferences(next, resolvedKey)
       return next
     })
-  }, [storageKey])
+  }, [resolvedKey])
 
   const toggleMode = useCallback(() => {
     setPrefs((prev) => {
@@ -21,10 +33,10 @@ export const usePreferences = (storageKey?: string) => {
         ...prev,
         mode: prev.mode === 'technical' ? 'vibe' as SuggestionMode : 'technical' as SuggestionMode,
       }
-      writePreferences(next, storageKey)
+      writePreferences(next, resolvedKey)
       return next
     })
-  }, [storageKey])
+  }, [resolvedKey])
 
   return { prefs, updatePrefs, toggleMode }
 }

@@ -3,6 +3,8 @@ import type {
   LeaseResult,
   ProjectSummary,
   ProjectStatus,
+  ProjectImpactSummary,
+  ProjectWorkflow,
   QueuedIssue,
   Severity,
   VibeIssue,
@@ -34,6 +36,10 @@ export interface HubClient {
   listProjects(): Promise<readonly ProjectSummary[]>
   getSnapshot(projectId: string): Promise<VibeSnapshot | null>
   getProjectStatus(projectId: string): Promise<ProjectStatus | null>
+  getWorkflow(projectId: string): Promise<ProjectWorkflow | null>
+  getProjectImpact(projectId: string): Promise<ProjectImpactSummary | null>
+  resetProjectImpact(projectId: string): Promise<void>
+  requestVerification(projectId: string, issueId: string): Promise<void>
   getDetectedIssues(
     projectId: string,
     filters?: { readonly severity?: Severity; readonly detector?: DetectorName },
@@ -101,6 +107,33 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
         `/api/projects/${encodeURIComponent(projectId)}/status`,
         undefined,
         true,
+      )
+    },
+
+    async getWorkflow(projectId): Promise<ProjectWorkflow | null> {
+      return await request<ProjectWorkflow>(
+        `/api/projects/${encodeURIComponent(projectId)}/workflow`,
+        undefined,
+        true,
+      )
+    },
+
+    async getProjectImpact(projectId): Promise<ProjectImpactSummary | null> {
+      return await request<ProjectImpactSummary>(
+        `/api/projects/${encodeURIComponent(projectId)}/impact`,
+        undefined,
+        true,
+      )
+    },
+
+    async resetProjectImpact(projectId): Promise<void> {
+      await post(`/api/projects/${encodeURIComponent(projectId)}/impact/reset`, {})
+    },
+
+    async requestVerification(projectId, issueId): Promise<void> {
+      await post(
+        `/api/projects/${encodeURIComponent(projectId)}/issues/${encodeURIComponent(issueId)}/verify`,
+        {},
       )
     },
 

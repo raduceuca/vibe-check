@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { parseSnapshot } from '../schema.js'
+import {
+  parseDispatchIssueRequest,
+  parseProjectSnapshotEnvelope,
+  parseSnapshot,
+} from '../schema.js'
 import type { VibeIssue, VibeSnapshot } from '../types.js'
 
 const makeIssue = (overrides: Partial<VibeIssue> = {}): VibeIssue => ({
@@ -57,5 +61,29 @@ describe('parseSnapshot', () => {
   it('rejects too many issues', () => {
     const many = Array.from({ length: 501 }, (_, i) => makeIssue({ id: `i-${i}` }))
     expect(parseSnapshot(makeSnapshot(many))).toBeNull()
+  })
+})
+
+describe('project browser messages', () => {
+  it('requires a bounded page URL on snapshots and dispatches', () => {
+    const envelope = {
+      projectId: 'project-a',
+      instanceId: 'browser-a',
+      origin: 'http://localhost:3000',
+      pageUrl: 'http://localhost:3000/pricing?plan=pro',
+      title: 'Pricing',
+      snapshot: makeSnapshot(),
+    }
+    const dispatch = {
+      projectId: 'project-a',
+      instanceId: 'browser-a',
+      pageUrl: 'http://localhost:3000/pricing?plan=pro',
+      issue: makeIssue(),
+    }
+
+    expect(parseProjectSnapshotEnvelope(envelope)).not.toBeNull()
+    expect(parseDispatchIssueRequest(dispatch)).not.toBeNull()
+    expect(parseProjectSnapshotEnvelope({ ...envelope, pageUrl: undefined })).toBeNull()
+    expect(parseDispatchIssueRequest({ ...dispatch, pageUrl: 'x'.repeat(2_001) })).toBeNull()
   })
 })

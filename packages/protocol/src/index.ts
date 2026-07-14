@@ -18,6 +18,8 @@
 // Record<DetectorName, …> makes that class of drift a compile error.
 // ════════════════════════════════════════════════════════════════════════════
 
+export { getStableIssueKey, normalizePageUrl } from './issueIdentity.js'
+
 // ── Enums (type + runtime list derived from one source) ─────────────────────
 
 export const SEVERITIES = ['info', 'warning', 'error', 'critical'] as const
@@ -335,6 +337,7 @@ export interface ProjectSnapshotEnvelope {
   readonly projectId: string
   readonly instanceId: string
   readonly origin: string
+  readonly pageUrl: string
   readonly title: string
   readonly snapshot: VibeSnapshot
 }
@@ -359,6 +362,7 @@ export interface ProjectStatus {
 export interface DispatchIssueRequest {
   readonly projectId: string
   readonly instanceId: string
+  readonly pageUrl: string
   readonly issue: VibeIssue
 }
 
@@ -371,9 +375,96 @@ export interface DispatchIssueResponse {
 
 export interface QueuedIssue {
   readonly projectId: string
+  readonly issueKey: string
   readonly issue: VibeIssue
   readonly snapshot: VibeSnapshot
   readonly dispatchedAt: number
+}
+
+export type IssuePhase = 'detected' | 'sent' | 'working' | 'verifying' | 'fixed' | 'regressed'
+
+export interface IssueWorkflowEvent {
+  readonly type:
+    | 'detected'
+    | 'sent'
+    | 'working'
+    | 'verification-requested'
+    | 'verification-failed'
+    | 'fixed'
+    | 'regressed'
+  readonly at: number
+  readonly occurrence: number
+}
+
+export interface TrackedProjectIssue {
+  readonly issueKey: string
+  readonly pageUrl: string
+  readonly issue: VibeIssue
+  readonly occurrenceIds: readonly string[]
+  readonly phase: IssuePhase
+  readonly occurrenceCount: number
+  readonly regressionCount: number
+  readonly verificationMisses: number
+  readonly firstSeenAt: number
+  readonly lastSeenAt: number
+  readonly events: readonly IssueWorkflowEvent[]
+}
+
+export type ImpactConfidence = 'measured' | 'estimated'
+
+export type ImpactMetricKind =
+  | 'duplicate-requests-removed'
+  | 'console-calls-reduced'
+  | 'dom-nodes-reduced'
+  | 'transfer-kb-reduced'
+  | 'blocking-ms-reduced'
+
+export type ImpactUnit = 'requests' | 'calls' | 'nodes' | 'KB' | 'ms'
+
+export interface ImpactReceipt {
+  readonly id: string
+  readonly issueKey: string
+  readonly occurrence: number
+  readonly detector: DetectorName
+  readonly pageUrl: string
+  readonly baselineSnapshotAt: number
+  readonly verificationSnapshotAt: number
+  readonly kind: ImpactMetricKind
+  readonly before: number
+  readonly after: number
+  readonly delta: number
+  readonly unit: ImpactUnit
+  readonly confidence: ImpactConfidence
+}
+
+export interface ImpactMetric {
+  readonly kind: ImpactMetricKind
+  readonly value: number
+  readonly unit: ImpactUnit
+  readonly confidence: ImpactConfidence
+  readonly label: string
+  readonly scope: string
+}
+
+export interface ProjectImpactSummary {
+  readonly projectId: string
+  readonly detected: number
+  readonly sent: number
+  readonly uniqueIssuesFixed: number
+  readonly verifiedFixes: number
+  readonly regressionsCaught: number
+  readonly verificationFailures: number
+  readonly medianFixTimeMs: number | null
+  readonly metrics: readonly ImpactMetric[]
+}
+
+export interface ProjectWorkflow {
+  readonly schemaVersion: 1
+  readonly projectId: string
+  readonly revision: number
+  readonly impactResetAt: number | null
+  readonly impactReceipts: readonly ImpactReceipt[]
+  readonly issues: readonly TrackedProjectIssue[]
 }
 
 export type LeaseResult =

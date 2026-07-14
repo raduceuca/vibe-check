@@ -1,15 +1,44 @@
+import { defaultProjectRegistryPath } from './projectRegistry.js'
+
 const DEFAULT_PORT = 4200
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_HUB_URL = 'http://127.0.0.1:4200'
+const SETUP_AGENTS = ['codex', 'claude-code', 'cursor'] as const
+
+export type SetupAgent = (typeof SETUP_AGENTS)[number]
 
 export type CliConfig =
-  | { readonly role: 'hub'; readonly host: string; readonly port: number }
+  | {
+      readonly role: 'hub'
+      readonly host: string
+      readonly port: number
+      readonly registryPath: string
+    }
   | { readonly role: 'connect'; readonly hubUrl: string }
   | {
       readonly role: 'doctor'
       readonly hubUrl: string
       readonly projectId: string | undefined
       readonly json: boolean
+    }
+  | {
+      readonly role: 'stats'
+      readonly hubUrl: string
+      readonly projectId: string
+      readonly format: 'human' | 'json' | 'markdown'
+    }
+  | {
+      readonly role: 'setup'
+      readonly agent: SetupAgent
+      readonly projectId: string | undefined
+      readonly dryRun: boolean
+      readonly force: boolean
+    }
+  | {
+      readonly role: 'register'
+      readonly projectId: string
+      readonly root: string
+      readonly registryPath: string
     }
 
 const parsePort = (value: string | undefined): number => {
@@ -27,6 +56,7 @@ export const parseCliConfig = (
       role,
       host: env['VIBE_CHECK_HOST'] ?? DEFAULT_HOST,
       port: parsePort(env['VIBE_CHECK_PORT']),
+      registryPath: env['VIBE_CHECK_REGISTRY_PATH'] ?? defaultProjectRegistryPath(),
     }
   }
   if (role === 'connect') {
@@ -65,5 +95,106 @@ export const parseCliConfig = (
       json,
     }
   }
-  throw new Error('Usage: vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor [--project <id>] [--json]')
+  if (role === 'stats') {
+    let projectId: string | undefined
+    let format: 'human' | 'json' | 'markdown' = 'human'
+    const seen = new Set<string>()
+    for (let index = 1; index < argv.length; index += 1) {
+      const option = argv[index]
+      if (!option) continue
+      if (seen.has(option)) throw new Error(`Duplicate stats option: ${option}`)
+      seen.add(option)
+      if (option === '--project') {
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Stats --project requires a project ID')
+        projectId = value
+        index += 1
+        continue
+      }
+      if (option === '--json' || option === '--markdown') {
+        if (format !== 'human') throw new Error('Stats accepts only one output format')
+        format = option === '--json' ? 'json' : 'markdown'
+        continue
+      }
+      throw new Error(`Unknown stats option: ${option}`)
+    }
+    if (!projectId) throw new Error('Stats --project is required')
+    return {
+      role,
+      hubUrl: env['VIBE_CHECK_HUB_URL'] ?? DEFAULT_HUB_URL,
+      projectId,
+      format,
+    }
+  }
+  if (role === 'setup') {
+    let agent: SetupAgent | undefined
+    let projectId: string | undefined
+    let dryRun = false
+    let force = false
+    const seen = new Set<string>()
+    for (let index = 1; index < argv.length; index += 1) {
+      const option = argv[index]
+      if (!option) continue
+      if (seen.has(option)) throw new Error(`Duplicate setup option: ${option}`)
+      if (option === '--dry-run' || option === '--force') {
+        seen.add(option)
+        if (option === '--dry-run') dryRun = true
+        if (option === '--force') force = true
+        continue
+      }
+      if (option === '--agent') {
+        seen.add(option)
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Setup --agent requires an agent')
+        if (!SETUP_AGENTS.includes(value as SetupAgent)) throw new Error(`Unknown setup agent: ${value}`)
+        agent = value as SetupAgent
+        index += 1
+        continue
+      }
+      if (option === '--project') {
+        seen.add(option)
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Setup --project requires a project ID')
+        projectId = value
+        index += 1
+        continue
+      }
+      throw new Error(`Unknown setup option: ${option}`)
+    }
+    if (!agent) throw new Error('Setup --agent is required (codex, claude-code, or cursor)')
+    return { role, agent, projectId, dryRun, force }
+  }
+  if (role === 'register') {
+    let projectId: string | undefined
+    let root = '.'
+    const seen = new Set<string>()
+    for (let index = 1; index < argv.length; index += 1) {
+      const option = argv[index]
+      if (option !== '--project' && option !== '--root') {
+        throw new Error(`Unknown register option: ${option ?? ''}`)
+      }
+      if (seen.has(option)) throw new Error(`Duplicate register option: ${option}`)
+      seen.add(option)
+      const value = argv[index + 1]
+      if (!value || value.startsWith('--')) {
+        throw new Error(`Register ${option} requires a value`)
+      }
+      if (option === '--project') projectId = value
+      else root = value
+      index += 1
+    }
+    if (!projectId) throw new Error('Register --project is required')
+    return {
+      role,
+      projectId,
+      root,
+      registryPath: env['VIBE_CHECK_REGISTRY_PATH'] ?? defaultProjectRegistryPath(),
+    }
+  }
+  throw new Error(
+    'Usage: vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor [--project <id>] [--json] | '
+    + 'vibe-check-mcp stats --project <id> [--json|--markdown] | '
+    + 'vibe-check-mcp setup --agent <codex|claude-code|cursor> [--project <id>] [--dry-run] [--force] | '
+    + 'vibe-check-mcp register --project <id> [--root <path>]',
+  )
 }

@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense, memo, type CSSProperties } from 'react'
 import type { LivelinePoint } from 'liveline'
-import type { VibeSnapshot, VibeIssue } from '@wcgw/vibe-check-core'
+import type { ProjectImpactSummary, VibeSnapshot, VibeIssue } from '@wcgw/vibe-check-core'
 import { SEO_CRITERIA_COUNT, AEO_CRITERIA_COUNT } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../../store/issueStore.js'
 import type { FpsHistory, FpsSample } from '../../hooks/useFpsHistory.js'
@@ -22,6 +22,7 @@ import { LinkButton } from '../ui/LinkButton.js'
 import { Tabs } from '../ui/Tabs.js'
 import { sevVar, sevHex, sevGlow, fpsKey, vitalKey, fmtMs } from './severity.js'
 import { FpsTrace, WINDOW_OPTIONS, CANVAS_OK } from './FpsTrace.js'
+import { ImpactCard } from '../ImpactCard.js'
 
 // Visually-hidden text — announced to screen readers, off-screen visually.
 const SR_ONLY: CSSProperties = {
@@ -101,9 +102,12 @@ interface MonitorViewProps {
   readonly theme: 'dark' | 'light'
   readonly history: FpsHistory
   readonly onOpenView: (v: ViewTab) => void
+  readonly impact?: ProjectImpactSummary | null
 }
 
-export const MonitorView = memo(({ snapshot, mode, tracked, panels, theme, history, onOpenView }: MonitorViewProps) => {
+export const MonitorView = memo(({
+  snapshot, mode, tracked, panels, theme, history, onOpenView, impact = null,
+}: MonitorViewProps) => {
   const [chartWindow, setChartWindow] = useState(30)
   // Live/5m read the full-res buffer; 15m/1h read the coarse one.
   const chartData = chartWindow <= 300 ? history.live : history.long
@@ -204,6 +208,10 @@ export const MonitorView = memo(({ snapshot, mode, tracked, panels, theme, histo
             />
           )}
         </div>
+      )}
+
+      {impact && (
+        <ImpactCard impact={impact} compact onCopy={() => undefined} />
       )}
 
       {/* AUDITS — SEO + AEO scores on the same grid; click opens the tab */}

@@ -27,6 +27,7 @@ const startHub = async (): Promise<string> => {
     projectId: 'project-a',
     instanceId: 'browser-a',
     origin: 'http://localhost:5173',
+    pageUrl: 'http://localhost:5173/fixture',
     title: 'Fixture',
     snapshot,
   }
@@ -61,14 +62,95 @@ describe('runMain', () => {
     })
   })
 
+  it('prints persisted project impact as JSON and Markdown', async () => {
+    const hubUrl = await startHub()
+    const jsonOutput: string[] = []
+    await expect(runMain(
+      ['stats', '--project', 'project-a', '--json'],
+      { VIBE_CHECK_HUB_URL: hubUrl },
+      { stdout: (value) => jsonOutput.push(value), stderr: () => undefined },
+    )).resolves.toEqual({ kind: 'exit', code: 0 })
+    expect(JSON.parse(jsonOutput.join(''))).toMatchObject({
+      projectId: 'project-a',
+      verifiedFixes: 0,
+    })
+
+    const markdownOutput: string[] = []
+    await runMain(
+      ['stats', '--project', 'project-a', '--markdown'],
+      { VIBE_CHECK_HUB_URL: hubUrl },
+      { stdout: (value) => markdownOutput.push(value), stderr: () => undefined },
+    )
+    expect(markdownOutput.join('')).toContain('VibeCheck impact — project-a')
+    expect(markdownOutput.join('')).toContain('helped verify 0 fixes')
+  })
+
   it('returns long-running hub and connect configurations without starting them', async () => {
-    await expect(runMain(['hub'], {}, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
+    await expect(runMain(['hub'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' }, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',
-      config: { role: 'hub', host: '127.0.0.1', port: 4200 },
+      config: { role: 'hub', host: '127.0.0.1', port: 4200, registryPath: '/tmp/projects.json' },
     })
     await expect(runMain(['connect'], {}, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',
       config: { role: 'connect', hubUrl: 'http://127.0.0.1:4200' },
     })
+  })
+
+  it('registers a project as a finite command', async () => {
+    const calls: unknown[] = []
+    const stdout: string[] = []
+    await expect(runMain(
+      ['register', '--project', 'storefront', '--root', './app'],
+      { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' },
+      { stdout: (value) => stdout.push(value), stderr: () => undefined },
+      {
+        cwd: '/workspace',
+        registerProject: async (registryPath, projectId, root) => {
+          calls.push({ registryPath, projectId, root })
+        },
+      },
+    )).resolves.toEqual({ kind: 'exit', code: 0 })
+    expect(calls).toEqual([{
+      registryPath: '/tmp/projects.json',
+      projectId: 'storefront',
+      root: '/workspace/app',
+    }])
+    expect(stdout.join('')).toContain('Registered VibeCheck project "storefront"')
+  })
+
+  it('runs setup as a finite command and prints actions plus next steps', async () => {
+    const stdout: string[] = []
+    const setupCalls: unknown[] = []
+    const result = await runMain(
+      ['setup', '--agent', 'codex', '--project', 'storefront', '--dry-run'],
+      {},
+      { stdout: (value) => stdout.push(value), stderr: () => undefined },
+      {
+        cwd: '/tmp/storefront',
+        version: '0.3.0',
+        runSetup: async (options) => {
+          setupCalls.push(options)
+          return {
+            projectId: 'storefront',
+            componentPath: 'src/VibeCheckDevtools.tsx',
+            actions: ['Install widget', 'Configure Codex'],
+            nextSteps: ['Mount the component', 'Start the hub'],
+          }
+        },
+      },
+    )
+
+    expect(result).toEqual({ kind: 'exit', code: 0 })
+    expect(setupCalls).toEqual([{
+      cwd: '/tmp/storefront',
+      agent: 'codex',
+      projectId: 'storefront',
+      version: '0.3.0',
+      dryRun: true,
+      force: false,
+    }])
+    expect(stdout.join('')).toContain('VibeCheck setup — storefront (dry run)')
+    expect(stdout.join('')).toContain('1. Install widget')
+    expect(stdout.join('')).toContain('1. Mount the component')
   })
 })

@@ -37,6 +37,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('VibeCheckEngine', () => {
@@ -80,6 +81,47 @@ describe('VibeCheckEngine', () => {
       },
     })
     expect(engine.isRunning()).toBe(false)
+  })
+
+  it('does not detect its configured beacon traffic as duplicate application requests', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      return url.endsWith('/status')
+        ? new Response(JSON.stringify({
+            projectId: 'project-a',
+            state: 'no-agent',
+            queueDepth: 0,
+            leaseExpiresAt: null,
+            conflictAt: null,
+          }), { status: 200 })
+        : new Response(null, { status: 200 })
+    }) as typeof fetch)
+    const engine = new VibeCheckEngine({
+      beaconUrl: 'http://127.0.0.1:4200',
+      beaconIntervalMs: 50,
+      detectors: {
+        domBloat: false,
+        duplicateRequests: true,
+        consoleSpam: false,
+        memoryLeak: false,
+        layoutThrashing: false,
+        unoptimizedImages: false,
+        longTaskAttribution: false,
+        resourceBloat: false,
+        largeImages: false,
+        webEssentials: false,
+        heavyLibrary: false,
+        seo: false,
+        aeo: false,
+      },
+    })
+
+    engine.start()
+    await vi.advanceTimersByTimeAsync(150)
+
+    expect(engine.getIssues()).toEqual([])
+
+    engine.stop()
   })
 
   it('starts and stops cleanly', () => {

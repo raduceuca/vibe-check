@@ -8,7 +8,11 @@ DOM bloat, duplicate fetches, memory leaks, unoptimized images, missing SEO/AEO
 basics — and can dispatch a detected issue directly to the one AI-agent session
 watching that project.
 
-<!-- TODO: screenshot — hero GIF of the widget expanding and flagging issues → docs/screenshots/hero.gif -->
+![Real VibeCheck widget-to-agent MCP round-trip](./apps/web/public/demo/vibe-check-agent-roundtrip.gif)
+
+This is the packed-package E2E, not a scripted UI: the real widget detects DOM
+bloat, a real MCP SDK client leases the project, and **Send to agent** delivers
+the issue before the receipt turns green.
 
 ## Packages
 
@@ -28,6 +32,22 @@ own UI. Vue/Svelte/vanilla widget adapters are not built yet; the core API below
 is the supported path until they are.
 
 ## Quick start (React)
+
+From an existing React project, scaffold the widget and one supported agent in
+one command:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@latest setup --agent codex --project my-storefront
+```
+
+Use `claude-code` or `cursor` instead of `codex` for those clients. The command
+detects your package manager, installs the matching widget version, creates
+`src/VibeCheckDevtools.tsx` (or a root-level file when there is no `src/`), and
+configures the selected MCP client without deleting existing Cursor servers.
+Mount `<VibeCheckDevtools />` once near the app root, then follow the printed hub
+and watch steps. Preview every action without changing anything with `--dry-run`.
+
+The equivalent manual widget-only setup is:
 
 ```bash
 npm install @wcgw/vibe-check
@@ -81,9 +101,12 @@ theme is available.
 - **Monitor** — live FPS lifeline, Web Vitals (LCP/INP/CLS), memory, and the SEO/AEO
   audit scores at a glance.
   <!-- TODO: screenshot → docs/screenshots/monitor.png -->
-- **Agent** — the detected-issues queue (to fix / sent / fixed). **Copy prompt**
+- **Agent** — the durable issue queue (to fix / in progress / fixed). **Copy prompt**
   only copies text. **Send to agent** dispatches the issue to the project's
-  connected watcher and moves it to *sent* only after the hub confirms delivery.
+  connected watcher. Agent pickup, browser-evidence verification, and later
+  regressions remain visible and persist per project across hub restarts. A
+  project impact card keeps verified fixes, regressions caught, and conservative
+  measured improvements ready to copy as Markdown or JSON.
   <!-- TODO: screenshot → docs/screenshots/agent.png -->
 - **SEO** — a discoverability audit (title, meta description, Open Graph, canonical,
   headings, alt text, sitemap/robots, …) scored as a pass rate.
@@ -103,8 +126,8 @@ theme is available.
 the page itself, so you see *where* a problem lives, not just that it exists.
 <!-- TODO: screenshot → docs/screenshots/annotations.png -->
 
-> Screenshots and the hero GIF still need to be captured and committed under
-> `docs/screenshots/`.
+> The tab-by-tab screenshots are still planned under `docs/screenshots/`; the
+> real end-to-end hero recording above is generated with `pnpm demo:record`.
 
 ## How it works
 
@@ -249,6 +272,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm test:clients    # Isolated Codex / Claude Code / Cursor MCP acceptance
+pnpm smoke:production # Verify the public site, docs, discovery files, and OG image
 pnpm lint            # TypeScript type-check
 pnpm test:coverage   # Coverage report
 pnpm gen:docs        # Regenerate the detector reference in the READMEs + skill

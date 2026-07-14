@@ -339,6 +339,91 @@ html {
   scroll-margin-top: 20px;
 }
 
+/* Captured from the same packed-package MCP flow exercised in CI. */
+.vc-real-demo {
+  margin: 22px 0 0;
+}
+.vc-real-demo-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--vc-line-strong);
+  border-radius: 14px;
+  background: #09090b;
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--vc-ink) 10%, transparent);
+}
+.vc-real-demo-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.vc-real-demo-proof {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid rgba(244, 244, 245, 0.2);
+  border-radius: 999px;
+  color: rgba(244, 244, 245, 0.82);
+  background: rgba(9, 9, 11, 0.76);
+  backdrop-filter: blur(8px);
+  font-family: var(--vc-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.vc-real-demo-control {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 244, 245, 0.24);
+  border-radius: 999px;
+  color: rgba(244, 244, 245, 0.9);
+  background: rgba(9, 9, 11, 0.8);
+  backdrop-filter: blur(8px);
+  font-family: var(--vc-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.vc-real-demo-control:hover,
+.vc-real-demo-control:focus-visible {
+  border-color: rgba(244, 244, 245, 0.5);
+  outline: none;
+}
+.vc-real-demo-caption {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 11px;
+  color: var(--vc-ink-3);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.vc-real-demo-caption > span {
+  max-width: 62ch;
+}
+.vc-real-demo-link {
+  flex: none;
+  white-space: nowrap;
+}
+@media (max-width: 620px) {
+  .vc-real-demo-caption {
+    display: block;
+  }
+  .vc-real-demo-link {
+    display: inline-block;
+    margin-top: 7px;
+  }
+}
+
 /* Hero */
 .vc-hero-head {
   font-size: clamp(32px, 5.8vw, 54px);

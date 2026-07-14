@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AgentConnectionStatus } from '../AgentConnectionStatus.js'
+import { AGENT_DISPLAY_COLORS, AgentConnectionStatus } from '../AgentConnectionStatus.js'
 import type { BeaconStatus } from '@wcgw/vibe-check-core'
 
 const status = (state: 'no-agent' | 'watching' | 'busy' | 'stale', conflictAt: number | null = null): BeaconStatus => ({
@@ -23,6 +23,11 @@ describe('AgentConnectionStatus', () => {
       configurable: true,
       value: { writeText },
     })
+  })
+
+  it('uses the healthy green state while the agent is connected or working', () => {
+    expect(AGENT_DISPLAY_COLORS.connected).toBe('var(--wcgw-sev-success)')
+    expect(AGENT_DISPLAY_COLORS.busy).toBe(AGENT_DISPLAY_COLORS.connected)
   })
 
   it('shows setup, offline, waiting, connected, busy, and stale states truthfully', () => {

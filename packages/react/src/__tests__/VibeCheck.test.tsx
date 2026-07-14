@@ -37,6 +37,7 @@ const { VibeCheck } = await import('../VibeCheck.js')
 describe('VibeCheck', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockUseVibeCheck.mockReturnValue({
       engine: null,
       snapshot: EMPTY_SNAPSHOT,
@@ -104,6 +105,48 @@ describe('VibeCheck', () => {
     fireEvent.click(chipHeader)
 
     expect(screen.getByTestId('vibe-check-body')).toBeTruthy()
+  })
+
+  it('restores the saved collapsed state for one project after remount', () => {
+    const first = render(<VibeCheck enabled projectId="storefront" />)
+    fireEvent.click(screen.getByTestId('vibe-check-header'))
+    expect(screen.queryByTestId('vibe-check-body')).toBeNull()
+
+    first.unmount()
+    render(<VibeCheck enabled projectId="storefront" />)
+
+    expect(screen.queryByTestId('vibe-check-body')).toBeNull()
+  })
+
+  it('uses startCollapsed only until the user saves an expanded choice', () => {
+    const first = render(<VibeCheck enabled projectId="storefront" startCollapsed />)
+    expect(screen.queryByTestId('vibe-check-body')).toBeNull()
+    fireEvent.click(screen.getByTestId('vibe-check-header'))
+    expect(screen.getByTestId('vibe-check-body')).toBeTruthy()
+
+    first.unmount()
+    render(<VibeCheck enabled projectId="storefront" startCollapsed />)
+
+    expect(screen.getByTestId('vibe-check-body')).toBeTruthy()
+  })
+
+  it('uses independent saved positions for collapsed and expanded forms', () => {
+    localStorage.setItem('vibe-check:preferences:storefront', JSON.stringify({
+      collapsed: true,
+      positionsLinked: false,
+      collapsedPosition: 'top-left',
+      expandedPosition: 'bottom-right',
+    }))
+    render(<VibeCheck enabled projectId="storefront" position="top-right" />)
+
+    let overlay = screen.getByTestId('vibe-check-overlay')
+    expect(overlay.style.top).toBe('12px')
+    expect(overlay.style.left).toBe('12px')
+    fireEvent.click(screen.getByTestId('vibe-check-header'))
+
+    overlay = screen.getByTestId('vibe-check-overlay')
+    expect(overlay.style.bottom).toBe('12px')
+    expect(overlay.style.right).toBe('12px')
   })
 
   it('applies position prop styling', () => {

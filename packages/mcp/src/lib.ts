@@ -2,7 +2,32 @@ export { createStore, updateSnapshot, acknowledgeIssue, resolveIssue, type VibeS
 export { createHubServer, type HubServerContext, type HubServerOptions } from './hubServer.js'
 export { createHubClient, HubClientError, type HubClient } from './hubClient.js'
 export { createLeaseManager, type LeaseManager } from './leaseManager.js'
+export {
+  defaultProjectRegistryPath,
+  readProjectRegistry,
+  registerProjectRoot,
+  resolveProjectRoot,
+  type ProjectRegistry,
+  type ProjectRegistryEntry,
+} from './projectRegistry.js'
+export { readPersistedWorkflow, writePersistedWorkflow } from './persistence.js'
+export {
+  appendImpactReceipts,
+  deriveProjectImpact,
+  formatImpactHuman,
+  formatImpactJson,
+  formatImpactMarkdown,
+  impactReceiptId,
+} from './impact.js'
 export { createMcpServer, type McpServerContext } from './mcpServer.js'
+export {
+  compactWorkflowIssues,
+  createProjectWorkflow,
+  markWorkflowDispatched,
+  markWorkflowWorking,
+  recordWorkflowSnapshot,
+  requestWorkflowVerification,
+} from './workflow.js'
 export { getSuggestion } from './suggestions/index.js'
 export {
   formatDoctorHuman,
@@ -14,6 +39,17 @@ export {
   type DoctorOptions,
   type DoctorReport,
 } from './doctor.js'
+export {
+  detectPackageManager,
+  renderDevtoolsComponent,
+  runSetup,
+  type PackageManager,
+  type SetupCommandResult,
+  type SetupCommandRunner,
+  type SetupDependencies,
+  type SetupOptions,
+  type SetupResult,
+} from './setup.js'
 export type {
   Severity,
   DetectorName,
@@ -34,6 +70,16 @@ export type {
   DispatchIssueRequest,
   DispatchIssueResponse,
   QueuedIssue,
+  IssuePhase,
+  IssueWorkflowEvent,
+  TrackedProjectIssue,
+  ProjectWorkflow,
+  ImpactConfidence,
+  ImpactMetricKind,
+  ImpactUnit,
+  ImpactReceipt,
+  ImpactMetric,
+  ProjectImpactSummary,
   LeaseResult,
   AgentClientId,
   AgentClientSetup,

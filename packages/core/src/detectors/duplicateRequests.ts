@@ -5,6 +5,11 @@ import { createIssue } from './createIssue.js'
 
 const DUPLICATE_WINDOW_MS = 2_000
 
+const normalizePrefix = (prefix: string): string => prefix.replace(/\/+$/, '')
+
+const isInsideIgnoredTree = (url: string, prefixes: readonly string[]): boolean =>
+  prefixes.some((prefix) => url === prefix || url.startsWith(`${prefix}/`))
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface RequestRecord {
@@ -26,10 +31,13 @@ const compactTimestamps = (timestamps: number[], cutoff: number, now: number): v
 
 // ── Detector ─────────────────────────────────────────────────────────────────
 
-export const createDuplicateRequestsDetector = (): Detector => {
+export const createDuplicateRequestsDetector = (
+  ignoredUrlPrefixes: readonly string[] = [],
+): Detector => {
   let issues: VibeIssue[] = []
   const requestMap = new Map<string, RequestRecord>()
   const reportedKeys = new Set<string>()
+  const ignored = ignoredUrlPrefixes.map(normalizePrefix).filter((prefix) => prefix.length > 0)
 
   // Saved originals for restoration
   let originalFetch: typeof globalThis.fetch | null = null
@@ -37,6 +45,7 @@ export const createDuplicateRequestsDetector = (): Detector => {
   let patched = false
 
   const trackRequest = (method: string, url: string): void => {
+    if (isInsideIgnoredTree(url, ignored)) return
     const key = `${method.toUpperCase()}:${url}`
     const now = Date.now()
     const cutoff = now - DUPLICATE_WINDOW_MS

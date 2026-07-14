@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact package version already committed to main, without a v prefix
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: vibe-check-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: production
+      url: https://vibecheck.wcgw.fun
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Releases must be dispatched from main; received $GITHUB_REF" >&2
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Use an npm CLI with trusted publishing support
+        run: npm install --global "npm@11.5.1"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate package versions
+        run: pnpm release:validate -- "$VERSION"
+
+      - name: Reject a tag that points elsewhere
+        shell: bash
+        run: |
+          tag="v$VERSION"
+          if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            target=$(git rev-list -n 1 "$tag")
+            if [[ "$target" != "$GITHUB_SHA" ]]; then
+              echo "$tag points to $target, not $GITHUB_SHA" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Type-check packages and apps
+        run: |
+          pnpm lint
+          pnpm --filter web lint
+          pnpm --filter @wcgw/vibe-check-scan-worker lint
+
+      - name: Unit tests and builds
+        run: |
+          pnpm test
+          pnpm build
+          pnpm --filter @wcgw/vibe-check size
+
+      - name: Install Chromium
+        run: pnpm --filter @wcgw/vibe-check-mcp-roundtrip exec playwright install --with-deps chromium
+
+      - name: Packaged MCP round-trip
+        run: pnpm test:e2e:mcp
+
+      - name: Verify package contents
+        run: pnpm publish:dry
+
+      - name: Publish missing npm packages with OIDC
+        run: pnpm release:publish -- "$VERSION"
+
+      - name: Deploy the documentation site
+        run: pnpm --filter web cf:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify production
+        run: pnpm smoke:production
+
+      - name: Create tag and GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          if ! git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$tag" \
+              -f sha="$GITHUB_SHA"
+          fi
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --title "VibeCheck $tag" --generate-notes --latest
+          fi

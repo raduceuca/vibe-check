@@ -88,4 +88,15 @@ describe('issueStore.sync early-out', () => {
 
     expect(setItem).toHaveBeenCalledTimes(2)
   })
+
+  it('isolates local fallback issue state by project', () => {
+    const projectA = createIssueStore('project-a')
+    projectA.sync([mk('a', 'Missing meta description')])
+    const projectB = createIssueStore('project-b')
+
+    expect(projectB.getState().issues).toEqual([])
+    expect(createIssueStore('project-a').getActive()).toHaveLength(1)
+    expect(localStorage.getItem('vibe-check:issues:project-a')).not.toBeNull()
+    expect(localStorage.getItem('vibe-check:issues:project-b')).toBeNull()
+  })
 })

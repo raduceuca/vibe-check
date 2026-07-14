@@ -36,6 +36,7 @@ const { PerfToggle } = await import('../PerfToggle.js')
 describe('PerfToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockUseVibeCheck.mockReturnValue({
       engine: null,
       snapshot: EMPTY_SNAPSHOT,

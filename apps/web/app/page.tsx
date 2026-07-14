@@ -9,6 +9,7 @@ import { DetectorsGrid } from '@/components/landing/DetectorsGrid'
 import { LiveGauges } from '@/components/landing/LiveGauges'
 import { AuditThisPage } from '@/components/landing/AuditThisPage'
 import { AgentRoundTrip } from '@/components/landing/AgentRoundTrip'
+import { RealAgentDemo } from '@/components/landing/RealAgentDemo'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteShell } from '@/components/site/SiteShell'
 import { PipelineDiagram } from '@/components/diagrams'
@@ -22,7 +23,7 @@ const LANDING_DESCRIPTION =
 // Freshness signals for answer engines. Constants (not `new Date()`) so the
 // statically prerendered HTML is deterministic across builds.
 const DATE_PUBLISHED = '2025-11-01'
-const DATE_MODIFIED = '2026-07-06'
+const DATE_MODIFIED = '2026-07-13'
 
 export const metadata: Metadata = {
   description: LANDING_DESCRIPTION,
@@ -225,9 +226,15 @@ const LandingPage = () => (
         </p>
         <PipelineDiagram />
         <p className="vc-p" style={{ marginTop: 18 }}>
-          Here is an illustrative local loop as your agent sees it — a caught
-          issue dispatched over MCP, a proposed diff, and the issue resolved.
-          The public demo widget itself stays local-only. Play it:
+          This is the actual loop running against installable package tarballs:
+          the widget catches DOM bloat, one agent leases the project, and the
+          issue crosses the MCP bridge only when you click send.
+        </p>
+        <RealAgentDemo />
+        <p className="vc-p" style={{ marginTop: 22 }}>
+          Then the agent can use the evidence to propose a diff and close the
+          issue. Here is that longer repair conversation as an illustrative
+          transcript:
         </p>
         <AgentRoundTrip />
         <p className="vc-p" style={{ color: 'var(--vc-ink-3)', fontSize: 14, marginTop: 12 }}>

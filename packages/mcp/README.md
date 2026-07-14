@@ -12,6 +12,34 @@ second HTTP server to port 4200, and several dev servers remain isolated by
 
 You need Node.js 20+ and an MCP-capable coding agent.
 
+### Fast path: scaffold the project and agent
+
+Run this from an existing React project:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@latest setup --agent codex --project my-storefront
+```
+
+Supported agents are `codex`, `claude-code`, and `cursor`. The command detects
+pnpm, npm, Yarn, or Bun; installs the widget at the same version as the MCP CLI;
+creates a named `VibeCheckDevtools` component; and configures the selected MCP
+client. Cursor configuration is merged into `.cursor/mcp.json` without removing
+other servers. Setup also registers the project root, writes the commit-safe
+`.vibecheck/config.json`, and adds only runtime state files to `.gitignore`.
+
+| Setup option | Meaning |
+|---|---|
+| `--agent <id>` | Required: `codex`, `claude-code`, or `cursor`. |
+| `--project <id>` | Stable routing ID. Defaults to `package.json` name. |
+| `--dry-run` | Print install, file, agent, hub, and watch steps without changing anything. |
+| `--force` | Replace an existing generated `VibeCheckDevtools.tsx`. Other app files are never rewritten. |
+
+Mount `<VibeCheckDevtools />` once near your React app root, start the hub, and
+paste the project-specific watch instruction printed by setup. The generated
+component returns `null` in production, so the monitor and local hub connection
+cannot ship in the production UI. The detailed manual path below explains every
+generated piece.
+
 ### 1. Install the React widget
 
 ```bash
@@ -123,8 +151,40 @@ The pending `watch_for_issue` tool call returns:
 - its project ID and dispatch timestamp; and
 - a detector-specific fix suggestion.
 
-The widget moves the issue to *sent* only after the hub confirms the dispatch.
+The widget moves the issue into *in progress* only after the hub confirms the dispatch.
 **Copy prompt** is a separate clipboard-only action and never claims delivery.
+When the agent calls `resolve_issue`, VibeCheck enters **Verifying** and waits
+for two newer snapshots from the same page without the issue. A returning fixed
+issue is reopened as **Regressed** instead of being forgotten.
+
+Workflow history is stored per project in `.vibecheck/state.json`. The file is
+updated atomically, survives hub restarts, and is ignored by git. If setup was
+not used, register the project manually before starting the hub:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@0.2.0 register --project my-storefront --root .
+```
+
+### Persisted project impact
+
+The same project state keeps an impact ledger for shareable, evidence-backed
+results. Lifecycle totals are exact: issues detected and sent, unique issues
+fixed, verified fix cycles, failed verifications, regressions caught, and median
+time to fix. Performance savings are recorded only when comparable before/after
+browser snapshots support them. Every measurement includes its scope; for
+example, “4 duplicate requests removed per observed page load.”
+
+Read it in the widget, ask the agent to call `get_project_impact`, or use:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@0.2.0 stats --project my-storefront
+npx -y @wcgw/vibe-check-mcp@0.2.0 stats --project my-storefront --markdown
+npx -y @wcgw/vibe-check-mcp@0.2.0 stats --project my-storefront --json
+```
+
+Stats remain readable from registered state after a hub restart even when the
+browser has not reconnected. Resetting impact sets a new reporting baseline; it
+does not delete issue timelines or the regression baseline.
 
 ## Multiple projects and agent sessions
 
@@ -164,11 +224,12 @@ agent from silently selecting the wrong dev server.
 | `list_projects` | — | List active project IDs, page URLs, last-seen times, issue counts, queue depth, and watcher state. |
 | `get_performance_snapshot` | `project_id?` | Read the latest snapshot for one project. |
 | `get_detected_issues` | `project_id?`, `severity?`, `detector?` | Read active issues for one project. |
+| `get_project_impact` | `project_id?` | Read persisted exact outcomes and measured improvements. |
 | `get_fix_suggestions` | `project_id?`, `issue_id` | Get the detector-specific fix guide for one issue. |
 | `watch_performance` | `project_id?`, `timeout_seconds?` | Claim a project and wait for its next snapshot. |
 | `watch_for_issue` | `project_id?`, `timeout_seconds?` | Claim a project and wait for a widget button dispatch. |
 | `acknowledge_issue` | `project_id?`, `issue_id` | Acknowledge an issue in one project. |
-| `resolve_issue` | `project_id?`, `issue_id` | Resolve an issue in one project. |
+| `resolve_issue` | `project_id?`, `issue_id` | Ask browser evidence to verify an agent fix. |
 | `release_project` | — | Release this bridge session's current lease. |
 
 ## Browser HTTP API
@@ -180,7 +241,11 @@ The public browser routes allow CORS and accept only browser-facing operations:
 | `/api/health` | GET | Hub readiness and version. |
 | `/api/snapshot` | POST | Receive a `ProjectSnapshotEnvelope`. |
 | `/api/projects/:projectId/status` | GET | Widget-visible watcher, queue, and conflict state. |
+| `/api/projects/:projectId/workflow` | GET | Browser-safe persisted issue phases and timelines. |
+| `/api/projects/:projectId/impact` | GET | Browser-safe persisted impact summary. |
+| `/api/projects/:projectId/impact/reset` | POST | Start a new impact reporting period without deleting workflow history. |
 | `/api/projects/:projectId/dispatch` | POST | Queue a selected issue for the owning watcher. |
+| `/api/projects/:projectId/issues/:issueId/verify` | POST | Request evidence-based fix verification. |
 
 Bridge-only routes live under `/internal`. Requests with a browser `Origin`
 header are rejected there, so a page cannot acquire leases or read another
@@ -192,7 +257,8 @@ project through the private API.
 |---|---|---|---|
 | `hub` | `VIBE_CHECK_HOST` | `127.0.0.1` | Hub bind address. |
 | `hub` | `VIBE_CHECK_PORT` | `4200` | Hub port. |
-| `connect` | `VIBE_CHECK_HUB_URL` | `http://127.0.0.1:4200` | Hub used by the stdio bridge. |
+| `hub`, `setup`, `register` | `VIBE_CHECK_REGISTRY_PATH` | `~/.vibecheck/projects.json` | Project ID to local-root registry. |
+| `connect`, `doctor`, `stats` | `VIBE_CHECK_HUB_URL` | `http://127.0.0.1:4200` | Hub used by agent and diagnostic commands. |
 
 For a port override, update all three places together:
 

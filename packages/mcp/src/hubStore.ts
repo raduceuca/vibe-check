@@ -1,10 +1,19 @@
 import {
   acknowledgeIssue,
   createStore,
-  resolveIssue,
   updateSnapshot,
   type VibeStore,
 } from './store.js'
+import { getStableIssueKey } from '@wcgw/vibe-check-protocol'
+import { appendImpactReceipts, deriveProjectImpact } from './impact.js'
+import { createImpactReceipts, type ImpactBaseline } from './impactAdapters.js'
+import {
+  createProjectWorkflow,
+  markWorkflowDispatched,
+  markWorkflowWorking,
+  recordWorkflowSnapshot,
+  requestWorkflowVerification,
+} from './workflow.js'
 import type {
   AgentConnectionState,
   DispatchIssueResponse,
@@ -12,6 +21,8 @@ import type {
   ProjectSnapshotEnvelope,
   ProjectStatus,
   ProjectSummary,
+  ProjectWorkflow,
+  ProjectImpactSummary,
   QueuedIssue,
   Severity,
   DetectorName,
@@ -42,6 +53,8 @@ export interface HubProject {
   readonly projectId: string
   readonly instances: ReadonlyMap<string, BrowserInstance>
   readonly store: VibeStore
+  readonly workflow: ProjectWorkflow
+  readonly impactBaselines: ReadonlyMap<string, ImpactBaseline>
   readonly queue: readonly QueuedIssue[]
   readonly lease: AgentLease | null
   readonly conflictAt: number | null
@@ -103,6 +116,7 @@ export const recordSnapshot = (
   store: HubStore,
   envelope: ProjectSnapshotEnvelope,
   now: number,
+  restoredWorkflow?: ProjectWorkflow,
 ): HubStore => {
   const current = store.projects.get(envelope.projectId)
   const instances = new Map(current?.instances ?? [])
@@ -113,10 +127,34 @@ export const recordSnapshot = (
     lastSeenAt: now,
   })
 
+  const previousWorkflow = current?.workflow ?? restoredWorkflow ?? createProjectWorkflow(envelope.projectId)
+  const recordedWorkflow = recordWorkflowSnapshot(previousWorkflow, envelope, now)
+  const previousByKey = new Map(previousWorkflow.issues.map((tracked) => [tracked.issueKey, tracked]))
+  const newlyFixed = recordedWorkflow.issues.filter((tracked) =>
+    tracked.phase === 'fixed' && previousByKey.get(tracked.issueKey)?.phase === 'verifying')
+  const verifyingIssueKeys = newlyFixed.map((tracked) => tracked.issueKey)
+  const impactBaselines = new Map(current?.impactBaselines ?? [])
+  const impactReceipts = newlyFixed.flatMap((tracked) => {
+    const baseline = impactBaselines.get(tracked.issueKey)
+    return baseline ? createImpactReceipts({
+      tracked,
+      baseline,
+      verification: envelope,
+      verifyingIssueKeys,
+    }) : []
+  })
+  for (const tracked of newlyFixed) impactBaselines.delete(tracked.issueKey)
+  const workflow = impactReceipts.length > 0 ? {
+    ...recordedWorkflow,
+    impactReceipts: appendImpactReceipts(recordedWorkflow.impactReceipts, impactReceipts),
+  } : recordedWorkflow
+
   const project: HubProject = {
     projectId: envelope.projectId,
     instances,
     store: updateSnapshot(current?.store ?? createStore(), envelope.snapshot),
+    workflow,
+    impactBaselines,
     queue: current?.queue ?? [],
     lease: current?.lease ?? null,
     conflictAt: current?.conflictAt ?? null,
@@ -275,6 +313,7 @@ export const markLeaseBusy = (
 export const dispatchIssue = (
   store: HubStore,
   projectId: string,
+  pageUrl: string,
   issue: VibeIssue,
   now: number,
 ): StoreResult<DispatchIssueResponse> => {
@@ -301,10 +340,25 @@ export const dispatchIssue = (
 
   const queue = [
     ...project.queue,
-    { projectId, issue, snapshot: project.store.latestSnapshot, dispatchedAt: now },
+    {
+      projectId,
+      issueKey: getStableIssueKey(projectId, pageUrl, issue),
+      issue,
+      snapshot: project.store.latestSnapshot,
+      dispatchedAt: now,
+    },
   ]
+  const workflow = markWorkflowDispatched(
+    project.workflow,
+    queue[queue.length - 1]!.issueKey,
+    now,
+  )
+  const impactBaselines = new Map(project.impactBaselines).set(
+    queue[queue.length - 1]!.issueKey,
+    { pageUrl, snapshot: project.store.latestSnapshot },
+  )
   return {
-    store: replaceProject(store, { ...project, queue }),
+    store: replaceProject(store, { ...project, queue, workflow, impactBaselines }),
     result: { ok: true, code: 'dispatched', projectId, queueDepth: queue.length },
   }
 }
@@ -313,14 +367,18 @@ export const dequeueIssue = (
   store: HubStore,
   projectId: string,
   sessionId: string,
+  now: number,
 ): { readonly store: HubStore; readonly issue: QueuedIssue | null } => {
   const project = store.projects.get(projectId)
   if (!project?.lease || project.lease.sessionId !== sessionId || project.queue.length === 0) {
     return { store, issue: null }
   }
   const [issue, ...queue] = project.queue
+  const workflow = issue
+    ? markWorkflowWorking(project.workflow, issue.issue.id, now)
+    : project.workflow
   return {
-    store: replaceProject(store, { ...project, queue }),
+    store: replaceProject(store, { ...project, queue, workflow }),
     issue: issue ?? null,
   }
 }
@@ -348,17 +406,55 @@ export const findProjectIssue = (
   const projectStore = store.projects.get(projectId)?.store
   if (!projectStore) return undefined
   const current = projectStore.latestSnapshot?.issues.find((issue) => issue.id === issueId)
-  return current ?? projectStore.issueHistory.find((issue) => issue.id === issueId)
+  const historical = current ?? projectStore.issueHistory.find((issue) => issue.id === issueId)
+  if (historical) return historical
+  return store.projects.get(projectId)?.workflow.issues
+    .find((tracked) => tracked.occurrenceIds.includes(issueId))?.issue
+}
+
+export const getProjectWorkflow = (
+  store: HubStore,
+  projectId: string,
+): ProjectWorkflow | null => store.projects.get(projectId)?.workflow ?? null
+
+export const getProjectImpact = (
+  store: HubStore,
+  projectId: string,
+): ProjectImpactSummary | null => {
+  const workflow = getProjectWorkflow(store, projectId)
+  return workflow ? deriveProjectImpact(workflow, workflow.impactReceipts) : null
+}
+
+export const resetProjectImpact = (
+  store: HubStore,
+  projectId: string,
+  now: number,
+): HubStore => {
+  const project = store.projects.get(projectId)
+  if (!project) return store
+  return replaceProject(store, {
+    ...project,
+    workflow: {
+      ...project.workflow,
+      revision: project.workflow.revision + 1,
+      impactResetAt: now,
+    },
+  })
 }
 
 export const acknowledgeProjectIssue = (
   store: HubStore,
   projectId: string,
   issueId: string,
+  now: number,
 ): HubStore => {
   const project = store.projects.get(projectId)
   return project
-    ? replaceProject(store, { ...project, store: acknowledgeIssue(project.store, issueId) })
+    ? replaceProject(store, {
+      ...project,
+      store: acknowledgeIssue(project.store, issueId),
+      workflow: markWorkflowWorking(project.workflow, issueId, now),
+    })
     : store
 }
 
@@ -366,9 +462,16 @@ export const resolveProjectIssue = (
   store: HubStore,
   projectId: string,
   issueId: string,
+  now: number,
 ): HubStore => {
   const project = store.projects.get(projectId)
   return project
-    ? replaceProject(store, { ...project, store: resolveIssue(project.store, issueId) })
+    ? replaceProject(store, {
+      ...project,
+      workflow: requestWorkflowVerification(project.workflow, issueId, now),
+    })
     : store
 }
+
+
+export const requestProjectVerification = resolveProjectIssue

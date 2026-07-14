@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { mkdtemp, mkdir, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createHubServer, type HubServerContext } from '../hubServer.js'
+import { registerProjectRoot } from '../projectRegistry.js'
 import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../types.js'
 
 const makeIssue = (id = 'dom-1'): VibeIssue => ({
@@ -14,8 +18,8 @@ const makeIssue = (id = 'dom-1'): VibeIssue => ({
   resolved: false,
 })
 
-const makeSnapshot = (issues: readonly VibeIssue[] = []): VibeSnapshot => ({
-  timestamp: 1,
+const makeSnapshot = (issues: readonly VibeIssue[] = [], timestamp = 1): VibeSnapshot => ({
+  timestamp,
   frameRate: { fps: 60, avgFrameTime: 16.7, maxFrameTime: 20, droppedFrames: 0, smoothness: 100 },
   longFrames: { count: 0, entries: [], worstFrame: 0 },
   webVitals: { lcp: null, inp: null, cls: null },
@@ -34,18 +38,25 @@ const makeSnapshot = (issues: readonly VibeIssue[] = []): VibeSnapshot => ({
   domNodeCount: 900,
 })
 
-const envelope = (projectId: string, instanceId: string, issues = [makeIssue()]): ProjectSnapshotEnvelope => ({
+const envelope = (
+  projectId: string,
+  instanceId: string,
+  issues = [makeIssue()],
+  path = '/fixture',
+  timestamp = 1,
+): ProjectSnapshotEnvelope => ({
   projectId,
   instanceId,
   origin: projectId,
+  pageUrl: `http://${projectId}${path}`,
   title: `Fixture ${projectId}`,
-  snapshot: makeSnapshot(issues),
+  snapshot: makeSnapshot(issues, timestamp),
 })
 
 let context: HubServerContext | null = null
 
-const start = async () => {
-  context = createHubServer({ version: '0.2.0' })
+const start = async (now: () => number = Date.now) => {
+  context = createHubServer({ version: '0.2.0', now })
   await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
   const address = context.server.address()
   const port = typeof address === 'object' && address ? address.port : 0
@@ -129,6 +140,7 @@ describe('hubServer', () => {
     const dispatched = await post(`${base}/api/projects/${project}/dispatch`, {
       projectId: 'project-a',
       instanceId: 'a',
+      pageUrl: 'http://project-a/fixture',
       issue,
     })
     expect(dispatched.response.status).toBe(200)
@@ -151,5 +163,129 @@ describe('hubServer', () => {
     expect((await json(`${base}/internal/projects/${project}/issues`)).body).toEqual([])
     await post(`${base}/internal/projects/${project}/issues/a-1/resolve`, {})
     expect((await json(`${base}/internal/projects/${project}/issues/a-1`)).body).toMatchObject({ id: 'a-1' })
+  })
+
+  it('tracks a real issue through verified fix and regression', async () => {
+    let clock = 1
+    const base = await start(() => clock)
+    const project = encodeURIComponent('project-a')
+    await post(
+      `${base}/api/snapshot`,
+      envelope('project-a', 'browser-a', [makeIssue('first')], '/pricing', clock),
+    )
+    clock = 2
+    await post(`${base}/internal/projects/${project}/leases/acquire`, { sessionId: 'agent-a' })
+    await post(`${base}/api/projects/${project}/dispatch`, {
+      projectId: 'project-a',
+      instanceId: 'browser-a',
+      pageUrl: 'http://project-a/pricing',
+      issue: makeIssue('first'),
+    })
+    await post(`${base}/internal/projects/${project}/issues/next`, {
+      sessionId: 'agent-a',
+      timeoutSeconds: 1,
+    })
+
+    const working = await json(`${base}/api/projects/${project}/workflow`)
+    expect(working.response.status).toBe(200)
+    expect(working.response.headers.get('access-control-allow-origin')).toBe('*')
+    expect(working.body).toMatchObject({ issues: [{ phase: 'working' }] })
+
+    clock = 4
+    const verification = await post(`${base}/api/projects/${project}/issues/first/verify`, {})
+    expect(verification.response.status).toBe(200)
+    expect(verification.response.headers.get('access-control-allow-origin')).toBe('*')
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+      .toMatchObject({ issues: [{ phase: 'verifying' }] })
+    clock = 5
+    await post(`${base}/api/snapshot`, envelope('project-a', 'browser-a', [], '/pricing', clock))
+    clock = 6
+    await post(`${base}/api/snapshot`, envelope('project-a', 'browser-a', [], '/pricing', clock))
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+      .toMatchObject({ issues: [{ phase: 'fixed' }] })
+
+    clock = 7
+    await post(
+      `${base}/api/snapshot`,
+      envelope('project-a', 'browser-a', [makeIssue('returned')], '/pricing', clock),
+    )
+    expect((await json(`${base}/api/projects/${project}/workflow`)).body).toMatchObject({
+      issues: [{ phase: 'regressed', occurrenceCount: 2, regressionCount: 1 }],
+    })
+  })
+
+  it('returns isolated impact and resets only the selected project', async () => {
+    let clock = 1
+    const base = await start(() => clock)
+    for (const projectId of ['project-a', 'project-b']) {
+      const project = encodeURIComponent(projectId)
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [makeIssue()], '/impact', clock))
+      clock += 1
+      await post(`${base}/api/projects/${project}/issues/dom-1/verify`, {})
+      clock += 1
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [], '/impact', clock))
+      clock += 1
+      await post(`${base}/api/snapshot`, envelope(projectId, 'browser', [], '/impact', clock))
+      clock += 1
+    }
+
+    const projectA = encodeURIComponent('project-a')
+    const projectB = encodeURIComponent('project-b')
+    expect((await json(`${base}/api/projects/${projectA}/impact`)).body)
+      .toMatchObject({ projectId: 'project-a', verifiedFixes: 1 })
+    expect((await json(`${base}/api/projects/${projectB}/impact`)).body)
+      .toMatchObject({ projectId: 'project-b', verifiedFixes: 1 })
+
+    const reset = await post(`${base}/api/projects/${projectA}/impact/reset`, {})
+    expect(reset.response.status).toBe(200)
+    expect((await json(`${base}/api/projects/${projectA}/impact`)).body)
+      .toMatchObject({ verifiedFixes: 0 })
+    expect((await json(`${base}/api/projects/${projectB}/impact`)).body)
+      .toMatchObject({ verifiedFixes: 1 })
+  })
+
+  it('restores a fixed workflow from the registered project after hub restart', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vibe-check-hub-state-'))
+    const projectRoot = join(root, 'project')
+    const registryPath = join(root, 'registry.json')
+    await mkdir(projectRoot)
+    await registerProjectRoot(registryPath, 'project-a', projectRoot)
+    let clock = 1
+
+    try {
+      context = createHubServer({ version: '0.2.0', registryPath, now: () => clock })
+      await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
+      let address = context.server.address()
+      let port = typeof address === 'object' && address ? address.port : 0
+      let base = `http://127.0.0.1:${port}`
+      const project = encodeURIComponent('project-a')
+      await post(base + '/api/snapshot', envelope(
+        'project-a', 'browser-a', [makeIssue('first')], '/pricing', clock,
+      ))
+      clock = 2
+      await post(`${base}/api/projects/${project}/issues/first/verify`, {})
+      clock = 3
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      clock = 4
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+        .toMatchObject({ issues: [{ phase: 'fixed' }] })
+      await context.close()
+      context = null
+
+      context = createHubServer({ version: '0.2.0', registryPath, now: () => clock })
+      await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
+      address = context.server.address()
+      port = typeof address === 'object' && address ? address.port : 0
+      base = `http://127.0.0.1:${port}`
+      expect((await json(`${base}/api/projects/${project}/impact`)).body)
+        .toMatchObject({ verifiedFixes: 1 })
+      clock = 5
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+        .toMatchObject({ issues: [{ phase: 'fixed' }] })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })

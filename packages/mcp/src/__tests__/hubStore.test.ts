@@ -9,6 +9,7 @@ import {
   findProjectIssue,
   getActiveIssues,
   getProjectStatus,
+  getProjectWorkflow,
   heartbeatLease,
   listActiveProjects,
   markLeaseBusy,
@@ -17,6 +18,7 @@ import {
   releaseLease,
   resolveProjectIssue,
 } from '../hubStore.js'
+import { deriveProjectImpact } from '../impact.js'
 import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../types.js'
 
 const makeIssue = (id = 'dom-1'): VibeIssue => ({
@@ -59,6 +61,7 @@ const makeEnvelope = (
   projectId,
   instanceId,
   origin: projectId,
+  pageUrl: `http://${projectId}/fixture`,
   title: `Fixture ${projectId}`,
   snapshot: makeSnapshot(issues),
 })
@@ -128,26 +131,32 @@ describe('hubStore', () => {
     let hub = acquireLease(withProject(), 'project-a', 'agent-a', 2_000).store
 
     for (let index = 0; index < MAX_DISPATCH_QUEUE; index += 1) {
-      const dispatched = dispatchIssue(hub, 'project-a', makeIssue(`issue-${index}`), 3_000 + index)
+      const dispatched = dispatchIssue(
+        hub,
+        'project-a',
+        'http://project-a/fixture',
+        makeIssue(`issue-${index}`),
+        3_000 + index,
+      )
       expect(dispatched.result.ok).toBe(true)
       hub = dispatched.store
     }
 
-    const overflow = dispatchIssue(hub, 'project-a', makeIssue('overflow'), 4_000)
+    const overflow = dispatchIssue(hub, 'project-a', 'http://project-a/fixture', makeIssue('overflow'), 4_000)
     expect(overflow.result).toMatchObject({ ok: false, code: 'queue-full', queueDepth: 10 })
 
-    const first = dequeueIssue(overflow.store, 'project-a', 'agent-a')
+    const first = dequeueIssue(overflow.store, 'project-a', 'agent-a', 4_001)
     expect(first.issue?.issue.id).toBe('issue-0')
     expect(first.issue?.snapshot.domNodeCount).toBe(900)
     expect(getProjectStatus(first.store, 'project-a', 4_000)?.queueDepth).toBe(9)
   })
 
   it('rejects dispatch when no healthy agent is watching', () => {
-    const unclaimed = dispatchIssue(withProject(), 'project-a', makeIssue(), 2_000)
+    const unclaimed = dispatchIssue(withProject(), 'project-a', 'http://project-a/fixture', makeIssue(), 2_000)
     expect(unclaimed.result.code).toBe('agent-not-watching')
 
     const claimed = acquireLease(withProject(), 'project-a', 'agent-a', 1_000).store
-    const stale = dispatchIssue(claimed, 'project-a', makeIssue(), 11_000)
+    const stale = dispatchIssue(claimed, 'project-a', 'http://project-a/fixture', makeIssue(), 11_000)
     expect(stale.result.code).toBe('agent-not-watching')
   })
 
@@ -171,10 +180,57 @@ describe('hubStore', () => {
     hub = recordSnapshot(hub, makeEnvelope('project-a', 'browser-a', [makeIssue('current-1')]), 2_000)
 
     expect(findProjectIssue(hub, 'project-a', 'history-1')?.id).toBe('history-1')
-    hub = acknowledgeProjectIssue(hub, 'project-a', 'current-1')
+    hub = acknowledgeProjectIssue(hub, 'project-a', 'current-1', 3_000)
     expect(getActiveIssues(hub, 'project-a')).toEqual([])
-    hub = resolveProjectIssue(hub, 'project-a', 'history-1')
+    hub = resolveProjectIssue(hub, 'project-a', 'history-1', 4_000)
     expect(findProjectIssue(hub, 'project-a', 'history-1')?.id).toBe('history-1')
     expect(getActiveIssues(hub, 'missing')).toEqual([])
+  })
+
+  it('records measured impact only when browser evidence confirms a fix', () => {
+    const duplicate: VibeIssue = {
+      ...makeIssue('duplicate-1'),
+      detector: 'duplicate-requests',
+      evidence: { count: 5, url: '/api/menu', method: 'GET' },
+    }
+    const measuredSnapshot = (
+      timestamp: number,
+      issues: readonly VibeIssue[],
+      domNodeCount: number,
+      transferKB: number,
+    ): VibeSnapshot => ({
+      ...makeSnapshot(issues),
+      timestamp,
+      domNodeCount,
+      resources: { ...makeSnapshot().resources, totalTransferKB: transferKB },
+    })
+    const envelope = (snapshot: VibeSnapshot): ProjectSnapshotEnvelope => ({
+      ...makeEnvelope('project-a', 'browser-a'),
+      snapshot,
+    })
+
+    let hub = recordSnapshot(
+      createHubStore(),
+      envelope(measuredSnapshot(10, [duplicate], 1_200, 900)),
+      10,
+    )
+    hub = acquireLease(hub, 'project-a', 'agent-a', 11).store
+    hub = dispatchIssue(hub, 'project-a', 'http://project-a/fixture', duplicate, 12).store
+    hub = dequeueIssue(hub, 'project-a', 'agent-a', 13).store
+    hub = resolveProjectIssue(hub, 'project-a', duplicate.id, 14)
+    hub = recordSnapshot(hub, envelope(measuredSnapshot(20, [], 800, 600)), 20)
+    hub = recordSnapshot(hub, envelope(measuredSnapshot(21, [], 800, 600)), 21)
+
+    const workflow = getProjectWorkflow(hub, 'project-a')
+    if (!workflow) throw new Error('Expected workflow')
+    expect(deriveProjectImpact(workflow, workflow.impactReceipts)).toMatchObject({
+      uniqueIssuesFixed: 1,
+      verifiedFixes: 1,
+      metrics: expect.arrayContaining([
+        expect.objectContaining({ kind: 'duplicate-requests-removed', value: 4 }),
+        expect.objectContaining({ kind: 'dom-nodes-reduced', value: 400 }),
+        expect.objectContaining({ kind: 'transfer-kb-reduced', value: 300 }),
+      ]),
+    })
   })
 })

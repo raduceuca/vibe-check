@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
@@ -25,7 +25,12 @@ interface SetupTransport {
 interface ToolPayload {
   readonly projectId?: string
   readonly code?: string
-  readonly issue?: { readonly detector?: string; readonly evidence?: { readonly nodeCount?: number } }
+  readonly issue?: {
+    readonly id?: string
+    readonly detector?: string
+    readonly title?: string
+    readonly evidence?: { readonly nodeCount?: number }
+  }
   readonly suggestion?: string
 }
 
@@ -36,7 +41,62 @@ let appB: ManagedProcess
 let hubUrl: string
 let appAUrl: string
 let appBUrl: string
+let hubPort: number
+let logs: string
+let hubRestartCount = 0
 const processes: ManagedProcess[] = []
+
+const hubEnvironment = (): Readonly<Record<string, string>> => ({
+  VIBE_CHECK_PORT: String(hubPort),
+  VIBE_CHECK_REGISTRY_PATH: fixture.registryPath,
+})
+
+const restartHub = async (): Promise<void> => {
+  await hub.stop()
+  hubRestartCount += 1
+  hub = await startProcess(
+    `hub-restarted-${hubRestartCount}`,
+    process.execPath,
+    [fixture.hubBin, 'hub'],
+    fixture.appA,
+    hubEnvironment(),
+    logs,
+  )
+  processes.push(hub)
+  await waitForJson(`${hubUrl}/api/health`, (value) =>
+    (value as { service?: string }).service === 'vibe-check-hub')
+}
+
+interface WorkflowIssueView {
+  readonly pageUrl: string
+  readonly phase: string
+  readonly issue: { readonly id: string; readonly detector: string }
+}
+
+interface ProjectImpactView {
+  readonly projectId: string
+  readonly uniqueIssuesFixed: number
+  readonly verifiedFixes: number
+  readonly regressionsCaught: number
+  readonly metrics: readonly { readonly kind: string; readonly value: number }[]
+}
+
+const workflowIssues = async (projectId: string): Promise<readonly WorkflowIssueView[]> => {
+  const response = await fetch(`${hubUrl}/api/projects/${encodeURIComponent(projectId)}/workflow`)
+  if (!response.ok) return []
+  const workflow = await response.json() as { readonly issues?: readonly WorkflowIssueView[] }
+  return workflow.issues ?? []
+}
+
+const workflowPhase = async (projectId: string, pageUrl: string): Promise<string> =>
+  (await workflowIssues(projectId)).find((item) =>
+    item.pageUrl === pageUrl && item.issue.detector === 'dom-bloat')?.phase ?? 'missing'
+
+const projectImpact = async (projectId: string): Promise<ProjectImpactView> => {
+  const response = await fetch(`${hubUrl}/api/projects/${encodeURIComponent(projectId)}/impact`)
+  if (!response.ok) throw new Error(`Impact endpoint returned ${response.status}`)
+  return await response.json() as ProjectImpactView
+}
 
 const jsonPayload = (result: Awaited<ReturnType<Client['callTool']>>): unknown => {
   const block = result.content[0]
@@ -95,7 +155,7 @@ const openAgentIssue = async (page: Page, url: string): Promise<void> => {
   await page.evaluate(() => localStorage.clear())
   await page.reload()
   await page.getByRole('tab', { name: /Agent|Fix/ }).click()
-  const issue = page.getByRole('button', { name: /Too many elements|DOM Bloat/ })
+  const issue = page.getByRole('button', { name: /Too many elements|DOM Bloat/ }).first()
   await expect(issue).toBeVisible({ timeout: 20_000 })
   await issue.click()
 }
@@ -107,13 +167,22 @@ const watch = (client: Client, projectId: string) => client.callTool({
 
 test.beforeAll(async () => {
   fixture = await installFixture()
-  const [hubPort, appAPort, appBPort] = await Promise.all([freePort(), freePort(), freePort()])
+  const [allocatedHubPort, appAPort, appBPort] = await Promise.all([freePort(), freePort(), freePort()])
+  hubPort = allocatedHubPort
   hubUrl = `http://127.0.0.1:${hubPort}`
   appAUrl = `http://127.0.0.1:${appAPort}`
   appBUrl = `http://127.0.0.1:${appBPort}`
-  const logs = join(fixture.root, 'logs')
+  logs = join(fixture.root, 'logs')
 
-  hub = await startProcess('hub', process.execPath, [fixture.hubBin, 'hub'], fixture.appA, { VIBE_CHECK_PORT: String(hubPort) }, logs)
+  await writeFile(fixture.registryPath, `${JSON.stringify({
+    schemaVersion: 1,
+    projects: {
+      [appAUrl]: { root: fixture.appA },
+      [appBUrl]: { root: fixture.appB },
+    },
+  }, null, 2)}\n`)
+
+  hub = await startProcess('hub', process.execPath, [fixture.hubBin, 'hub'], fixture.appA, hubEnvironment(), logs)
   processes.push(hub)
   await waitForJson(`${hubUrl}/api/health`, (value) => (value as { service?: string }).service === 'vibe-check-hub')
 
@@ -159,7 +228,221 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
     expect(received.issue?.detector).toBe('dom-bloat')
     expect(received.issue?.evidence?.nodeCount).toBeGreaterThanOrEqual(1_500)
     expect(received.suggestion).toContain('DOM Bloat')
-    await expect(page.getByRole('tab', { name: /sent \(1\)/i })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /in progress \(1\)/i })).toBeVisible()
+  } finally {
+    await agent.close()
+  }
+})
+
+test('restores widget state and placement after refresh', async ({ page }) => {
+  await page.goto(appAUrl)
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+
+  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.getByText('Use one position for both', { exact: true }).click()
+  await expect(page.getByRole('checkbox', { name: 'Use one position for both' })).not.toBeChecked()
+  await page.getByRole('radiogroup', { name: 'Collapsed' })
+    .getByRole('radio', { name: 'Top left' }).click()
+  await page.getByRole('radiogroup', { name: 'Expanded' })
+    .getByRole('radio', { name: 'Bottom right' }).click()
+  await page.getByTestId('vibe-check-header').click()
+
+  await page.reload()
+  const collapsed = page.getByTestId('vibe-check-overlay')
+  await expect(page.getByTestId('vibe-check-header')).toHaveAttribute('aria-expanded', 'false')
+  await expect(collapsed).toHaveCSS('top', '12px')
+  await expect(collapsed).toHaveCSS('left', '12px')
+
+  await page.getByTestId('vibe-check-header').click()
+  const expanded = page.getByTestId('vibe-check-overlay')
+  await expect(expanded).toHaveCSS('bottom', '12px')
+  await expect(expanded).toHaveCSS('right', '12px')
+})
+
+test('packed SEO suggestion dispatches its exact finding to the watching agent', async ({ page }) => {
+  const agent = await connectClient('seo-agent')
+  try {
+    await page.goto(appAUrl)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+
+    const receivedPromise = watch(agent.client, appAUrl)
+    await page.getByRole('tab', { name: /^SEO/ }).click()
+    const finding = page.getByRole('button', { name: /Missing meta description/ })
+    await expect(finding).toBeVisible({ timeout: 20_000 })
+    await finding.click()
+
+    const send = page.getByTestId(/vibe-check-send-/)
+    await expect(send).toBeEnabled({ timeout: 10_000 })
+    await send.click()
+
+    const received = payload(await receivedPromise)
+    expect(received.projectId).toBe(appAUrl)
+    expect(received.issue?.detector).toBe('seo')
+    expect(received.issue?.title).toBe('Missing meta description')
+    expect(received.suggestion).toContain('meta name="description"')
+    await expect(send).toHaveText('Sent')
+  } finally {
+    await agent.close()
+  }
+})
+
+test('recording shell shows the receipt only after the real agent receives the issue', async ({ page }) => {
+  const agent = await connectClient('recording-agent')
+  try {
+    await openAgentIssue(page, `${appAUrl}/recording-demo?recording=1`)
+    await expect(page.getByTestId('vibe-check-demo-shell')).toBeVisible()
+    await expect(page.getByTestId('vibe-check-demo-receipt')).toContainText('Waiting for issue')
+
+    const receivedPromise = watch(agent.client, appAUrl)
+    await expect(page.getByTestId('vibe-check-agent-status')).toContainText(
+      /Agent connected|AI agent connected/,
+      { timeout: 10_000 },
+    )
+    await page.getByTestId(/vibe-check-send-/).click()
+    const received = payload(await receivedPromise)
+
+    await page.evaluate((detail) => {
+      window.dispatchEvent(new CustomEvent('vibe-check-demo-agent-received', { detail }))
+    }, {
+      projectId: received.projectId ?? '',
+      detector: received.issue?.detector ?? '',
+      nodeCount: received.issue?.evidence?.nodeCount ?? 0,
+    })
+
+    const receipt = page.getByTestId('vibe-check-demo-receipt')
+    await expect(receipt).toContainText('Received by agent')
+    await expect(receipt).toContainText('dom-bloat')
+    await expect(receipt).toContainText(appAUrl)
+    await expect(page.getByTestId('vibe-check-demo-impact')).toContainText('Persisted project impact')
+  } finally {
+    await agent.close()
+  }
+})
+
+test('persists a verified fix and reopens its regression', async ({ page }) => {
+  const workflowUrl = `${appAUrl}/workflow-demo`
+  const agent = await connectClient('workflow-agent')
+  try {
+    await page.goto(workflowUrl)
+    await page.evaluate(() => {
+      sessionStorage.setItem(`vibe-check-demo-bloated:${window.location.pathname}`, 'true')
+    })
+    await openAgentIssue(page, workflowUrl)
+
+    const receivedPromise = watch(agent.client, appAUrl)
+    await expect(page.getByTestId('vibe-check-agent-status')).toContainText(
+      /Agent connected|AI agent connected/,
+      { timeout: 10_000 },
+    )
+    await page.getByTestId(/vibe-check-send-/).click()
+    const received = payload(await receivedPromise)
+    const issueId = received.issue?.id
+    if (!issueId) throw new Error('Dispatched issue did not include an ID')
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('working')
+
+    await page.getByRole('button', { name: 'Apply fix' }).click()
+    await expect.poll(async () => {
+      const result = jsonPayload(await agent.client.callTool({
+        name: 'get_detected_issues',
+        arguments: { project_id: appAUrl },
+      })) as { readonly issues: readonly { readonly id: string }[] }
+      return result.issues.some((issue) => issue.id === issueId)
+    }, { timeout: 20_000 }).toBe(false)
+
+    const resolution = payload(await agent.client.callTool({
+      name: 'resolve_issue',
+      arguments: { project_id: appAUrl, issue_id: issueId },
+    })) as ToolPayload & { readonly verifying?: boolean }
+    expect(resolution.verifying).toBe(true)
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('fixed')
+
+    const fixedTab = page.getByRole('tab', { name: /fixed \([1-9]\d*\)/i })
+    await expect(fixedTab).toBeVisible({ timeout: 10_000 })
+    await fixedTab.click()
+    await expect(page.getByRole('button', { name: /Too many elements|DOM Bloat/ })).toBeVisible()
+
+    await restartHub()
+    await page.reload()
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('fixed')
+
+    await page.getByRole('button', { name: 'Reintroduce regression' }).click()
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('regressed')
+    await expect.poll(async () =>
+      (await workflowIssues(appBUrl)).some((item) => item.pageUrl === workflowUrl))
+      .toBe(false)
+
+    await page.getByRole('tab', { name: /Agent|Fix/ }).click()
+    await expect(page.getByText(/regression/i).first()).toBeVisible({ timeout: 10_000 })
+
+    const regressed = (await workflowIssues(appAUrl)).find((item) =>
+      item.pageUrl === workflowUrl && item.phase === 'regressed')
+    if (!regressed) throw new Error('Expected regressed workflow issue')
+    await page.getByRole('button', { name: /Too many elements|DOM Bloat/ }).first().click()
+    const regressionReceivedPromise = watch(agent.client, appAUrl)
+    await expect(page.getByTestId('vibe-check-agent-status')).toContainText(
+      /Agent connected|AI agent connected/,
+      { timeout: 10_000 },
+    )
+    await page.getByTestId(`vibe-check-send-${regressed.issue.id}`).click()
+    const regressionReceived = payload(await regressionReceivedPromise)
+    const regressionIssueId = regressionReceived.issue?.id
+    if (!regressionIssueId) throw new Error('Regression dispatch did not include an ID')
+
+    await page.getByRole('button', { name: 'Apply fix' }).click()
+    await expect.poll(async () => {
+      const result = jsonPayload(await agent.client.callTool({
+        name: 'get_detected_issues',
+        arguments: { project_id: appAUrl },
+      })) as { readonly issues: readonly { readonly id: string }[] }
+      return result.issues.some((issue) => issue.id === regressionIssueId)
+    }, { timeout: 20_000 }).toBe(false)
+    await agent.client.callTool({
+      name: 'resolve_issue',
+      arguments: { project_id: appAUrl, issue_id: regressionIssueId },
+    })
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('fixed')
+
+    const beforeRestart = await projectImpact(appAUrl)
+    expect(beforeRestart).toMatchObject({
+      uniqueIssuesFixed: 1,
+      verifiedFixes: 2,
+      regressionsCaught: 1,
+    })
+    expect(beforeRestart.metrics.some((metric) => metric.kind === 'dom-nodes-reduced'))
+      .toBe(true)
+    await expect(page.getByLabel('VibeCheck impact')).toContainText('2 verified fixes', {
+      timeout: 10_000,
+    })
+    await expect(page.getByLabel('VibeCheck impact')).toContainText('1 regression caught')
+
+    await restartHub()
+    expect(await projectImpact(appAUrl)).toEqual(beforeRestart)
+
+    const isolatedPage = await page.context().newPage()
+    try {
+      await isolatedPage.goto(`${appBUrl}/impact-isolation`)
+      await expect.poll(async () => {
+        try {
+          return (await projectImpact(appBUrl)).verifiedFixes
+        } catch {
+          return -1
+        }
+      }, { timeout: 20_000 }).toBe(0)
+      expect(await projectImpact(appBUrl)).toMatchObject({
+        verifiedFixes: 0,
+        regressionsCaught: 0,
+        metrics: [],
+      })
+    } finally {
+      await isolatedPage.close()
+    }
   } finally {
     await agent.close()
   }
@@ -183,8 +466,10 @@ test('isolates two projects, rejects a second watcher, and permits handoff', asy
   const agentA = await connectClient('agent-a')
   const agentB = await connectClient('agent-b')
   const agentC = await connectClient('agent-c')
+  const isolationAUrl = `${appAUrl}/isolation-demo`
+  const isolationBUrl = `${appBUrl}/isolation-demo`
   try {
-    await Promise.all([openAgentIssue(pageA, appAUrl), openAgentIssue(pageB, appBUrl)])
+    await Promise.all([openAgentIssue(pageA, isolationAUrl), openAgentIssue(pageB, isolationBUrl)])
     const receiveA = watch(agentA.client, appAUrl)
     const receiveB = watch(agentB.client, appBUrl)
     await Promise.all([
@@ -203,10 +488,7 @@ test('isolates two projects, rejects a second watcher, and permits handoff', asy
     expect(issueB.projectId).toBe(appBUrl)
 
     await agentA.close()
-    await pageA.evaluate(() => localStorage.clear())
-    await pageA.reload()
-    await pageA.getByRole('tab', { name: /Agent|Fix/ }).click()
-    await pageA.getByRole('button', { name: /Too many elements|DOM Bloat/ }).click()
+    await openAgentIssue(pageA, `${appAUrl}/handoff-demo`)
     const handedOff = watch(agentC.client, appAUrl)
     await expect(pageA.getByTestId('vibe-check-agent-status')).toContainText(/Agent connected|AI agent connected/, { timeout: 10_000 })
     await pageA.getByTestId(/vibe-check-send-/).click()
