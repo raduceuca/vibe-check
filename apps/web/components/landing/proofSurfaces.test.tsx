@@ -5,13 +5,16 @@ import { LiveGauges } from './LiveGauges'
 import { SectionHead } from './SectionHead'
 
 describe('landing proof surfaces', () => {
-  it('numbers section rules like proof plates', () => {
+  it('separates every numbered section with a compact proof rail', () => {
     const markup = renderToStaticMarkup(
-      <SectionHead title="Always measuring" sub="the live layer" index="03" />,
+      <SectionHead title="Every pass, measured" sub="live control strip" index="03" />,
     )
 
     expect(markup).toContain('data-vc-section-proof="03"')
-    expect(markup).toContain('PLATE 03')
+    expect(markup).toContain('data-vc-proof-rail="section"')
+    expect(markup).toContain('PROOF 03')
+    expect(markup).not.toContain('PLATE 03')
+    expect(markup).toContain('<h2>Every pass, measured</h2>')
   })
 
   it('indexes each live reading and carries a calibration ruler', () => {

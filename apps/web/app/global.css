@@ -400,40 +400,24 @@ html {
 
 /* Section head */
 .vc-sechead {
-  display: flex;
-  align-items: center;
-  gap: 11px;
   border-bottom: 1px solid var(--vc-line);
   padding-bottom: 12px;
   margin-bottom: 24px;
 }
-.vc-sechead-index {
-  position: relative;
-  padding-left: 8px;
-  font-family: var(--vc-mono);
-  font-size: 8.5px;
-  line-height: 1;
-  letter-spacing: 0.1em;
-  color: var(--vc-ink-4);
-  white-space: nowrap;
+.vc-sechead-proof { margin-bottom: 14px; }
+.vc-sechead-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
 }
-.vc-sechead-index::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 1px;
-  height: 13px;
-  background: var(--vc-line-strong);
-  transform: translateY(-50%);
-}
-.vc-sechead h2 {
-  font-size: 23px;
-  letter-spacing: -0.015em;
-  font-weight: 620;
+.vc-sechead-row h2 {
   margin: 0;
+  font-size: 23px;
+  font-weight: 620;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
-.vc-sechead .vc-sub {
+.vc-sechead-row .vc-sub {
   margin-left: auto;
   font-family: var(--vc-mono);
   font-size: 10.5px;
@@ -442,20 +426,13 @@ html {
   color: var(--vc-ink-4);
 }
 @media (max-width: 520px) {
-  .vc-sechead {
-    position: relative;
+  .vc-sechead-row {
     align-items: flex-start;
-    padding-top: 17px;
   }
-  .vc-sechead-index {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-  .vc-sechead h2 {
+  .vc-sechead-row h2 {
     flex: 1 1 auto;
   }
-  .vc-sechead .vc-sub {
+  .vc-sechead-row .vc-sub {
     padding-top: 4px;
   }
 }

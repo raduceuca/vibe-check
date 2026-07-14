@@ -1,3 +1,5 @@
+import { ProofRail } from '@/components/brand/ProofMarks'
+
 interface SectionHeadProps {
   readonly title: string
   readonly sub?: string
@@ -8,11 +10,15 @@ interface SectionHeadProps {
 export const SectionHead = ({ title, sub, index }: SectionHeadProps) => (
   <div className="vc-sechead">
     {index ? (
-      <span className="vc-sechead-index" data-vc-section-proof={index}>
-        PLATE {index}
-      </span>
+      <ProofRail
+        className="vc-sechead-proof"
+        label={`PROOF ${index}`}
+        weight="section"
+      />
     ) : null}
-    <h2>{title}</h2>
-    {sub && <span className="vc-sub">{sub}</span>}
+    <div className="vc-sechead-row" data-vc-section-proof={index}>
+      <h2>{title}</h2>
+      {sub ? <span className="vc-sub">{sub}</span> : null}
+    </div>
   </div>
 )
