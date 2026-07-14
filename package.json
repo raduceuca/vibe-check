@@ -17,8 +17,8 @@
     "lint": "pnpm -r --filter \"./packages/*\" lint",
     "gen:docs": "node packages/core/scripts/gen-detector-reference.mjs",
     "clean": "pnpm -r exec rm -rf dist",
-    "publish:all": "pnpm -r publish --no-git-checks",
-    "publish:dry": "pnpm -r publish --no-git-checks --dry-run"
+    "publish:all": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm -r publish --no-git-checks",
+    "publish:dry": "pnpm --filter @wcgw/vibe-check-protocol build && pnpm -r publish --no-git-checks --dry-run"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

@@ -278,7 +278,7 @@ export interface AgentClientSetup {
   readonly verifyCommand: string
 }
 
-export const MCP_PACKAGE_SPEC = '@wcgw/vibe-check-mcp@0.2.0'
+export const MCP_PACKAGE_SPEC = '@wcgw/vibe-check-mcp@0.3.0'
 export const HUB_START_COMMAND = `npx -y ${MCP_PACKAGE_SPEC} hub`
 
 const CLIENT_SETUPS: Readonly<Record<AgentClientId, AgentClientSetup>> = {

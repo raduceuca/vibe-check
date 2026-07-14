@@ -75,7 +75,7 @@ Run your normal dev command. In a second terminal, start one hub and keep it
 running:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.2.0 hub
+npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 ```
 
 Expand the widget with its pill or **Alt+Shift+V**. Its Agent tab should say
@@ -86,7 +86,7 @@ Expand the widget with its pill or **Alt+Shift+V**. Its Agent tab should say
 For Claude Code:
 
 ```bash
-claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
 ```
 
 Other clients use the same spawned command:
@@ -96,7 +96,7 @@ Other clients use the same spawned command:
   "mcpServers": {
     "vibe-check": {
       "command": "npx",
-      "args": ["-y", "@wcgw/vibe-check-mcp@0.2.0", "connect"]
+      "args": ["-y", "@wcgw/vibe-check-mcp@0.3.0", "connect"]
     }
   }
 }

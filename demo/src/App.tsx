@@ -37,7 +37,7 @@ const Nav = () => {
   )
 }
 
-// ── What's New band (showcases the 0.2.0 improvements) ──────────────────────
+// ── What's New band (showcases the 0.3.0 improvements) ──────────────────────
 
 const NewCard = ({ tag, title, body }: { tag: string; title: string; body: string }) => (
   <div style={{
@@ -59,7 +59,7 @@ const WhatsNew = () => (
   }}>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-        vibe-check 0.2.0
+        vibe-check 0.3.0
       </span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>what&apos;s new</span>
     </div>
@@ -449,7 +449,7 @@ const App = () => (
     <CTA />
     {/* Wired to the local MCP server so the panel's connection status is live
         (Agent and Settings tabs) and beacon delivery actually happens. Start it with:
-        npx -y @wcgw/vibe-check-mcp@0.2.0 hub */}
+        npx -y @wcgw/vibe-check-mcp@0.3.0 hub */}
     <VibeCheck
       enabled
       position="bottom-right"

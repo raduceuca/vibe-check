@@ -4,6 +4,61 @@ All notable changes across the `@wcgw/vibe-check`, `@wcgw/vibe-check-core`,
 `@wcgw/vibe-check-mcp`, and `@wcgw/vibe-check-protocol` packages. Versions are
 kept in lockstep.
 
+## 0.3.0
+
+The MCP workflow is now a durable, project-scoped product rather than a demo.
+VibeCheck can hand a concrete browser finding to one owning agent, verify the
+repair with fresh browser evidence, reopen regressions, and retain an honest
+local impact record across restarts.
+
+### New
+
+- **Durable issue workflow.** Findings move through detected, sent, working,
+  verifying, fixed, and regressed phases. Stable page-aware identities preserve
+  their timeline across refreshes and hub restarts.
+- **Verified project impact.** Each project records unique issues fixed,
+  verified fixes, regressions and failed verifications caught, median fix time,
+  and conservative before/after measurements for duplicate requests, console
+  calls, DOM nodes, transfer size, and main-thread blocking time.
+- **Local bragging-rights exports.** Impact is available in the widget, the
+  `get_project_impact` MCP tool, HTTP API, and `stats` CLI, with Markdown and
+  JSON exports plus a resettable reporting period. The ledger stays local in
+  `.vibecheck/state.json`.
+- **Complete quick actions.** Every actionable suggestion now has a real
+  **Send to agent** action when MCP is available, while copy remains an explicit
+  fallback.
+- **Configurable placement and durable preferences.** Expanded and collapsed
+  positions can be configured independently, and the widget restores its
+  collapse state after navigation or refresh.
+- **Release-grade onboarding.** `setup`, `register`, and `doctor` provide
+  project-aware instructions for Codex, Claude Code, Cursor, and other MCP
+  clients.
+
+### Fixed
+
+- **One agent owns one project.** Parallel dev servers are isolated by project,
+  watcher conflicts are rejected without stealing the lease, and the widget
+  explains how to recover or hand off ownership.
+- **Truthful connection colors.** A working agent is green; blue is reserved
+  for transitional activity, and offline, waiting, stale, and conflict states
+  have distinct instructions.
+- **No self-generated duplicate-request warnings.** Beacon, status, workflow,
+  and impact traffic to VibeCheck's own local hub is excluded from page request
+  findings.
+- **Browser-evidence verification.** A fix requires newer clean snapshots;
+  stale or worsening evidence cannot create an impact receipt.
+- **Idempotent persistence.** Hub restarts and repeated verification cannot
+  double-count a fix or measured saving.
+
+### Verification
+
+- Seven packed Playwright scenarios cover real widget dispatch, refresh
+  persistence, SEO suggestion delivery, verified fixes, regressions, hub
+  restarts, watcher conflicts, handoff, and two-project isolation.
+- The public site ships the current widget and a recorded real MCP round trip,
+  and the release workflow validates packages before npm publication and the
+  Cloudflare production smoke test.
+
 ## 0.2.0
 
 The first release carrying the full current product. Everything the demo and

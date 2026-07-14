@@ -75,7 +75,7 @@ Keep this process running alongside your dev server. One hub supports all your
 local projects.
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.2.0 hub
+npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 ```
 
 ### 3. Wire the bridge into your AI agent
@@ -83,13 +83,13 @@ npx -y @wcgw/vibe-check-mcp@0.2.0 hub
 Choose Codex, Claude Code, or Cursor in the widget's setup card. For Codex:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
 ```
 
 For Claude Code:
 
 ```bash
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.2.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
 ```
 
 For Cursor, merge this entry into the top-level `mcpServers` object in
@@ -99,14 +99,14 @@ For Cursor, merge this entry into the top-level `mcpServers` object in
 {
   "vibe-check": {
     "command": "npx",
-    "args": ["-y", "@wcgw/vibe-check-mcp@0.2.0", "connect"]
+    "args": ["-y", "@wcgw/vibe-check-mcp@0.3.0", "connect"]
   }
 }
 ```
 
 Restart the agent client after changing its MCP configuration. The card keeps
 the exact setup and project-specific watch instruction visible until the agent
-connects. Run `npx -y @wcgw/vibe-check-mcp@0.2.0 doctor --project my-storefront` if a
+connects. Run `npx -y @wcgw/vibe-check-mcp@0.3.0 doctor --project my-storefront` if a
 step is not turning green.
 
 ### 4. Watch, then send
