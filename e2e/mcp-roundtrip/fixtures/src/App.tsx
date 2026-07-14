@@ -38,8 +38,47 @@ const cardStyle = {
   boxShadow: '0 24px 80px rgba(0, 0, 0, 0.3)',
 } as const
 
+const useBloatedDom = (): readonly [boolean, () => void, () => void] => {
+  const storageKey = `vibe-check-demo-bloated:${window.location.pathname}`
+  const [bloated, setBloated] = useState(() => sessionStorage.getItem(storageKey) !== 'false')
+  const applyFix = () => {
+    sessionStorage.setItem(storageKey, 'false')
+    setBloated(false)
+  }
+  const reintroduceRegression = () => {
+    sessionStorage.setItem(storageKey, 'true')
+    setBloated(true)
+  }
+  return [bloated, applyFix, reintroduceRegression]
+}
+
+const BloatControls = ({
+  bloated,
+  onApplyFix,
+  onReintroduceRegression,
+}: {
+  readonly bloated: boolean
+  readonly onApplyFix: () => void
+  readonly onReintroduceRegression: () => void
+}) => (
+  <section data-testid="vibe-check-demo-controls" style={cardStyle}>
+    <div style={labelStyle}>Browser evidence</div>
+    <strong style={{ display: 'block', marginTop: 10, color: bloated ? '#fbbf24' : '#4ade80', fontSize: 17 }}>
+      {bloated ? '1,600 excess DOM nodes detected' : 'DOM bloat removed — ready to verify'}
+    </strong>
+    <p style={{ margin: '8px 0 16px', color: '#a1a1aa', fontSize: 13, lineHeight: 1.5 }}>
+      Use these controls to demonstrate a verified repair and a later regression.
+    </p>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      <button type="button" onClick={onApplyFix} disabled={!bloated}>Apply fix</button>
+      <button type="button" onClick={onReintroduceRegression} disabled={bloated}>Reintroduce regression</button>
+    </div>
+  </section>
+)
+
 const RecordingShell = () => {
   const [receipt, setReceipt] = useState<AgentReceipt | null>(null)
+  const [bloated, applyFix, reintroduceRegression] = useBloatedDom()
 
   useEffect(() => {
     const receive = (event: Event) => {
@@ -100,28 +139,47 @@ const RecordingShell = () => {
         )}
       </section>
 
-      <div id="bloated-tree" aria-hidden="true" style={{ display: 'none' }}>
-        {Array.from({ length: 1600 }, (_, index) => <span key={index}>node {index}</span>)}
-      </div>
+      <BloatControls
+        bloated={bloated}
+        onApplyFix={applyFix}
+        onReintroduceRegression={reintroduceRegression}
+      />
+
+      {bloated && (
+        <div id="bloated-tree" aria-hidden="true" style={{ display: 'none' }}>
+          {Array.from({ length: 1600 }, (_, index) => <span key={index}>node {index}</span>)}
+        </div>
+      )}
       <VibeCheck beaconUrl={import.meta.env.VITE_HUB_URL} projectId={window.location.origin} />
     </main>
   )
 }
 
-export const App = () => {
-  const recording = new URLSearchParams(window.location.search).get('recording') === '1'
-  if (recording) return <RecordingShell />
+const StandardShell = () => {
+  const [bloated, applyFix, reintroduceRegression] = useBloatedDom()
 
   return (
     <main>
       <h1>VibeCheck MCP fixture</h1>
-      <div id="bloated-tree">
-        {Array.from({ length: 1600 }, (_, index) => <span key={index}>node {index}</span>)}
-      </div>
+      <BloatControls
+        bloated={bloated}
+        onApplyFix={applyFix}
+        onReintroduceRegression={reintroduceRegression}
+      />
+      {bloated && (
+        <div id="bloated-tree">
+          {Array.from({ length: 1600 }, (_, index) => <span key={index}>node {index}</span>)}
+        </div>
+      )}
       <VibeCheck
         beaconUrl={import.meta.env.VITE_HUB_URL}
         projectId={window.location.origin}
       />
     </main>
   )
+}
+
+export const App = () => {
+  const recording = new URLSearchParams(window.location.search).get('recording') === '1'
+  return recording ? <RecordingShell /> : <StandardShell />
 }

@@ -151,7 +151,7 @@ The pending `watch_for_issue` tool call returns:
 - its project ID and dispatch timestamp; and
 - a detector-specific fix suggestion.
 
-The widget moves the issue to *sent* only after the hub confirms the dispatch.
+The widget moves the issue into *in progress* only after the hub confirms the dispatch.
 **Copy prompt** is a separate clipboard-only action and never claims delivery.
 When the agent calls `resolve_issue`, VibeCheck enters **Verifying** and waits
 for two newer snapshots from the same page without the issue. A returning fixed

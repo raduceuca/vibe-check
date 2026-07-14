@@ -93,7 +93,7 @@ describe('domBloat detector', () => {
     detector.stop()
   })
 
-  it('should create new issue when threshold escalates from warn to error', () => {
+  it('should replace the active issue when threshold escalates from warn to error', () => {
     let nodeCount = 900
     vi.spyOn(document, 'querySelectorAll').mockImplementation(() => {
       return new Array(nodeCount).fill(null) as unknown as NodeListOf<Element>
@@ -114,9 +114,27 @@ describe('domBloat detector', () => {
     nodeCount = 1600
     vi.advanceTimersByTime(5_000)
 
-    expect(detector.getIssues().length).toBe(2)
-    expect(detector.getIssues()[1].severity).toBe('error')
+    expect(detector.getIssues().length).toBe(1)
+    expect(detector.getIssues()[0].severity).toBe('error')
 
+    detector.stop()
+  })
+
+  it('removes the active issue after the DOM returns below the threshold', () => {
+    let nodeCount = 1_600
+    vi.spyOn(document, 'querySelectorAll').mockImplementation(() =>
+      new Array(nodeCount).fill(null) as unknown as NodeListOf<Element>)
+    vi.spyOn(document, 'documentElement', 'get').mockReturnValue(
+      document.createElement('div') as unknown as HTMLElement,
+    )
+    const detector = createDomBloatDetector()
+    detector.start()
+    expect(detector.getIssues()).toHaveLength(1)
+
+    nodeCount = 100
+    vi.advanceTimersByTime(5_000)
+
+    expect(detector.getIssues()).toEqual([])
     detector.stop()
   })
 

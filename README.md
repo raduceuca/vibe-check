@@ -101,9 +101,10 @@ theme is available.
 - **Monitor** — live FPS lifeline, Web Vitals (LCP/INP/CLS), memory, and the SEO/AEO
   audit scores at a glance.
   <!-- TODO: screenshot → docs/screenshots/monitor.png -->
-- **Agent** — the detected-issues queue (to fix / sent / fixed). **Copy prompt**
+- **Agent** — the durable issue queue (to fix / in progress / fixed). **Copy prompt**
   only copies text. **Send to agent** dispatches the issue to the project's
-  connected watcher and moves it to *sent* only after the hub confirms delivery.
+  connected watcher. Agent pickup, browser-evidence verification, and later
+  regressions remain visible and persist per project across hub restarts.
   <!-- TODO: screenshot → docs/screenshots/agent.png -->
 - **SEO** — a discoverability audit (title, meta description, Open Graph, canonical,
   headings, alt text, sitemap/robots, …) scored as a pass rate.

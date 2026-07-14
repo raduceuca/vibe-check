@@ -79,11 +79,11 @@ export const createDomBloatDetector = (getDomNodeCount?: () => number): Detector
       threshold = 'warn'
     }
 
-    // Only create an issue on threshold crossing (don't spam)
-    if (threshold !== 'none' && threshold !== lastThreshold) {
+    if (threshold === 'none') {
+      issues = []
+    } else if (threshold !== lastThreshold) {
       const severity = threshold === 'error' ? 'error' : 'warning'
       issues = [
-        ...issues,
         createIssue(
           'dom-bloat',
           severity,

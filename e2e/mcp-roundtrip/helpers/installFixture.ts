@@ -24,6 +24,7 @@ export interface InstalledFixture {
   readonly appA: string
   readonly appB: string
   readonly hubBin: string
+  readonly registryPath: string
   cleanup(): Promise<void>
 }
 
@@ -72,7 +73,14 @@ export const installFixture = async (): Promise<InstalledFixture> => {
     const appB = await installApp('app-b')
     const packageJson = JSON.parse(await readFile(join(appA, 'node_modules/@wcgw/vibe-check-mcp/package.json'), 'utf8')) as { bin: { 'vibe-check-mcp': string } }
     const hubBin = join(appA, 'node_modules/@wcgw/vibe-check-mcp', packageJson.bin['vibe-check-mcp'])
-    return { root, appA, appB, hubBin, cleanup: () => rm(root, { recursive: true, force: true }) }
+    return {
+      root,
+      appA,
+      appB,
+      hubBin,
+      registryPath: join(root, 'projects.json'),
+      cleanup: () => rm(root, { recursive: true, force: true }),
+    }
   } catch (error) {
     await rm(root, { recursive: true, force: true })
     throw error

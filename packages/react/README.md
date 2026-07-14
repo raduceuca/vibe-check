@@ -12,17 +12,22 @@ All UI is inline-styled (no CSS files), renders at a high z-index, ships a dark 
 | Tab | What it shows |
 |---|---|
 | **Monitor** | Live FPS lifeline (avg/worst frame time), Web Vitals (LCP/INP/CLS), memory, console error/warn/log counts, SEO + AEO score chips, and a quick list of active problems. |
-| **Agent** | The fix queue — every detected problem split across *to fix / sent / fixed*. Copying is clipboard-only. Sending delivers to the connected watcher and moves the item only after confirmation. |
+| **Agent** | The durable fix queue — every detected problem split across *to fix / in progress / fixed*. Agent pickup, browser verification, and regressions appear in each issue timeline and persist per project. |
 | **SEO** | Search-visibility audit — a 0–100 score over the SEO criteria, each failing check expandable with **Send to agent** and **Copy prompt** actions. |
 | **AEO** | AI-answer-readiness audit (Answer Engine Optimization) — same shape as SEO, with **Send to agent** on every finding. |
 | **Prompts** | A library of proactive prompts to ask your AI agent, each copy-to-clipboard. |
-| **Settings** | Wording (dev ⇄ vibe), on-page annotation markers, light theme, FPS-history persistence, MCP connection status, and clear-all. |
+| **Settings** | Wording (dev ⇄ vibe), on-page annotation markers, light theme, FPS-history persistence, independent collapsed/expanded corner placement, MCP connection status, and clear-all. |
 
 On-page **annotation markers** point a badge at the actual offending DOM element (oversized images, heavy libraries, …); click one for an in-place popover with the same **Send to agent**, **Copy prompt**, and resolve actions.
 
 Every detected issue uses this shared action row in the Agent, SEO, AEO, and
 annotation views. **Prompts** remains copy-only because it contains proactive
 ideas rather than detected issues with evidence to send through MCP.
+
+The widget caches each project's latest workflow locally for an immediate
+refresh, while the local MCP hub remains authoritative and persists the full
+timeline in that project's `.vibecheck/state.json`. A fix is shown as verified
+only after two newer snapshots from the same page no longer contain the issue.
 
 <!-- TODO: capture one screenshot per tab into ../../docs/screenshots/ -->
 <!-- ![Monitor](../../docs/screenshots/monitor.png) ![Agent](../../docs/screenshots/agent.png) -->
