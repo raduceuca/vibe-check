@@ -3,11 +3,17 @@ import { parseCliConfig } from '../cli.js'
 
 describe('parseCliConfig', () => {
   it('parses the hub role with bounded port fallback', () => {
-    expect(parseCliConfig(['hub'], {})).toEqual({ role: 'hub', host: '127.0.0.1', port: 4200 })
+    expect(parseCliConfig(['hub'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' })).toEqual({
+      role: 'hub',
+      host: '127.0.0.1',
+      port: 4200,
+      registryPath: '/tmp/projects.json',
+    })
     expect(parseCliConfig(['hub'], { VIBE_CHECK_PORT: '4312', VIBE_CHECK_HOST: '::1' })).toEqual({
       role: 'hub',
       host: '::1',
       port: 4312,
+      registryPath: expect.any(String),
     })
     expect(parseCliConfig(['hub'], { VIBE_CHECK_PORT: '99999' })).toMatchObject({ port: 4200 })
   })
@@ -59,6 +65,27 @@ describe('parseCliConfig', () => {
       dryRun: true,
       force: true,
     })
+  })
+
+  it('parses explicit project registration', () => {
+    expect(parseCliConfig(['register', '--project', 'storefront'], {
+      VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json',
+    })).toEqual({
+      role: 'register',
+      projectId: 'storefront',
+      root: '.',
+      registryPath: '/tmp/projects.json',
+    })
+    expect(parseCliConfig([
+      'register', '--project', 'admin', '--root', '/workspace/admin',
+    ], {})).toMatchObject({
+      role: 'register',
+      projectId: 'admin',
+      root: '/workspace/admin',
+    })
+    expect(() => parseCliConfig(['register', '--root', '/tmp'], {})).toThrow(
+      'Register --project is required',
+    )
   })
 
   it('rejects invalid, missing, unknown, and duplicate setup options', () => {

@@ -24,7 +24,8 @@ Supported agents are `codex`, `claude-code`, and `cursor`. The command detects
 pnpm, npm, Yarn, or Bun; installs the widget at the same version as the MCP CLI;
 creates a named `VibeCheckDevtools` component; and configures the selected MCP
 client. Cursor configuration is merged into `.cursor/mcp.json` without removing
-other servers.
+other servers. Setup also registers the project root, writes the commit-safe
+`.vibecheck/config.json`, and adds only runtime state files to `.gitignore`.
 
 | Setup option | Meaning |
 |---|---|
@@ -152,6 +153,17 @@ The pending `watch_for_issue` tool call returns:
 
 The widget moves the issue to *sent* only after the hub confirms the dispatch.
 **Copy prompt** is a separate clipboard-only action and never claims delivery.
+When the agent calls `resolve_issue`, VibeCheck enters **Verifying** and waits
+for two newer snapshots from the same page without the issue. A returning fixed
+issue is reopened as **Regressed** instead of being forgotten.
+
+Workflow history is stored per project in `.vibecheck/state.json`. The file is
+updated atomically, survives hub restarts, and is ignored by git. If setup was
+not used, register the project manually before starting the hub:
+
+```bash
+npx -y @wcgw/vibe-check-mcp@0.2.0 register --project my-storefront --root .
+```
 
 ## Multiple projects and agent sessions
 
@@ -195,7 +207,7 @@ agent from silently selecting the wrong dev server.
 | `watch_performance` | `project_id?`, `timeout_seconds?` | Claim a project and wait for its next snapshot. |
 | `watch_for_issue` | `project_id?`, `timeout_seconds?` | Claim a project and wait for a widget button dispatch. |
 | `acknowledge_issue` | `project_id?`, `issue_id` | Acknowledge an issue in one project. |
-| `resolve_issue` | `project_id?`, `issue_id` | Resolve an issue in one project. |
+| `resolve_issue` | `project_id?`, `issue_id` | Ask browser evidence to verify an agent fix. |
 | `release_project` | — | Release this bridge session's current lease. |
 
 ## Browser HTTP API
@@ -207,7 +219,9 @@ The public browser routes allow CORS and accept only browser-facing operations:
 | `/api/health` | GET | Hub readiness and version. |
 | `/api/snapshot` | POST | Receive a `ProjectSnapshotEnvelope`. |
 | `/api/projects/:projectId/status` | GET | Widget-visible watcher, queue, and conflict state. |
+| `/api/projects/:projectId/workflow` | GET | Browser-safe persisted issue phases and timelines. |
 | `/api/projects/:projectId/dispatch` | POST | Queue a selected issue for the owning watcher. |
+| `/api/projects/:projectId/issues/:issueId/verify` | POST | Request evidence-based fix verification. |
 
 Bridge-only routes live under `/internal`. Requests with a browser `Origin`
 header are rejected there, so a page cannot acquire leases or read another
@@ -219,6 +233,7 @@ project through the private API.
 |---|---|---|---|
 | `hub` | `VIBE_CHECK_HOST` | `127.0.0.1` | Hub bind address. |
 | `hub` | `VIBE_CHECK_PORT` | `4200` | Hub port. |
+| `hub`, `setup`, `register` | `VIBE_CHECK_REGISTRY_PATH` | `~/.vibecheck/projects.json` | Project ID to local-root registry. |
 | `connect` | `VIBE_CHECK_HUB_URL` | `http://127.0.0.1:4200` | Hub used by the stdio bridge. |
 
 For a port override, update all three places together:

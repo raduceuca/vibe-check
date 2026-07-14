@@ -24,7 +24,11 @@ const main = async (): Promise<void> => {
   const { config } = result
 
   if (config.role === 'hub') {
-    const hub = createHubServer({ version: __VIBE_CHECK_VERSION__ })
+    const hub = createHubServer({
+      version: __VIBE_CHECK_VERSION__,
+      registryPath: config.registryPath,
+      onPersistenceWarning: (message) => process.stderr.write(`[vibe-check] ${message}\n`),
+    })
     hub.server.listen(config.port, config.host, () => {
       process.stderr.write(`[vibe-check] Hub listening on http://${config.host}:${config.port}\n`)
     })

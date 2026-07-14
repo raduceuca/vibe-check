@@ -63,14 +63,36 @@ describe('runMain', () => {
   })
 
   it('returns long-running hub and connect configurations without starting them', async () => {
-    await expect(runMain(['hub'], {}, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
+    await expect(runMain(['hub'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' }, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',
-      config: { role: 'hub', host: '127.0.0.1', port: 4200 },
+      config: { role: 'hub', host: '127.0.0.1', port: 4200, registryPath: '/tmp/projects.json' },
     })
     await expect(runMain(['connect'], {}, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',
       config: { role: 'connect', hubUrl: 'http://127.0.0.1:4200' },
     })
+  })
+
+  it('registers a project as a finite command', async () => {
+    const calls: unknown[] = []
+    const stdout: string[] = []
+    await expect(runMain(
+      ['register', '--project', 'storefront', '--root', './app'],
+      { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' },
+      { stdout: (value) => stdout.push(value), stderr: () => undefined },
+      {
+        cwd: '/workspace',
+        registerProject: async (registryPath, projectId, root) => {
+          calls.push({ registryPath, projectId, root })
+        },
+      },
+    )).resolves.toEqual({ kind: 'exit', code: 0 })
+    expect(calls).toEqual([{
+      registryPath: '/tmp/projects.json',
+      projectId: 'storefront',
+      root: '/workspace/app',
+    }])
+    expect(stdout.join('')).toContain('Registered VibeCheck project "storefront"')
   })
 
   it('runs setup as a finite command and prints actions plus next steps', async () => {

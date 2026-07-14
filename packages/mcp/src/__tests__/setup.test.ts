@@ -9,6 +9,7 @@ import {
   runSetup,
   type SetupCommandRunner,
 } from '../setup.js'
+import { readProjectRegistry } from '../projectRegistry.js'
 
 interface CommandCall {
   readonly command: string
@@ -21,10 +22,14 @@ const withProject = async (
   run: (root: string) => Promise<void>,
 ): Promise<void> => {
   const root = await mkdtemp(join(tmpdir(), 'vibe-check-setup-'))
+  const previousRegistry = process.env['VIBE_CHECK_REGISTRY_PATH']
+  process.env['VIBE_CHECK_REGISTRY_PATH'] = join(root, 'user-projects.json')
   try {
     await writeFile(join(root, 'package.json'), JSON.stringify(packageJson, null, 2))
     await run(root)
   } finally {
+    if (previousRegistry === undefined) delete process.env['VIBE_CHECK_REGISTRY_PATH']
+    else process.env['VIBE_CHECK_REGISTRY_PATH'] = previousRegistry
     await rm(root, { recursive: true, force: true })
   }
 }
@@ -229,6 +234,33 @@ describe('runSetup', () => {
         ['codex', 'mcp', 'add', 'vibe-check', '--', 'npx', '-y', '@wcgw/vibe-check-mcp@0.3.0', 'connect'],
       ])
       expect(result.componentPath).toBe('src/VibeCheckDevtools.tsx')
+    })
+  })
+
+  it('writes commit-safe project config, ignores runtime state, and registers the root', async () => {
+    await withProject({
+      name: 'storefront',
+      dependencies: { react: '^19.0.0', '@wcgw/vibe-check': '^0.3.0' },
+    }, async (root) => {
+      await writeFile(join(root, '.gitignore'), 'node_modules\n')
+      await runSetup({
+        cwd: root,
+        agent: 'codex',
+        version: '0.3.0',
+        dryRun: false,
+        force: false,
+      }, { runCommand: recordingRunner([]) })
+
+      await expect(readFile(join(root, '.vibecheck/config.json'), 'utf8')).resolves.toContain(
+        '"projectId": "storefront"',
+      )
+      await expect(readFile(join(root, '.gitignore'), 'utf8')).resolves.toBe(
+        'node_modules\n\n# VibeCheck runtime state\n.vibecheck/state.json\n'
+        + '.vibecheck/state.json.corrupt-*\n.vibecheck/*.tmp\n',
+      )
+      await expect(readProjectRegistry(join(root, 'user-projects.json'))).resolves.toMatchObject({
+        projects: { storefront: { root: expect.stringContaining(root.split('/').at(-1)!) } },
+      })
     })
   })
 

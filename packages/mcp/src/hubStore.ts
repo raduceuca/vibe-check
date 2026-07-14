@@ -112,6 +112,7 @@ export const recordSnapshot = (
   store: HubStore,
   envelope: ProjectSnapshotEnvelope,
   now: number,
+  restoredWorkflow?: ProjectWorkflow,
 ): HubStore => {
   const current = store.projects.get(envelope.projectId)
   const instances = new Map(current?.instances ?? [])
@@ -127,7 +128,7 @@ export const recordSnapshot = (
     instances,
     store: updateSnapshot(current?.store ?? createStore(), envelope.snapshot),
     workflow: recordWorkflowSnapshot(
-      current?.workflow ?? createProjectWorkflow(envelope.projectId),
+      current?.workflow ?? restoredWorkflow ?? createProjectWorkflow(envelope.projectId),
       envelope,
       now,
     ),

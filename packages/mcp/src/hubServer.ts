@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import { join } from 'node:path'
 import { DETECTOR_NAMES, SEVERITIES } from '@wcgw/vibe-check-protocol'
 import {
   acknowledgeProjectIssue,
@@ -27,6 +28,12 @@ import {
   parseWaitRequest,
 } from './schema.js'
 import type { DetectorName, QueuedIssue, Severity, VibeSnapshot } from './types.js'
+import type { ProjectWorkflow } from './types.js'
+import {
+  defaultProjectRegistryPath,
+  resolveProjectRoot,
+} from './projectRegistry.js'
+import { readPersistedWorkflow, writePersistedWorkflow } from './persistence.js'
 
 const MAX_BODY_BYTES = 1_048_576
 
@@ -77,6 +84,8 @@ interface PendingWaiter<T> {
 export interface HubServerOptions {
   readonly version: string
   readonly now?: () => number
+  readonly registryPath?: string
+  readonly onPersistenceWarning?: (message: string) => void
 }
 
 export interface HubServerContext {
@@ -85,10 +94,74 @@ export interface HubServerContext {
   readonly close: () => Promise<void>
 }
 
-export const createHubServer = ({ version, now = Date.now }: HubServerOptions): HubServerContext => {
+export const createHubServer = ({
+  version,
+  now = Date.now,
+  registryPath = defaultProjectRegistryPath(),
+  onPersistenceWarning,
+}: HubServerOptions): HubServerContext => {
   let store = createHubStore()
   const issueWaiters = new Map<string, Set<PendingWaiter<QueuedIssue>>>()
   const snapshotWaiters = new Map<string, Set<PendingWaiter<VibeSnapshot>>>()
+  const projectRoots = new Map<string, string | null>()
+  const workflowLoads = new Map<string, Promise<ProjectWorkflow | null>>()
+  const pendingWrites = new Map<string, ReturnType<typeof setTimeout>>()
+  const activeWrites = new Set<Promise<void>>()
+
+  const warn = (message: string): void => onPersistenceWarning?.(message)
+
+  const ensureLoaded = (projectId: string): Promise<ProjectWorkflow | null> => {
+    const existing = workflowLoads.get(projectId)
+    if (existing) return existing
+    const loading = (async () => {
+      try {
+        const root = await resolveProjectRoot(registryPath, projectId)
+        projectRoots.set(projectId, root)
+        return root
+          ? await readPersistedWorkflow(
+            join(root, '.vibecheck/state.json'),
+            projectId,
+            warn,
+          )
+          : null
+      } catch (error) {
+        projectRoots.set(projectId, null)
+        warn(error instanceof Error ? error.message : String(error))
+        return null
+      }
+    })()
+    workflowLoads.set(projectId, loading)
+    return loading
+  }
+
+  const flushProject = async (projectId: string): Promise<void> => {
+    const timer = pendingWrites.get(projectId)
+    if (timer) clearTimeout(timer)
+    pendingWrites.delete(projectId)
+    const root = projectRoots.get(projectId)
+    const workflow = getProjectWorkflow(store, projectId)
+    if (!root || !workflow) return
+    try {
+      await writePersistedWorkflow(join(root, '.vibecheck/state.json'), workflow)
+    } catch (error) {
+      warn(`Could not persist VibeCheck state for "${projectId}": ${
+        error instanceof Error ? error.message : String(error)
+      }`)
+    }
+  }
+
+  const trackWrite = (projectId: string): void => {
+    const writing = flushProject(projectId)
+    activeWrites.add(writing)
+    void writing.finally(() => activeWrites.delete(writing))
+  }
+
+  const schedulePersist = (projectId: string): void => {
+    if (!projectRoots.get(projectId)) return
+    const previous = pendingWrites.get(projectId)
+    if (previous) clearTimeout(previous)
+    pendingWrites.set(projectId, setTimeout(() => trackWrite(projectId), 100))
+  }
 
   const removeWaiter = <T>(
     map: Map<string, Set<PendingWaiter<T>>>,
@@ -138,6 +211,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
     const dequeued = dequeueIssue(store, projectId, waiter.sessionId, now())
     if (!dequeued.issue) return
     store = markLeaseBusy(dequeued.store, projectId, waiter.sessionId)
+    schedulePersist(projectId)
     resolveWaiter(issueWaiters, projectId, waiter, dequeued.issue)
   }
 
@@ -176,7 +250,9 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
           sendJson(res, 400, { error: 'Invalid project snapshot envelope' }, true)
           return
         }
-        store = recordSnapshot(store, envelope, now())
+        const restoredWorkflow = await ensureLoaded(envelope.projectId)
+        store = recordSnapshot(store, envelope, now(), restoredWorkflow ?? undefined)
+        schedulePersist(envelope.projectId)
         flushSnapshotWaiters(envelope.projectId)
         sendJson(res, 200, { received: true, projectId: envelope.projectId }, true)
         return
@@ -203,6 +279,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
           return
         }
         store = requestProjectVerification(store, projectId, issueId, now())
+        schedulePersist(projectId)
         sendJson(res, 200, { verifying: true, projectId, issueId }, true)
         return
       }
@@ -216,7 +293,10 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
         }
         const dispatched = dispatchIssue(store, projectId, request.pageUrl, request.issue, now())
         store = dispatched.store
-        if (dispatched.result.ok) flushIssueWaiter(projectId)
+        if (dispatched.result.ok) {
+          schedulePersist(projectId)
+          flushIssueWaiter(projectId)
+        }
         const status = dispatched.result.ok ? 200 : dispatched.result.code === 'queue-full' ? 429 : 409
         sendJson(res, status, dispatched.result, true)
         return
@@ -292,6 +372,7 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
           store = immediate.store
           if (immediate.issue) {
             store = markLeaseBusy(store, projectId, request.sessionId)
+            schedulePersist(projectId)
             sendJson(res, 200, immediate.issue)
             return
           }
@@ -326,11 +407,13 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
           const issueId = parts[4]
           if (parts[5] === 'acknowledge') {
             store = acknowledgeProjectIssue(store, projectId, issueId, now())
+            schedulePersist(projectId)
             sendJson(res, 200, { acknowledged: true, projectId, issueId })
             return
           }
           if (parts[5] === 'resolve') {
             store = resolveProjectIssue(store, projectId, issueId, now())
+            schedulePersist(projectId)
             sendJson(res, 200, { verifying: true, projectId, issueId })
             return
           }
@@ -353,6 +436,9 @@ export const createHubServer = ({ version, now = Date.now }: HubServerOptions): 
       }
       map.clear()
     }
+    const scheduledProjects = [...pendingWrites.keys()]
+    await Promise.all(scheduledProjects.map((projectId) => flushProject(projectId)))
+    await Promise.all([...activeWrites])
     if (!server.listening) return
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve())

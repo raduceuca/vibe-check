@@ -11,10 +11,20 @@ import { basename, dirname, join, relative } from 'node:path'
 import { promisify } from 'node:util'
 import type { SetupAgent } from './cli.js'
 import { getWatchInstruction } from './types.js'
+import {
+  defaultProjectRegistryPath,
+  registerProjectRoot,
+} from './projectRegistry.js'
 
 const execFileAsync = promisify(execFile)
 const WIDGET_PACKAGE = '@wcgw/vibe-check'
 const MCP_PACKAGE = '@wcgw/vibe-check-mcp'
+const GITIGNORE_BLOCK = [
+  '# VibeCheck runtime state',
+  '.vibecheck/state.json',
+  '.vibecheck/state.json.corrupt-*',
+  '.vibecheck/*.tmp',
+].join('\n')
 
 export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
@@ -233,6 +243,14 @@ const packageProjectId = (packageJson: PackageJson): string => {
   return packageJson.name
 }
 
+const addRuntimeIgnores = async (root: string): Promise<void> => {
+  const path = join(root, '.gitignore')
+  const current = await pathExists(path) ? await readFile(path, 'utf8') : ''
+  if (current.includes('.vibecheck/state.json')) return
+  const separator = current.length === 0 ? '' : current.endsWith('\n') ? '\n' : '\n\n'
+  await writeAtomic(path, `${current}${separator}${GITIGNORE_BLOCK}\n`)
+}
+
 export const runSetup = async (
   options: SetupOptions,
   dependencies: SetupDependencies = {},
@@ -261,6 +279,8 @@ export const runSetup = async (
     ? `${WIDGET_PACKAGE} is already declared; skipped install`
     : commandText(install))
   actions.push(`${options.force ? 'Replace' : 'Create'} ${componentPath}`)
+  actions.push('Create .vibecheck/config.json and register this project root')
+  actions.push('Ignore .vibecheck runtime state')
 
   const cursorPath = join(options.cwd, '.cursor/mcp.json')
   const currentCursor = options.agent === 'cursor' ? await readCursorConfig(cursorPath) : null
@@ -271,6 +291,11 @@ export const runSetup = async (
   }
 
   if (!options.dryRun) {
+    await registerProjectRoot(
+      process.env['VIBE_CHECK_REGISTRY_PATH'] ?? defaultProjectRegistryPath(),
+      projectId,
+      options.cwd,
+    )
     if (!widgetInstalled) {
       const installed = await runCommand(install.command, install.args, options.cwd)
       if (installed.exitCode !== 0) {
@@ -293,6 +318,11 @@ export const runSetup = async (
       }
     }
 
+    await writeAtomic(join(options.cwd, '.vibecheck/config.json'), `${JSON.stringify({
+      schemaVersion: 1,
+      projectId,
+    }, null, 2)}\n`)
+    await addRuntimeIgnores(options.cwd)
     await writeAtomic(componentAbsolutePath, renderDevtoolsComponent(projectId))
   }
 

@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { mkdtemp, mkdir, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createHubServer, type HubServerContext } from '../hubServer.js'
+import { registerProjectRoot } from '../projectRegistry.js'
 import type { ProjectSnapshotEnvelope, VibeIssue, VibeSnapshot } from '../types.js'
 
 const makeIssue = (id = 'dom-1'): VibeIssue => ({
@@ -208,5 +212,48 @@ describe('hubServer', () => {
     expect((await json(`${base}/api/projects/${project}/workflow`)).body).toMatchObject({
       issues: [{ phase: 'regressed', occurrenceCount: 2, regressionCount: 1 }],
     })
+  })
+
+  it('restores a fixed workflow from the registered project after hub restart', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vibe-check-hub-state-'))
+    const projectRoot = join(root, 'project')
+    const registryPath = join(root, 'registry.json')
+    await mkdir(projectRoot)
+    await registerProjectRoot(registryPath, 'project-a', projectRoot)
+    let clock = 1
+
+    try {
+      context = createHubServer({ version: '0.2.0', registryPath, now: () => clock })
+      await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
+      let address = context.server.address()
+      let port = typeof address === 'object' && address ? address.port : 0
+      let base = `http://127.0.0.1:${port}`
+      const project = encodeURIComponent('project-a')
+      await post(base + '/api/snapshot', envelope(
+        'project-a', 'browser-a', [makeIssue('first')], '/pricing', clock,
+      ))
+      clock = 2
+      await post(`${base}/api/projects/${project}/issues/first/verify`, {})
+      clock = 3
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      clock = 4
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+        .toMatchObject({ issues: [{ phase: 'fixed' }] })
+      await context.close()
+      context = null
+
+      context = createHubServer({ version: '0.2.0', registryPath, now: () => clock })
+      await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
+      address = context.server.address()
+      port = typeof address === 'object' && address ? address.port : 0
+      base = `http://127.0.0.1:${port}`
+      clock = 5
+      await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
+      expect((await json(`${base}/api/projects/${project}/workflow`)).body)
+        .toMatchObject({ issues: [{ phase: 'fixed' }] })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })
