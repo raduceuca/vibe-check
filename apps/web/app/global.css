@@ -176,19 +176,19 @@ html {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 18px;
+  min-height: 22px;
   margin-bottom: 19px;
   color: var(--vc-ink-4);
 }
 .vc-proof-control-strip {
   align-items: center;
   gap: 1px;
-  height: 5px;
+  height: 8px;
   flex: none;
 }
 .vc-proof-control-strip i {
   display: block;
-  height: 4px;
+  height: 7px;
   flex: none;
 }
 .vc-proof-header-label,
@@ -208,8 +208,8 @@ html {
 }
 .vc-proof-header-target,
 [data-vc-registration-target] {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   flex: none;
   color: var(--vc-ink-4);
   stroke: currentColor;
@@ -219,8 +219,8 @@ html {
 [data-vc-crop-ticks] {
   position: relative;
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   flex: none;
   color: var(--vc-line-strong);
 }
@@ -232,14 +232,14 @@ html {
 [data-vc-crop-ticks] i:first-child {
   top: 0;
   left: 0;
-  width: 10px;
+  width: 13px;
   height: 1px;
 }
 [data-vc-crop-ticks] i:last-child {
   top: 0;
   left: 0;
   width: 1px;
-  height: 10px;
+  height: 13px;
 }
 [data-vc-crop-ticks='top-right'] i:first-child,
 [data-vc-crop-ticks='bottom-right'] i:first-child {
@@ -298,8 +298,8 @@ html {
   position: absolute;
   top: 7px;
   right: -92px;
-  width: 78px;
-  height: 78px;
+  width: 88px;
+  height: 88px;
   overflow: visible;
   pointer-events: none;
   color: var(--vc-ink);
@@ -2958,8 +2958,8 @@ html {
 }
 .vc-spec-foot::before {
   content: '';
-  width: 42px;
-  height: 3px;
+  width: 52px;
+  height: 4px;
   margin-left: auto;
   flex: none;
   background: linear-gradient(
@@ -2973,7 +2973,7 @@ html {
     var(--vc-proof-y) 64% 74%,
     var(--vc-proof-k) 74% 100%
   );
-  opacity: 0.72;
+  opacity: 0.84;
 }
 .vc-spec-cat {
   font-family: var(--vc-mono);

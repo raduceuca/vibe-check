@@ -22,6 +22,12 @@ describe('proof marks', () => {
     expect(markup).toContain('var(--vc-proof-k)')
   })
 
+  it('marks the public control strip as the seven-pixel hero weight', () => {
+    const markup = renderToStaticMarkup(<ProofControlStrip />)
+
+    expect(markup).toContain('data-vc-proof-weight="hero"')
+  })
+
   it('renders reusable proof-control furniture', () => {
     const markup = renderToStaticMarkup(
       <>

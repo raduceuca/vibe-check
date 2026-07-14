@@ -32,6 +32,7 @@ export const ProofControlStrip = ({ className }: ProofMarkProps) => (
     className={className}
     aria-hidden="true"
     data-vc-proof-control-strip=""
+    data-vc-proof-weight="hero"
     style={{ display: 'inline-flex' }}
   >
     {CONTROL_PATCHES.map(({ ink, width }, index) => (
