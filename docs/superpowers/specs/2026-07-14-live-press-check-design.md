@@ -177,6 +177,38 @@ The widget should participate in the world without renaming established technica
 - Keep audit names, navigation labels, metric names, severity labels, and issue titles literal.
 - Calm and fault state semantics remain unchanged.
 
+## Navigation Brand Furniture
+
+The desktop sidebar and mobile top bar share one revised wordmark treatment.
+
+### Press symbol
+
+Replace the generic green status dot with an 18px **registration rosette** drawn as a dedicated SVG component:
+
+- Cyan, magenta, and black registration circles use sub-pixel plate offsets.
+- A black crosshair and center point hold the symbol together at small sizes.
+- The mark is decorative inside the home link; `VibeCheck home` remains the accessible label.
+- The rosette is a brand mark, not a health indicator, so it does not change with performance state.
+
+This is a print-production symbol rather than a pictorial cartoon of a press. It stays sharp at 18px and belongs to the same visual language as the hero and widget marks.
+
+### Wordmark
+
+- Change the visible text from lowercase `vibecheck` to the properly cased `VibeCheck`.
+- `Vibe` uses the primary ink color and `Check` uses the secondary ink color.
+- Keep the current contemporary sans-serif weight and spacing; do not introduce a display or retro typeface.
+
+### Version notation
+
+Replace the fault-red rounded badge with the press notation `PROOF 0.2.0`:
+
+- No capsule, fill, colored border, or fault-red text.
+- Use muted monospaced 9px text with tracked uppercase `PROOF` and tabular version numerals.
+- Separate the notation from the wordmark with a 16px neutral hairline.
+- Use the same wording in the sidebar footer so version information is consistent.
+
+The version should read as an edition/proof identifier, never as a validation error or alert.
+
 ## Visual Weight System
 
 Color proof bars become materially thicker everywhere they appear, with a clear hierarchy:
@@ -221,8 +253,9 @@ The proof bars retain varied patch widths; only their vertical weight increases.
 2. Add landing-copy tests for the hero promise, all six section titles, the audit CTA, and footer line.
 3. Update the fault-demo test for `Clear the proof`.
 4. Update widget tests for the `proof marks` heading.
-5. Run React and web test suites, TypeScript linting, and the full production build.
-6. Inspect desktop and mobile layouts in a real browser, including expanded and collapsed widget states.
+5. Add navigation tests for the `VibeCheck` wordmark, registration rosette, and `PROOF 0.2.0` notation.
+6. Run React and web test suites, TypeScript linting, and the full production build.
+7. Inspect desktop and mobile layouts in a real browser, including expanded and collapsed widget states.
 
 ## Success Criteria
 
@@ -231,4 +264,6 @@ The proof bars retain varied patch widths; only their vertical weight increases.
 - Performance, discoverability, MCP evidence, and agent correction remain explicit.
 - Every CMYK proof bar is visibly thicker than before.
 - Registration and crop marks read without hunting for them.
+- The navigation presents `VibeCheck` in proper case with a recognizably print-production symbol.
+- Version `0.2.0` reads as a proof identifier rather than an error badge.
 - The interface still feels modern, restrained, and technically credible.
