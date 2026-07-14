@@ -15,7 +15,7 @@ interface RegistrationTargetProps extends FaultedProps {
 
 interface CropTicksProps {
   readonly corner?: 'top-left' | 'top-right'
-  readonly compact?: boolean
+  readonly size?: number
 }
 
 interface CalibrationRulerProps {
@@ -36,9 +36,10 @@ const PATCHES = [
 export const ProofControlStrip = memo(({ faulted = false, compact = false }: ProofControlStripProps) => (
   <span
     data-wcgw-proof-control
+    data-wcgw-proof-weight={compact ? 'compact' : 'standard'}
     data-faulted={faulted ? 'true' : undefined}
     aria-hidden="true"
-    style={{ display: 'inline-flex', alignItems: 'center', gap: compact ? 0.75 : 1, height: compact ? 2 : 3, flexShrink: 0, pointerEvents: 'none' }}
+    style={{ display: 'inline-flex', alignItems: 'center', gap: compact ? 0.75 : 1, height: compact ? 4 : 5, flexShrink: 0, pointerEvents: 'none' }}
   >
     {PATCHES.map((patch, index) => (
       <span
@@ -77,8 +78,7 @@ export const RegistrationTarget = memo(({ faulted = false, size = 14 }: Registra
   </svg>
 ))
 
-export const CropTicks = memo(({ corner = 'top-left', compact = false }: CropTicksProps) => {
-  const size = compact ? 8 : 12
+export const CropTicks = memo(({ corner = 'top-left', size = 12 }: CropTicksProps) => {
   const path = corner === 'top-left' ? 'M1 7V1h6' : 'M5 1h6v6'
   return (
     <svg data-wcgw-crop-ticks aria-hidden="true" focusable="false" viewBox="0 0 12 12" width={size} height={size} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }}>
@@ -122,13 +122,13 @@ export const TopProofRegister = memo(({ faulted = false }: FaultedProps) => (
     data-wcgw-top-proof-register
     data-faulted={faulted ? 'true' : undefined}
     aria-hidden="true"
-    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', height: 12, padding: '7px 14px 0', boxSizing: 'border-box', pointerEvents: 'none' }}
+    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', height: 16, padding: '7px 14px 0', boxSizing: 'border-box', pointerEvents: 'none' }}
   >
-    <CropTicks compact />
+    <CropTicks size={11} />
     <ProofControlStrip faulted={faulted} />
     <ProofLabel>LIVE PROOF</ProofLabel>
     <span style={{ height: 1, background: T.borderSubtle, flex: 1, minWidth: 8 }} />
-    <RegistrationTarget faulted={faulted} size={11} />
+    <RegistrationTarget faulted={faulted} size={14} />
   </span>
 ))
 
@@ -140,8 +140,8 @@ export const PillProofRegister = memo(({ faulted = false }: FaultedProps) => (
     aria-hidden="true"
     style={{ display: 'inline-flex', alignItems: 'center', gap: 3, height: 8, pointerEvents: 'none' }}
   >
-    <CropTicks compact />
+    <CropTicks size={8} />
     <ProofControlStrip faulted={faulted} compact />
-    <RegistrationTarget faulted={faulted} size={6} />
+    <RegistrationTarget faulted={faulted} size={8} />
   </span>
 ))

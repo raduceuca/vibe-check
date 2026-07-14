@@ -11,6 +11,16 @@ describe('proof-control marks', () => {
     expect(new Set(Array.from(patches, (node) => node.getAttribute('data-width'))).size).toBeGreaterThan(2)
   })
 
+  it('uses five-pixel standard and four-pixel compact proof weights', () => {
+    const standard = render(<ProofControlStrip />).container.firstElementChild as HTMLElement
+    const compact = render(<ProofControlStrip compact />).container.firstElementChild as HTMLElement
+
+    expect(standard.dataset.wcgwProofWeight).toBe('standard')
+    expect(standard.style.height).toBe('5px')
+    expect(compact.dataset.wcgwProofWeight).toBe('compact')
+    expect(compact.style.height).toBe('4px')
+  })
+
   it('composes the expanded register as a top-edge proof control', () => {
     render(<TopProofRegister faulted />)
 
@@ -25,5 +35,13 @@ describe('proof-control marks', () => {
     render(<PillProofRegister />)
 
     expect(screen.getByTestId('wcgw-pill-proof-register').getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('uses larger top and pill registration targets', () => {
+    const top = render(<TopProofRegister />).container
+    const pill = render(<PillProofRegister />).container
+
+    expect(top.querySelector('[data-wcgw-registration-target]')?.getAttribute('width')).toBe('14')
+    expect(pill.querySelector('[data-wcgw-registration-target]')?.getAttribute('width')).toBe('8')
   })
 })

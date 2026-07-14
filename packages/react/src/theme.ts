@@ -78,9 +78,9 @@ export const ANIMATIONS_CSS = `
   --wcgw-badge-alpha: 16%;
 }
 [data-wcgw-proof-ink] { transition: transform var(--wcgw-duration-fast) var(--wcgw-ease); transform-box: fill-box; transform-origin: center; }
-[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="c"] { transform: translate(-0.75px,0.35px); }
-[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="m"] { transform: translate(0.75px,-0.35px); }
-[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="y"] { transform: translate(0.25px,0.6px); }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="c"] { transform: translate(-1px,0.4px); }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="m"] { transform: translate(1px,-0.4px); }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="y"] { transform: translate(0.3px,0.8px); }
 [data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
 [data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
 [data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
