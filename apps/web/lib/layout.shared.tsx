@@ -6,6 +6,10 @@ import {
   NavigationWordmarkLabel,
   ProofVersion,
 } from '@/components/brand/NavigationBrand'
+import {
+  SidebarBoundary,
+  SidebarRailTerminals,
+} from '@/components/site/SidebarProofMarks'
 
 // Shared config for the Fumadocs docs layout. The docs sidebar is skinned (in
 // global.css, under .vc-docs) to match the marketing SiteSidebar, so the whole
@@ -37,6 +41,8 @@ export const baseOptions = (): BaseLayoutProps => ({
 // slot so it mirrors the SiteSidebar footer.
 export const DocsSidebarFooter = () => (
   <>
+    <SidebarRailTerminals />
+    <SidebarBoundary className="vc-side-boundary-resources" />
     <div className="vc-side-grouplabel">Resources</div>
     <ul className="vc-side-list">
       <li>
@@ -64,6 +70,7 @@ export const DocsSidebarFooter = () => (
         </a>
       </li>
     </ul>
+    <SidebarBoundary className="vc-side-boundary-footer" />
     <div className="vc-side-footer">
       <ProofVersion version={SITE_VERSION} />
       <span aria-hidden="true">·</span>

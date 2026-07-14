@@ -1129,6 +1129,28 @@ html {
   background: var(--vc-bg);
   border-right: 1px solid var(--vc-line-2);
 }
+.vc-side,
+.vc-side-drawer,
+.vc-docs #nd-sidebar {
+  isolation: isolate;
+}
+.vc-side-rail-marks {
+  position: absolute;
+  inset: 0 -1px 0 auto;
+  width: 8px;
+  pointer-events: none;
+}
+.vc-side-rail-mark {
+  position: absolute;
+  right: 0;
+}
+.vc-side-rail-mark-top {
+  top: 10px;
+}
+.vc-side-rail-mark-bottom {
+  bottom: 10px;
+  transform: scaleY(-1);
+}
 .vc-side-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -1269,11 +1291,27 @@ html {
 
 /* Sub-lists: indented with a thin vertical guide line */
 .vc-side-sub {
+  position: relative;
   list-style: none;
   margin: 1px 0 4px;
   padding-left: 11px;
   margin-left: 9px;
   border-left: 1px solid var(--vc-line-2);
+}
+.vc-side-sub::before,
+.vc-side-sub::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  width: 6px;
+  height: 1px;
+  background: var(--vc-line-2);
+}
+.vc-side-sub::before {
+  top: 0;
+}
+.vc-side-sub::after {
+  bottom: 0;
 }
 .vc-side-sub-deep {
   margin-left: 7px;
@@ -1299,6 +1337,15 @@ html {
   color: var(--vc-ink-4);
   padding: 6px 9px 4px;
   margin-top: 18px;
+}
+.vc-side-boundary {
+  display: block;
+  margin: 12px 9px 6px;
+  width: calc(100% - 18px);
+  pointer-events: none;
+}
+.vc-side-boundary-footer {
+  margin-block: 0;
 }
 
 /* Footer: version + GitHub mark */
@@ -1359,8 +1406,8 @@ html {
     flex-direction: column;
     justify-content: center;
     gap: 3.5px;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     padding: 0 8px;
     background: none;
     border: 1px solid var(--vc-line);
@@ -1410,8 +1457,8 @@ html {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     background: none;
     border: 1px solid var(--vc-line);
     border-radius: 7px;

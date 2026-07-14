@@ -9,6 +9,7 @@ import {
   NavigationWordmark,
   ProofVersion,
 } from '@/components/brand/NavigationBrand'
+import { SidebarBoundary, SidebarRailTerminals } from './SidebarProofMarks'
 
 // ── The persistent left nav ───────────────────────────────────────────────────
 // A narrow, hairline-ruled sidebar shared across the landing, /scan and /fix. Its
@@ -151,6 +152,7 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
         </li>
       </ul>
 
+      <SidebarBoundary className="vc-side-boundary-resources" />
       <div className="vc-side-grouplabel">Resources</div>
       <ul className="vc-side-list">
         {data.resources.map((item) => (
@@ -164,21 +166,24 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
 }
 
 const SidebarFooter = ({ data }: { data: SidebarData }) => (
-  <div className="vc-side-footer">
-    <ProofVersion version={data.version} />
-    <span className="vc-side-foot-sep" aria-hidden="true">
-      ·
-    </span>
-    <a
-      href={data.github}
-      className="vc-side-foot-gh"
-      target="_blank"
-      rel="noreferrer"
-      aria-label="VibeCheck on GitHub"
-    >
-      <GithubMark />
-    </a>
-  </div>
+  <>
+    <SidebarBoundary className="vc-side-boundary-footer" />
+    <div className="vc-side-footer">
+      <ProofVersion version={data.version} />
+      <span className="vc-side-foot-sep" aria-hidden="true">
+        ·
+      </span>
+      <a
+        href={data.github}
+        className="vc-side-foot-gh"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="VibeCheck on GitHub"
+      >
+        <GithubMark />
+      </a>
+    </div>
+  </>
 )
 
 export const SiteSidebar = ({ data }: { data: SidebarData }) => {
@@ -210,6 +215,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
     <>
       {/* Desktop: sticky rail */}
       <aside className="vc-side">
+        <SidebarRailTerminals />
         <div className="vc-side-top">
           <NavigationWordmark />
           <ProofVersion version={data.version} />
@@ -253,6 +259,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
         data-open={open ? 'true' : undefined}
         aria-hidden={open ? undefined : true}
       >
+        <SidebarRailTerminals />
         <div className="vc-side-top">
           <NavigationWordmark />
           <ProofVersion version={data.version} />
