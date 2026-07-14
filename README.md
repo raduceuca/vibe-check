@@ -104,7 +104,9 @@ theme is available.
 - **Agent** — the durable issue queue (to fix / in progress / fixed). **Copy prompt**
   only copies text. **Send to agent** dispatches the issue to the project's
   connected watcher. Agent pickup, browser-evidence verification, and later
-  regressions remain visible and persist per project across hub restarts.
+  regressions remain visible and persist per project across hub restarts. A
+  project impact card keeps verified fixes, regressions caught, and conservative
+  measured improvements ready to copy as Markdown or JSON.
   <!-- TODO: screenshot → docs/screenshots/agent.png -->
 - **SEO** — a discoverability audit (title, meta description, Open Graph, canonical,
   headings, alt text, sitemap/robots, …) scored as a pass rate.

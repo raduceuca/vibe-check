@@ -11,12 +11,12 @@ All UI is inline-styled (no CSS files), renders at a high z-index, ships a dark 
 
 | Tab | What it shows |
 |---|---|
-| **Monitor** | Live FPS lifeline (avg/worst frame time), Web Vitals (LCP/INP/CLS), memory, console error/warn/log counts, SEO + AEO score chips, and a quick list of active problems. |
-| **Agent** | The durable fix queue — every detected problem split across *to fix / in progress / fixed*. Agent pickup, browser verification, and regressions appear in each issue timeline and persist per project. |
+| **Monitor** | Live FPS lifeline, Web Vitals, memory, console counts, SEO/AEO scores, active problems, and a compact persisted impact summary. |
+| **Agent** | The durable fix queue — every detected problem split across *to fix / in progress / fixed*, plus the full project impact card. Agent pickup, browser verification, and regressions persist per project. |
 | **SEO** | Search-visibility audit — a 0–100 score over the SEO criteria, each failing check expandable with **Send to agent** and **Copy prompt** actions. |
 | **AEO** | AI-answer-readiness audit (Answer Engine Optimization) — same shape as SEO, with **Send to agent** on every finding. |
 | **Prompts** | A library of proactive prompts to ask your AI agent, each copy-to-clipboard. |
-| **Settings** | Wording (dev ⇄ vibe), on-page annotation markers, light theme, FPS-history persistence, independent collapsed/expanded corner placement, MCP connection status, and clear-all. |
+| **Settings** | Wording, markers, theme, history, collapsed/expanded placement, MCP status, impact Markdown/JSON export, and a separate two-step impact reset. |
 
 On-page **annotation markers** point a badge at the actual offending DOM element (oversized images, heavy libraries, …); click one for an in-place popover with the same **Send to agent**, **Copy prompt**, and resolve actions.
 
@@ -28,6 +28,9 @@ The widget caches each project's latest workflow locally for an immediate
 refresh, while the local MCP hub remains authoritative and persists the full
 timeline in that project's `.vibecheck/state.json`. A fix is shown as verified
 only after two newer snapshots from the same page no longer contain the issue.
+The same local state records exact verified-fix and regression totals plus only
+those performance improvements supported by comparable snapshots. Impact copy
+uses “caught,” “verified,” and “helped,” and always includes measurement scope.
 
 <!-- TODO: capture one screenshot per tab into ../../docs/screenshots/ -->
 <!-- ![Monitor](../../docs/screenshots/monitor.png) ![Agent](../../docs/screenshots/agent.png) -->

@@ -14,6 +14,7 @@ describe('real agent demo playback', () => {
     expect(markup).toContain('vibe-check-agent-roundtrip-poster.png')
     expect(markup).not.toContain('vibe-check-agent-roundtrip.gif')
     expect(markup).toContain('Play demo')
+    expect(markup).toContain('persisted local project ledger')
   })
 
   it('does not autoplay for reduced-motion users', () => {

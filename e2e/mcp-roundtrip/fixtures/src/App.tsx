@@ -7,6 +7,16 @@ interface AgentReceipt {
   readonly nodeCount: number
 }
 
+interface DemoImpact {
+  readonly verifiedFixes: number
+  readonly regressionsCaught: number
+  readonly metrics: readonly {
+    readonly kind: string
+    readonly value: number
+    readonly label: string
+  }[]
+}
+
 const pageStyle = {
   minHeight: '100vh',
   boxSizing: 'border-box',
@@ -78,6 +88,7 @@ const BloatControls = ({
 
 const RecordingShell = () => {
   const [receipt, setReceipt] = useState<AgentReceipt | null>(null)
+  const [impact, setImpact] = useState<DemoImpact | null>(null)
   const [bloated, applyFix, reintroduceRegression] = useBloatedDom()
 
   useEffect(() => {
@@ -86,6 +97,26 @@ const RecordingShell = () => {
     }
     window.addEventListener('vibe-check-demo-agent-received', receive)
     return () => window.removeEventListener('vibe-check-demo-agent-received', receive)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const refresh = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_HUB_URL}/api/projects/${encodeURIComponent(window.location.origin)}/impact`,
+        )
+        if (response.ok && active) setImpact(await response.json() as DemoImpact)
+      } catch {
+        // The visible widget explains hub connectivity while the showcase keeps its last receipt.
+      }
+    }
+    void refresh()
+    const timer = window.setInterval(() => { void refresh() }, 1_000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [])
 
   return (
@@ -137,6 +168,24 @@ const RecordingShell = () => {
             </span>
           </div>
         )}
+      </section>
+
+      <section data-testid="vibe-check-demo-impact" style={cardStyle}>
+        <div style={labelStyle}>Persisted project impact</div>
+        <strong style={{ display: 'block', marginTop: 12, color: '#4ade80', fontSize: 17 }}>
+          {impact?.verifiedFixes ?? 0} verified fixes
+        </strong>
+        <div style={{ marginTop: 7, color: '#d4d4d8', fontSize: 14 }}>
+          {impact?.regressionsCaught ?? 0} regressions caught
+        </div>
+        {impact?.metrics.map((metric) => (
+          <div key={metric.kind} style={{ marginTop: 7, color: '#a1a1aa', fontSize: 13 }}>
+            {metric.value} {metric.label}
+          </div>
+        ))}
+        <div style={{ marginTop: 10, color: '#71717a', fontSize: 12 }}>
+          Stored locally per project and restored after hub restarts.
+        </div>
       </section>
 
       <BloatControls

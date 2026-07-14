@@ -278,6 +278,8 @@ describe('hubServer', () => {
       address = context.server.address()
       port = typeof address === 'object' && address ? address.port : 0
       base = `http://127.0.0.1:${port}`
+      expect((await json(`${base}/api/projects/${project}/impact`)).body)
+        .toMatchObject({ verifiedFixes: 1 })
       clock = 5
       await post(base + '/api/snapshot', envelope('project-a', 'browser-a', [], '/pricing', clock))
       expect((await json(`${base}/api/projects/${project}/workflow`)).body)

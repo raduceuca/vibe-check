@@ -36,6 +36,7 @@ import {
   resolveProjectRoot,
 } from './projectRegistry.js'
 import { readPersistedWorkflow, writePersistedWorkflow } from './persistence.js'
+import { deriveProjectImpact } from './impact.js'
 
 const MAX_BODY_BYTES = 1_048_576
 
@@ -273,7 +274,12 @@ export const createHubServer = ({
       }
 
       if (method === 'GET' && parts[0] === 'api' && parts[1] === 'projects' && parts[3] === 'impact') {
-        const impact = getProjectImpact(store, parts[2] ?? '')
+        const projectId = parts[2] ?? ''
+        const activeImpact = getProjectImpact(store, projectId)
+        const restoredWorkflow = activeImpact ? null : await ensureLoaded(projectId)
+        const impact = activeImpact ?? (restoredWorkflow
+          ? deriveProjectImpact(restoredWorkflow, restoredWorkflow.impactReceipts)
+          : null)
         sendJson(res, impact ? 200 : 404, impact ?? { error: 'Project not found' }, true)
         return
       }

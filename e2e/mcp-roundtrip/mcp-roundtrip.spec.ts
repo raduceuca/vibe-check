@@ -70,7 +70,15 @@ const restartHub = async (): Promise<void> => {
 interface WorkflowIssueView {
   readonly pageUrl: string
   readonly phase: string
-  readonly issue: { readonly detector: string }
+  readonly issue: { readonly id: string; readonly detector: string }
+}
+
+interface ProjectImpactView {
+  readonly projectId: string
+  readonly uniqueIssuesFixed: number
+  readonly verifiedFixes: number
+  readonly regressionsCaught: number
+  readonly metrics: readonly { readonly kind: string; readonly value: number }[]
 }
 
 const workflowIssues = async (projectId: string): Promise<readonly WorkflowIssueView[]> => {
@@ -83,6 +91,12 @@ const workflowIssues = async (projectId: string): Promise<readonly WorkflowIssue
 const workflowPhase = async (projectId: string, pageUrl: string): Promise<string> =>
   (await workflowIssues(projectId)).find((item) =>
     item.pageUrl === pageUrl && item.issue.detector === 'dom-bloat')?.phase ?? 'missing'
+
+const projectImpact = async (projectId: string): Promise<ProjectImpactView> => {
+  const response = await fetch(`${hubUrl}/api/projects/${encodeURIComponent(projectId)}/impact`)
+  if (!response.ok) throw new Error(`Impact endpoint returned ${response.status}`)
+  return await response.json() as ProjectImpactView
+}
 
 const jsonPayload = (result: Awaited<ReturnType<Client['callTool']>>): unknown => {
   const block = result.content[0]
@@ -301,6 +315,7 @@ test('recording shell shows the receipt only after the real agent receives the i
     await expect(receipt).toContainText('Received by agent')
     await expect(receipt).toContainText('dom-bloat')
     await expect(receipt).toContainText(appAUrl)
+    await expect(page.getByTestId('vibe-check-demo-impact')).toContainText('Persisted project impact')
   } finally {
     await agent.close()
   }
@@ -364,6 +379,70 @@ test('persists a verified fix and reopens its regression', async ({ page }) => {
 
     await page.getByRole('tab', { name: /Agent|Fix/ }).click()
     await expect(page.getByText(/regression/i).first()).toBeVisible({ timeout: 10_000 })
+
+    const regressed = (await workflowIssues(appAUrl)).find((item) =>
+      item.pageUrl === workflowUrl && item.phase === 'regressed')
+    if (!regressed) throw new Error('Expected regressed workflow issue')
+    await page.getByRole('button', { name: /Too many elements|DOM Bloat/ }).first().click()
+    const regressionReceivedPromise = watch(agent.client, appAUrl)
+    await expect(page.getByTestId('vibe-check-agent-status')).toContainText(
+      /Agent connected|AI agent connected/,
+      { timeout: 10_000 },
+    )
+    await page.getByTestId(`vibe-check-send-${regressed.issue.id}`).click()
+    const regressionReceived = payload(await regressionReceivedPromise)
+    const regressionIssueId = regressionReceived.issue?.id
+    if (!regressionIssueId) throw new Error('Regression dispatch did not include an ID')
+
+    await page.getByRole('button', { name: 'Apply fix' }).click()
+    await expect.poll(async () => {
+      const result = jsonPayload(await agent.client.callTool({
+        name: 'get_detected_issues',
+        arguments: { project_id: appAUrl },
+      })) as { readonly issues: readonly { readonly id: string }[] }
+      return result.issues.some((issue) => issue.id === regressionIssueId)
+    }, { timeout: 20_000 }).toBe(false)
+    await agent.client.callTool({
+      name: 'resolve_issue',
+      arguments: { project_id: appAUrl, issue_id: regressionIssueId },
+    })
+    await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
+      .toBe('fixed')
+
+    const beforeRestart = await projectImpact(appAUrl)
+    expect(beforeRestart).toMatchObject({
+      uniqueIssuesFixed: 1,
+      verifiedFixes: 2,
+      regressionsCaught: 1,
+    })
+    expect(beforeRestart.metrics.some((metric) => metric.kind === 'dom-nodes-reduced'))
+      .toBe(true)
+    await expect(page.getByLabel('VibeCheck impact')).toContainText('2 verified fixes', {
+      timeout: 10_000,
+    })
+    await expect(page.getByLabel('VibeCheck impact')).toContainText('1 regressions caught')
+
+    await restartHub()
+    expect(await projectImpact(appAUrl)).toEqual(beforeRestart)
+
+    const isolatedPage = await page.context().newPage()
+    try {
+      await isolatedPage.goto(`${appBUrl}/impact-isolation`)
+      await expect.poll(async () => {
+        try {
+          return (await projectImpact(appBUrl)).verifiedFixes
+        } catch {
+          return -1
+        }
+      }, { timeout: 20_000 }).toBe(0)
+      expect(await projectImpact(appBUrl)).toMatchObject({
+        verifiedFixes: 0,
+        regressionsCaught: 0,
+        metrics: [],
+      })
+    } finally {
+      await isolatedPage.close()
+    }
   } finally {
     await agent.close()
   }

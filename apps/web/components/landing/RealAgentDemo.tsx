@@ -54,8 +54,8 @@ export const RealAgentDemo = () => {
       <figcaption className="vc-real-demo-caption">
         <span>
           Recorded from the release E2E: packed npm packages, local hub, stdio
-          bridge, and a real MCP SDK client. The receipt appears only after the
-          agent receives the issue.
+          bridge, and a real MCP SDK client. Delivery, verified fixes, and
+          regressions come from VibeCheck&apos;s persisted local project ledger.
         </span>
         <Link className="vc-link vc-real-demo-link" href="/docs/quickstart">
           Run it locally →
