@@ -3,8 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { parseHTML } from 'linkedom'
 import { describe, expect, it, vi } from 'vitest'
 import type { SidebarData } from '@/lib/nav'
-import { DocsSidebarFooter } from '@/lib/layout.shared'
-import { SidebarBoundary, SidebarRailTerminals } from './SidebarProofMarks'
+import { baseOptions, DocsSidebarFooter } from '@/lib/layout.shared'
+import {
+  SidebarBoundary,
+  SidebarMobileBoundaryMark,
+  SidebarRailTerminals,
+} from './SidebarProofMarks'
 import { SiteSidebar } from './SiteSidebar'
 
 vi.mock('next/navigation', () => ({
@@ -53,6 +57,14 @@ describe('sidebar proof marks', () => {
     expect(markup).toContain('data-vc-rule-color="true"')
   })
 
+  it('composes mobile shell boundaries from the shared structural mark', () => {
+    const markup = renderToStaticMarkup(<SidebarMobileBoundaryMark />)
+
+    expect(markup).toContain('data-vc-sidebar-mobile-boundary')
+    expect(markup).toContain('data-vc-structural-rule="horizontal"')
+    expect(markup).toContain('data-vc-rule-color="true"')
+  })
+
   it('places terminals and boundaries in both custom sidebar shells', () => {
     const markup = renderToStaticMarkup(<SiteSidebar data={sidebarData} />)
     const { document } = parseHTML(`<main>${markup}</main>`)
@@ -66,6 +78,15 @@ describe('sidebar proof marks', () => {
       expect(shell.querySelector('.vc-side-boundary-resources')).not.toBeNull()
       expect(shell.querySelector('.vc-side-boundary-footer')).not.toBeNull()
     })
+
+    expect(
+      document.querySelector('.vc-side-bar [data-vc-sidebar-mobile-boundary]'),
+    ).not.toBeNull()
+    expect(
+      document.querySelector(
+        '.vc-side-drawer > [data-vc-sidebar-mobile-boundary]',
+      ),
+    ).not.toBeNull()
   })
 
   it('orders the docs rail and proof boundaries around its footer groups', () => {
@@ -85,6 +106,18 @@ describe('sidebar proof marks', () => {
     expect(
       footer?.querySelector('.vc-side-boundary-footer + .vc-side-footer'),
     ).not.toBeNull()
+    expect(
+      footer?.querySelector(
+        '[data-vc-sidebar-mobile-boundary].vc-docs-mobile-boundary-drawer',
+      ),
+    ).not.toBeNull()
+  })
+
+  it('places the docs top-bar boundary mark in the shared navigation title', () => {
+    const markup = renderToStaticMarkup(<>{baseOptions().nav?.title}</>)
+
+    expect(markup).toContain('data-vc-sidebar-mobile-boundary')
+    expect(markup).toContain('vc-docs-mobile-boundary-bar')
   })
 
   it('keeps mobile navigation controls at a 40px hit area', () => {
@@ -128,9 +161,38 @@ describe('sidebar proof marks', () => {
     ).toBe(true)
   })
 
-  it('keeps the Fumadocs top terminal above the sidebar toggle hit area', () => {
+  it('keeps all top terminals at the shared safe offset', () => {
     expect(
-      /\.vc-docs #nd-sidebar \.vc-side-rail-mark-top,\s*\.vc-docs #nd-sidebar-mobile \.vc-side-rail-mark-top\s*{[^}]*top: 6px;/.test(
+      /\.vc-side-rail-mark-top\s*{[^}]*top: 6px;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+    expect(globalStyles).not.toMatch(
+      /\.vc-docs[^{}]*\.vc-side-rail-mark-top[^{}]*{[^}]*top:/,
+    )
+  })
+
+  it('attaches proof marks to custom and Fumadocs mobile shell boundaries', () => {
+    expect(
+      /\.vc-side-bar \.vc-side-mobile-boundary-bar,\s*\.vc-docs #nd-subnav \.vc-docs-mobile-boundary-bar\s*{[^}]*display: block;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+    expect(
+      /\.vc-side-drawer > \.vc-side-mobile-boundary-drawer,\s*\.vc-docs #nd-sidebar-mobile \.vc-docs-mobile-boundary-drawer\s*{[^}]*display: block;/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+  })
+
+  it('terminates expanded Fumadocs nested guide lines with neutral ticks', () => {
+    expect(
+      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]::after\s*{[^}]*background:[^}]*linear-gradient[^}]*var\(--vc-line-2\)/.test(
+        globalStyles,
+      ),
+    ).toBe(true)
+    expect(
+      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]::after\s*{[^}]*width: 6px;/.test(
         globalStyles,
       ),
     ).toBe(true)

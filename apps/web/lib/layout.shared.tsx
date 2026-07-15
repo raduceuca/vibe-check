@@ -8,6 +8,7 @@ import {
 } from '@/components/brand/NavigationBrand'
 import {
   SidebarBoundary,
+  SidebarMobileBoundaryMark,
   SidebarRailTerminals,
 } from '@/components/site/SidebarProofMarks'
 
@@ -25,6 +26,7 @@ export const baseOptions = (): BaseLayoutProps => ({
       <>
         <NavigationWordmarkLabel />
         <ProofVersion version={SITE_VERSION} />
+        <SidebarMobileBoundaryMark className="vc-docs-mobile-boundary-bar" />
       </>
     ),
     url: '/',
@@ -42,6 +44,7 @@ export const baseOptions = (): BaseLayoutProps => ({
 export const DocsSidebarFooter = () => (
   <>
     <SidebarRailTerminals />
+    <SidebarMobileBoundaryMark className="vc-docs-mobile-boundary-drawer" />
     <SidebarBoundary className="vc-side-boundary-resources" />
     <div className="vc-side-grouplabel">Resources</div>
     <ul className="vc-side-list">

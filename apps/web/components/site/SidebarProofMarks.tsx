@@ -26,3 +26,17 @@ export const SidebarBoundary = ({
     <StructuralRuleMark orientation="horizontal" color />
   </span>
 )
+
+export const SidebarMobileBoundaryMark = ({
+  className = '',
+}: {
+  readonly className?: string
+}) => (
+  <span
+    className={`vc-side-mobile-boundary ${className}`.trim()}
+    data-vc-sidebar-mobile-boundary=""
+    aria-hidden="true"
+  >
+    <StructuralRuleMark orientation="horizontal" color />
+  </span>
+)

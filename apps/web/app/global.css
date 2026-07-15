@@ -1147,15 +1147,11 @@ html {
   right: 0;
 }
 .vc-side-rail-mark-top {
-  top: 10px;
+  top: 6px;
 }
 .vc-side-rail-mark-bottom {
   bottom: 10px;
   transform: scaleY(-1);
-}
-.vc-docs #nd-sidebar .vc-side-rail-mark-top,
-.vc-docs #nd-sidebar-mobile .vc-side-rail-mark-top {
-  top: 6px;
 }
 .vc-docs #nd-sidebar-mobile .vc-side-rail-marks {
   inset: 0 auto 0 -1px;
@@ -1379,6 +1375,19 @@ html {
   margin-block: 0;
 }
 
+/* Mobile-only proof furniture. The same structural-rule primitive is mounted in
+   both shells, then positioned against the boundary each shell actually owns. */
+.vc-side-mobile-boundary {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.88;
+}
+.vc-side-mobile-boundary > [data-vc-structural-rule='horizontal'] {
+  width: 100%;
+}
+
 /* Footer: version + GitHub mark */
 .vc-side-footer {
   flex: none;
@@ -1430,6 +1439,15 @@ html {
     background: color-mix(in srgb, var(--vc-bg) 90%, transparent);
     backdrop-filter: saturate(1.4) blur(10px);
     border-bottom: 1px solid var(--vc-line-2);
+    isolation: isolate;
+  }
+  .vc-side-bar .vc-side-mobile-boundary-bar,
+  .vc-docs #nd-subnav .vc-docs-mobile-boundary-bar {
+    display: block;
+    right: 72px;
+    bottom: -4px;
+    width: 92px;
+    height: 8px;
   }
   .vc-side-burger {
     margin-left: auto;
@@ -1482,6 +1500,23 @@ html {
     transform: translateX(0);
     visibility: visible;
     transition: transform 0.2s ease;
+  }
+  .vc-side-drawer > .vc-side-mobile-boundary-drawer,
+  .vc-docs #nd-sidebar-mobile .vc-docs-mobile-boundary-drawer {
+    display: block;
+    top: 72px;
+    width: 78px;
+    height: 8px;
+  }
+  .vc-side-drawer > .vc-side-mobile-boundary-drawer {
+    right: -4px;
+    transform: rotate(-90deg);
+    transform-origin: top right;
+  }
+  .vc-docs #nd-sidebar-mobile .vc-docs-mobile-boundary-drawer {
+    left: -4px;
+    transform: rotate(90deg);
+    transform-origin: top left;
   }
   .vc-side-close {
     margin-left: auto;
@@ -1553,6 +1588,24 @@ html {
   border-radius: 1px;
   background: var(--vc-sig) !important;
   transform: translateY(-50%);
+}
+/* Fumadocs draws its first-level nested guide with ::before on the open
+   collapsible content. This second, neutral-only layer caps that same guide at
+   both ends; no process color is introduced on subordinate navigation. */
+.vc-docs :is(#nd-sidebar, #nd-sidebar-mobile) div[data-state='open'][class~='overflow-hidden'][class~='relative']::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 10px;
+  top: 4px;
+  width: 6px;
+  height: calc(100% - 8px);
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--vc-line-2) 0 1px,
+    transparent 1px calc(100% - 1px),
+    var(--vc-line-2) calc(100% - 1px) 100%
+  );
 }
 /* The wordmark rosette + proof version live in nav.title; the Resources group +
    version footer live in the footer slot. Give the footer version line the same

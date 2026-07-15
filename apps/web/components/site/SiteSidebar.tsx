@@ -9,7 +9,11 @@ import {
   NavigationWordmark,
   ProofVersion,
 } from '@/components/brand/NavigationBrand'
-import { SidebarBoundary, SidebarRailTerminals } from './SidebarProofMarks'
+import {
+  SidebarBoundary,
+  SidebarMobileBoundaryMark,
+  SidebarRailTerminals,
+} from './SidebarProofMarks'
 
 // ── The persistent left nav ───────────────────────────────────────────────────
 // A narrow, hairline-ruled sidebar shared across the landing, /scan and /fix. Its
@@ -242,6 +246,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
           <span aria-hidden="true" />
           <span aria-hidden="true" />
         </button>
+        <SidebarMobileBoundaryMark className="vc-side-mobile-boundary-bar" />
       </div>
 
       {/* Mobile: drawer overlay */}
@@ -260,6 +265,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
         aria-hidden={open ? undefined : true}
       >
         <SidebarRailTerminals />
+        <SidebarMobileBoundaryMark className="vc-side-mobile-boundary-drawer" />
         <div className="vc-side-top">
           <NavigationWordmark />
           <ProofVersion version={data.version} />
