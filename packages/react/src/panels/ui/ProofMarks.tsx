@@ -5,7 +5,7 @@ interface FaultedProps {
   readonly faulted?: boolean
 }
 
-interface ProofControlStripProps extends FaultedProps {
+interface ProofControlStripProps {
   readonly compact?: boolean
 }
 
@@ -33,11 +33,10 @@ const PATCHES = [
   { ink: 'k', color: T.proofK, width: 9, opacity: 0.24 },
 ] as const
 
-export const ProofControlStrip = memo(({ faulted = false, compact = false }: ProofControlStripProps) => (
+export const ProofControlStrip = memo(({ compact = false }: ProofControlStripProps) => (
   <span
     data-wcgw-proof-control
     data-wcgw-proof-weight={compact ? 'compact' : 'standard'}
-    data-faulted={faulted ? 'true' : undefined}
     aria-hidden="true"
     style={{ display: 'inline-flex', alignItems: 'center', gap: compact ? 0.75 : 1, height: compact ? 4 : 5, flexShrink: 0, pointerEvents: 'none' }}
   >
@@ -137,7 +136,7 @@ export const TopProofRegister = memo(({ faulted = false }: FaultedProps) => (
     style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', height: 16, padding: '7px 14px 0', boxSizing: 'border-box', pointerEvents: 'none' }}
   >
     <CropTicks size={11} />
-    <ProofControlStrip faulted={faulted} />
+    <ProofControlStrip />
     <ProofLabel>LIVE PROOF</ProofLabel>
     <span style={{ height: 1, background: T.borderSubtle, flex: 1, minWidth: 8 }} />
     <RegistrationTarget faulted={faulted} size={14} />
@@ -153,7 +152,7 @@ export const PillProofRegister = memo(({ faulted = false }: FaultedProps) => (
     style={{ display: 'inline-flex', alignItems: 'center', gap: 3, height: 8, pointerEvents: 'none' }}
   >
     <CropTicks size={8} />
-    <ProofControlStrip faulted={faulted} compact />
+    <ProofControlStrip compact />
     <RegistrationTarget faulted={faulted} size={8} />
   </span>
 ))

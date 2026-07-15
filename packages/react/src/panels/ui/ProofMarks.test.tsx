@@ -50,6 +50,32 @@ describe('proof-control marks', () => {
     expect(pill.querySelector('[data-wcgw-registration-target]')?.getAttribute('width')).toBe('8')
   })
 
+  it('keeps proof bars aligned when a register is faulted', () => {
+    const { container } = render(
+      <>
+        <TopProofRegister faulted />
+        <PillProofRegister faulted />
+      </>,
+    )
+
+    const registers = container.querySelectorAll(
+      '[data-wcgw-top-proof-register], [data-wcgw-pill-proof-register]',
+    )
+
+    registers.forEach((register) => {
+      expect(
+        register
+          .querySelector('[data-wcgw-proof-weight]')
+          ?.hasAttribute('data-faulted'),
+      ).toBe(false)
+      expect(
+        register
+          .querySelector('[data-wcgw-registration-target]')
+          ?.getAttribute('data-faulted'),
+      ).toBe('true')
+    })
+  })
+
   it('renders colored major dividers and neutral minor cut dividers', () => {
     const { container } = render(
       <>
