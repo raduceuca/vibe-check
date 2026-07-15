@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate, type ProcessInk } from './artKit'
 import { Node, Arc, OP } from './instrumentKit'
 
 // duplicate-requests (instrument grammar) — a beacon at the left emits one
@@ -9,16 +9,18 @@ const NY = 24
 const SPAN = 52 // arc half-angle around the 0° (rightward) bearing
 
 const echoes = [
-  { r: 24, opacity: OP.faint },
-  { r: 19, opacity: OP.ambient },
-  { r: 14, opacity: OP.ambient },
+  { r: 24, opacity: OP.faint, ink: 'cyan' },
+  { r: 19, opacity: OP.ambient, ink: 'magenta' },
+  { r: 14, opacity: OP.ambient, ink: 'yellow' },
 ] as const
 
 export const DuplicateRequestsArt = () => (
   <ArtSvg>
     {/* dashed echoes — the duplicates, furthest = faintest */}
     {echoes.map((e) => (
-      <Arc key={e.r} r={e.r} a0={-SPAN} a1={SPAN} cx={NX} cy={NY} dashed opacity={e.opacity} />
+      <ProcessPlate key={e.r} ink={e.ink satisfies ProcessInk}>
+        <Arc r={e.r} a0={-SPAN} a1={SPAN} cx={NX} cy={NY} dashed opacity={e.opacity} />
+      </ProcessPlate>
     ))}
     {/* the original request — solid, in front */}
     <Arc r={9} a0={-SPAN} a1={SPAN} cx={NX} cy={NY} opacity={OP.line} />

@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate } from './artKit'
 import { Node, Ring, Crosshair, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
 // seo (instrument grammar) — a radar scan: concentric dashed range-rings, a
@@ -12,9 +12,15 @@ export const SeoArt = () => {
   const [bx, by] = pt(C, C, 13, SWEEP + 3)
   return (
     <ArtSvg>
-      <Ring r={8} opacity={OP.ambient} />
-      <Ring r={13} opacity={OP.ambient} />
-      <Ring r={18.5} opacity={OP.faint} />
+      <ProcessPlate ink="yellow">
+        <Ring r={8} opacity={OP.ambient} />
+      </ProcessPlate>
+      <ProcessPlate ink="magenta">
+        <Ring r={13} opacity={OP.ambient} />
+      </ProcessPlate>
+      <ProcessPlate ink="cyan">
+        <Ring r={18.5} opacity={OP.faint} />
+      </ProcessPlate>
       <Crosshair reach={21} gap={3.5} />
       {/* sweep afterglow trailing the arm */}
       <Arc r={18.5} a0={SWEEP + 4} a1={SWEEP + 34} dashed opacity={OP.faint} />

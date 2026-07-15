@@ -14,6 +14,8 @@ import {
   type WebVitalsStats,
   type HeapMemory,
 } from '@wcgw/vibe-check-core'
+import { CalibrationRuler } from '@/components/brand/ProofMarks'
+import { LANDING_COPY } from '@/lib/landingCopy'
 
 // ── Live gauges — the always-measuring layer ─────────────────────────────────
 // The measurement half of the story the bestiary tells the catching half of.
@@ -146,23 +148,35 @@ export const LiveGauges = () => {
     <div className="vc-gauges" aria-label="Live performance readings for this page">
       <div className="vc-gauges-head">
         <span className="vc-gauges-live" aria-hidden="true" />
-        <span className="vc-gauges-live-label">Live · this page, right now</span>
-        <span className="vc-gauges-note">read straight off the collectors the widget ships</span>
+        <span className="vc-gauges-live-label">{LANDING_COPY.gauges.header}</span>
+        <CalibrationRuler className="vc-gauges-ruler" />
+        <span className="vc-gauges-note">{LANDING_COPY.gauges.note}</span>
       </div>
       <div className="vc-gauges-grid">
-        {gauges.map((g) => (
-          <div className="vc-gauge" key={g.key} data-tone={g.tone}>
-            <div className="vc-gauge-top">
-              <span className="vc-gauge-lab">{g.label}</span>
-              <span className="vc-gauge-dot" aria-hidden="true" />
+        {gauges.map((g, index) => {
+          const proofIndex = String(index + 1).padStart(2, '0')
+          return (
+            <div
+              className="vc-gauge"
+              key={g.key}
+              data-tone={g.tone}
+              data-proof-index={proofIndex}
+            >
+              <div className="vc-gauge-top">
+                <span className="vc-gauge-lab">{g.label}</span>
+                <span className="vc-gauge-dot" aria-hidden="true" />
+              </div>
+              <div className="vc-gauge-read">
+                <span className="vc-gauge-val">{g.value}</span>
+                {g.unit ? <span className="vc-gauge-unit">{g.unit}</span> : null}
+              </div>
+              <span className="vc-gauge-sub">{g.sub}</span>
+              <span className="vc-gauge-index" aria-hidden="true">
+                {proofIndex}
+              </span>
             </div>
-            <div className="vc-gauge-read">
-              <span className="vc-gauge-val">{g.value}</span>
-              {g.unit ? <span className="vc-gauge-unit">{g.unit}</span> : null}
-            </div>
-            <span className="vc-gauge-sub">{g.sub}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

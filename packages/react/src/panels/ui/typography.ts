@@ -16,7 +16,5 @@ export const SUBKICKER: CSSProperties = { ...T_LABEL, marginBottom: 6 }
 export const STAT_LABEL: CSSProperties = { ...T_LABEL, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 export const STAT_VALUE: CSSProperties = { ...T_VALUE, display: 'flex', alignItems: 'center', gap: 4, minHeight: 18 }
 export const STAT_GRID: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, alignItems: 'start' }
-// Hairline that separates the panel's major blocks without a hard border.
-export const DIVIDER: CSSProperties = { borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 4 }
-// Finer, tighter separation for related sub-groups (e.g. FPS -> its metrics).
-export const FINE: CSSProperties = { borderTop: `1px solid ${T.borderSubtle}`, paddingTop: 11, marginTop: 11 }
+export const SECTION_GAP: CSSProperties = { paddingTop: 14, marginTop: 4 }
+export const SUBSECTION_GAP: CSSProperties = { paddingTop: 11, marginTop: 11 }

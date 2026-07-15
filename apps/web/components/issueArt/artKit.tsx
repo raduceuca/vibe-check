@@ -7,14 +7,10 @@ import type { ReactNode } from 'react'
 // Instrument diagram kit (see components/diagrams/primitives.tsx) without
 // clashing.
 //
-// Neutral ink is painted with `currentColor` + opacity (currentColor === the
-// card's --vc-ink, set on the .vc-art container). The single accent per glyph is
-// the fault/signal, driven by the card's own `--vc-fire` custom property — which
-// the DetectorsGrid CSS already sets to red at data-sev=error and amber at
-// data-sev=warning. That ties each illustration to its card's severity dot +
-// hover with zero prop threading, and stays theme-aware because --vc-fire
-// resolves through the theme's --vc-sig / --vc-amber tokens. Pure SVG, no hooks —
-// safe inside a server component.
+// Structural/K ink is painted with `currentColor`. Selected signal geometry is
+// wrapped in ProcessPlate so the mechanism can use theme-aware CMY inks without
+// turning the whole card into a colour-coded severity surface. Pure SVG, no
+// hooks — safe inside a server component.
 
 export const VIEW = 48
 export const STROKE = 1.5
@@ -36,6 +32,26 @@ export const INK = {
 export const FIRE = 'currentColor'
 export const FIRE_OP = TONE
 export const FIRE_FILL = 0
+
+export type ProcessInk = 'cyan' | 'magenta' | 'yellow'
+
+const PROCESS_VAR: Record<ProcessInk, string> = {
+  cyan: 'var(--vc-proof-c)',
+  magenta: 'var(--vc-proof-m)',
+  yellow: 'var(--vc-proof-y)',
+}
+
+export const ProcessPlate = ({
+  ink,
+  children,
+}: {
+  readonly ink: ProcessInk
+  readonly children: ReactNode
+}) => (
+  <g data-vc-process-plate={ink} style={{ color: PROCESS_VAR[ink] }}>
+    {children}
+  </g>
+)
 
 interface ArtSvgProps {
   readonly children: ReactNode

@@ -26,6 +26,12 @@ export const T = {
   red: 'var(--wcgw-sev-critical)',
   blue: 'var(--wcgw-sev-info)',
 
+  // Process inks — reserved for tiny proof signatures and diagnostic echoes.
+  proofC: 'var(--wcgw-proof-c)',
+  proofM: 'var(--wcgw-proof-m)',
+  proofY: 'var(--wcgw-proof-y)',
+  proofK: 'var(--wcgw-proof-k)',
+
   // Radii
   radiusXs: 'var(--wcgw-radius-xs)',
   radiusSm: 'var(--wcgw-radius-sm)',

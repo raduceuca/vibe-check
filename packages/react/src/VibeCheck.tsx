@@ -13,6 +13,7 @@ import { useAnimations } from './theme.js'
 import type { PanelType, Position, ViewTab } from './panels/types.js'
 import { getHealth, healthKey, sevVar, sevGlow } from './panels/monitor/severity.js'
 import { surfaceStyle } from './panels/ui/surface.js'
+import { TopProofRegister } from './panels/ui/ProofMarks.js'
 import { CollapsedPill } from './panels/CollapsedPill.js'
 import { MonitorView } from './panels/monitor/MonitorView.js'
 import { BottomNav } from './panels/nav/BottomNav.js'
@@ -234,11 +235,13 @@ export const VibeCheck = memo(({
           ...pos,
         }}>
 
+        <TopProofRegister faulted={activeCount > 0} />
+
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '12px 16px 6px', cursor: 'default', userSelect: 'none',
-          flexShrink: 0,
+          padding: '8px 16px 6px', cursor: 'default', userSelect: 'none',
+          flexShrink: 0, position: 'relative',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div ref={panelHeaderRef} onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"

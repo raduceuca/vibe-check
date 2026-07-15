@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate, type ProcessInk } from './artKit'
 import { Node, Ray, Ring, OP } from './instrumentKit'
 
 // console-spam (instrument grammar) — a noisy readout: a central dot firing a
@@ -24,21 +24,24 @@ const BURSTS: readonly Burst[] = [
   { deg: -116, to: 11, dashed: true },
 ]
 
+const PROCESS: readonly ProcessInk[] = ['cyan', 'magenta', 'yellow']
+
 export const ConsoleSpamArt = () => (
   <ArtSvg>
     {/* the din, framed */}
     <Ring r={18} opacity={OP.faint} />
     {/* scattered log noise firing outward */}
-    {BURSTS.map((b) => (
-      <Ray
-        key={b.deg}
-        deg={b.deg}
-        from={4}
-        to={b.to}
-        dashed={b.dashed}
-        tip={b.tip}
-        opacity={OP.line}
-      />
+    {BURSTS.map((b, index) => (
+      <ProcessPlate key={b.deg} ink={PROCESS[index % PROCESS.length] ?? 'cyan'}>
+        <Ray
+          deg={b.deg}
+          from={4}
+          to={b.to}
+          dashed={b.dashed}
+          tip={b.tip}
+          opacity={OP.line}
+        />
+      </ProcessPlate>
     ))}
     <Node shape="dot" r={2.2} />
   </ArtSvg>

@@ -1,4 +1,4 @@
-import { ArtSvg } from './artKit'
+import { ArtSvg, ProcessPlate, type ProcessInk } from './artKit'
 import { Node, Arc, OP, HAIR, C, pt } from './instrumentKit'
 
 // memory-leak (instrument grammar) — concentric dashed rings expanding outward
@@ -9,9 +9,9 @@ const ESCAPE = -52 // bearing of the opening + the escaping arrow (upper-right)
 const GAP = 34 // angular gap that keeps every ring open
 
 const arcs = [
-  { r: 6, opacity: OP.line },
-  { r: 11, opacity: OP.ambient },
-  { r: 16.5, opacity: OP.faint },
+  { r: 6, opacity: OP.line, ink: 'yellow' },
+  { r: 11, opacity: OP.ambient, ink: 'magenta' },
+  { r: 16.5, opacity: OP.faint, ink: 'cyan' },
 ] as const
 
 export const MemoryLeakArt = () => {
@@ -22,14 +22,15 @@ export const MemoryLeakArt = () => {
   return (
     <ArtSvg>
       {arcs.map((a) => (
-        <Arc
-          key={a.r}
-          r={a.r}
-          a0={ESCAPE + GAP / 2}
-          a1={ESCAPE + 360 - GAP / 2}
-          dashed
-          opacity={a.opacity}
-        />
+        <ProcessPlate key={a.r} ink={a.ink satisfies ProcessInk}>
+          <Arc
+            r={a.r}
+            a0={ESCAPE + GAP / 2}
+            a1={ESCAPE + 360 - GAP / 2}
+            dashed
+            opacity={a.opacity}
+          />
+        </ProcessPlate>
       ))}
       {/* growth breaking past the last ring, never returning */}
       <g fill="none" strokeWidth={HAIR} strokeOpacity={OP.line}>

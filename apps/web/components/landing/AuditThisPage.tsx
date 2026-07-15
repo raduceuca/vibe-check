@@ -8,6 +8,7 @@ import {
   AEO_CRITERIA_COUNT,
 } from '@wcgw/vibe-check-core'
 import type { VibeIssue, Severity } from '@wcgw/vibe-check-core'
+import { LANDING_COPY } from '@/lib/landingCopy'
 
 // ── Run the real SEO / AEO audit on THIS page ────────────────────────────────
 // The instrument grading its own home. On click we run VibeCheck's actual
@@ -223,10 +224,10 @@ export const AuditThisPage = () => {
       >
         <span className="vc-audit-run-dot" />
         {phase === 'idle'
-          ? 'Run the SEO / AEO audit on this page'
+          ? LANDING_COPY.audit.button
           : phase === 'running'
             ? 'Auditing this page…'
-            : 'Run the audit again'}
+            : LANDING_COPY.audit.button}
       </button>
 
       {phase === 'running' && !results ? (

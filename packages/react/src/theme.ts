@@ -61,6 +61,7 @@ export const ANIMATIONS_CSS = `
   --wcgw-shadow-md: 0 8px 32px rgba(0,0,0,0.5);
   --wcgw-shadow-lg: 0 12px 48px rgba(0,0,0,0.6), 0 2px 12px rgba(0,0,0,0.3);
   --wcgw-sev-info: #60a5fa; --wcgw-sev-warning: #facc15; --wcgw-sev-error: #fb923c; --wcgw-sev-critical: #f87171; --wcgw-sev-success: #4ade80;
+  --wcgw-proof-c: #38c4e1; --wcgw-proof-m: #ff5da9; --wcgw-proof-y: #f2de42; --wcgw-proof-k: #f4f4f5;
   --wcgw-badge-alpha: 13%;
 }
 [data-wcgw-theme="light"] {
@@ -73,8 +74,13 @@ export const ANIMATIONS_CSS = `
   --wcgw-shadow-md: 0 8px 28px rgba(20,20,22,0.13);
   --wcgw-shadow-lg: 0 12px 40px rgba(20,20,22,0.16), 0 2px 10px rgba(20,20,22,0.08);
   --wcgw-sev-info: #1d4ed8; --wcgw-sev-warning: #a16207; --wcgw-sev-error: #c2410c; --wcgw-sev-critical: #b91c1c; --wcgw-sev-success: #15803d;
+  --wcgw-proof-c: #009fc2; --wcgw-proof-m: #cf146f; --wcgw-proof-y: #bdaa00; --wcgw-proof-k: #1c1c1e;
   --wcgw-badge-alpha: 16%;
 }
+[data-wcgw-proof-ink] { transition: transform var(--wcgw-duration-fast) var(--wcgw-ease); transform-box: fill-box; transform-origin: center; }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="c"] { transform: translate(-1px,0.4px); }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="m"] { transform: translate(1px,-0.4px); }
+[data-wcgw-proof-control][data-faulted="true"] [data-wcgw-proof-ink="y"] { transform: translate(0.3px,0.8px); }
 [data-wcgw-issue]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
 [data-wcgw-pill]:hover { background: rgba(var(--wcgw-fg),0.06) !important; }
 [data-wcgw-tab]:hover { background: rgba(var(--wcgw-fg),0.04) !important; }
@@ -99,6 +105,8 @@ export const ANIMATIONS_CSS = `
 @media (prefers-reduced-motion: reduce) {
   [data-wcgw-breathe], [data-wcgw] * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   [data-wcgw] button:active, [data-wcgw-pill]:active { scale: 1; }
+  [data-wcgw-proof-ink] { transform: none !important; }
+  [data-wcgw-proof-echo] { display: none; }
 }
 `
 

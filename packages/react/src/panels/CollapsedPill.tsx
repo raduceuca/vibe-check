@@ -3,6 +3,7 @@ import type { VibeSnapshot, SuggestionMode } from '@wcgw/vibe-check-core'
 import { T } from '../tokens.js'
 import { MiniRing } from './monitor/MiniRing.js'
 import { getHealth, healthKey, sevVar, sevGlow, fpsKey } from './monitor/severity.js'
+import { PillProofRegister } from './ui/ProofMarks.js'
 
 // Thin separator between the pill's metric groups.
 const PillDivider = () => (
@@ -46,7 +47,11 @@ export const CollapsedPill = memo(({ snapshot, activeCount, onToggle, theme, mod
           border: `1px solid ${T.border}`,
           boxShadow: `var(--wcgw-shadow-md), 0 0 0 0.5px rgba(var(--wcgw-fg),0.04)`,
           animation: `vc-fade-in ${T.durationNormal} ${T.ease}`,
+          position: 'relative',
         }}>
+        <span style={{ position: 'absolute', top: -3, left: 20, lineHeight: 0 }}>
+          <PillProofRegister faulted={activeCount > 0} />
+        </span>
         {/* Overall health */}
         <span data-wcgw-breathe aria-hidden="true" style={{
           width: 8, height: 8, borderRadius: T.radiusPill, background: hColor, flexShrink: 0,
