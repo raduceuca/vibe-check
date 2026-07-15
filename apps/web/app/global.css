@@ -1592,7 +1592,7 @@ html {
 /* Fumadocs draws its first-level nested guide with ::before on the open
    collapsible content. This second, neutral-only layer caps that same guide at
    both ends; no process color is introduced on subordinate navigation. */
-.vc-docs :is(#nd-sidebar, #nd-sidebar-mobile) div[data-state='open'][class~='overflow-hidden'][class~='relative']::after {
+.vc-docs :is(#nd-sidebar, #nd-sidebar-mobile) div[data-state='open'][class~='overflow-hidden'][class~='relative'][class*='before:content-']::after {
   content: '';
   position: absolute;
   inset-inline-start: 10px;

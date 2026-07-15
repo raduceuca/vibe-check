@@ -187,12 +187,12 @@ describe('sidebar proof marks', () => {
 
   it('terminates expanded Fumadocs nested guide lines with neutral ticks', () => {
     expect(
-      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]::after\s*{[^}]*background:[^}]*linear-gradient[^}]*var\(--vc-line-2\)/.test(
+      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]\[class\*='before:content-'\]::after\s*{[^}]*background:[^}]*linear-gradient[^}]*var\(--vc-line-2\)/.test(
         globalStyles,
       ),
     ).toBe(true)
     expect(
-      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]::after\s*{[^}]*width: 6px;/.test(
+      /\.vc-docs :is\(#nd-sidebar, #nd-sidebar-mobile\) div\[data-state='open'\]\[class~='overflow-hidden'\]\[class~='relative'\]\[class\*='before:content-'\]::after\s*{[^}]*width: 6px;/.test(
         globalStyles,
       ),
     ).toBe(true)
