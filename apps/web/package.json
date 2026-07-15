@@ -6,9 +6,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "test": "node --test __tests__/*.test.mjs && vitest run __tests__/markdown-rewrites.test.ts __tests__/real-agent-demo.test.tsx",
+    "test": "node --test __tests__/*.test.mjs && vitest run",
     "start": "next start",
-    "test": "vitest run",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "pnpm cf:build && opennextjs-cloudflare preview",
     "cf:deploy": "pnpm cf:build && opennextjs-cloudflare deploy",
