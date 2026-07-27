@@ -14,6 +14,14 @@ export type CliConfig =
       readonly port: number
       readonly registryPath: string
     }
+  | {
+      readonly role: 'up'
+      readonly host: string
+      readonly port: number
+      readonly registryPath: string
+      readonly projectId: string | undefined
+      readonly agent: SetupAgent | undefined
+    }
   | { readonly role: 'connect'; readonly hubUrl: string }
   | {
       readonly role: 'doctor'
@@ -57,6 +65,52 @@ export const parseCliConfig = (
       host: env['VIBE_CHECK_HOST'] ?? DEFAULT_HOST,
       port: parsePort(env['VIBE_CHECK_PORT']),
       registryPath: env['VIBE_CHECK_REGISTRY_PATH'] ?? defaultProjectRegistryPath(),
+    }
+  }
+  if (role === 'up') {
+    let projectId: string | undefined
+    let agent: SetupAgent | undefined
+    let port = parsePort(env['VIBE_CHECK_PORT'])
+    const seen = new Set<string>()
+    for (let index = 1; index < argv.length; index += 1) {
+      const option = argv[index]
+      if (option === '--project') {
+        if (seen.has(option)) throw new Error('Duplicate up option: --project')
+        seen.add(option)
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Up --project requires a project ID')
+        projectId = value
+        index += 1
+        continue
+      }
+      if (option === '--agent') {
+        if (seen.has(option)) throw new Error('Duplicate up option: --agent')
+        seen.add(option)
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Up --agent requires an agent')
+        if (!SETUP_AGENTS.includes(value as SetupAgent)) throw new Error(`Unknown up agent: ${value}`)
+        agent = value as SetupAgent
+        index += 1
+        continue
+      }
+      if (option === '--port') {
+        if (seen.has(option)) throw new Error('Duplicate up option: --port')
+        seen.add(option)
+        const value = argv[index + 1]
+        if (!value || value.startsWith('--')) throw new Error('Up --port requires a port')
+        port = parsePort(value)
+        index += 1
+        continue
+      }
+      throw new Error(`Unknown up option: ${option ?? ''}`)
+    }
+    return {
+      role,
+      host: env['VIBE_CHECK_HOST'] ?? DEFAULT_HOST,
+      port,
+      registryPath: env['VIBE_CHECK_REGISTRY_PATH'] ?? defaultProjectRegistryPath(),
+      projectId,
+      agent,
     }
   }
   if (role === 'connect') {
@@ -192,7 +246,7 @@ export const parseCliConfig = (
     }
   }
   throw new Error(
-    'Usage: vibe-check-mcp hub | vibe-check-mcp connect | vibe-check-mcp doctor [--project <id>] [--json] | '
+    'Usage: vibe-check-mcp hub | vibe-check-mcp up [--project <id>] [--agent <codex|claude-code|cursor>] [--port <n>] | vibe-check-mcp connect | vibe-check-mcp doctor [--project <id>] [--json] | '
     + 'vibe-check-mcp stats --project <id> [--json|--markdown] | '
     + 'vibe-check-mcp setup --agent <codex|claude-code|cursor> [--project <id>] [--dry-run] [--force] | '
     + 'vibe-check-mcp register --project <id> [--root <path>]',

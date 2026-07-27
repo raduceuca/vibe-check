@@ -4,7 +4,7 @@ React performance-monitoring overlay with AI/vibe-coding issue detection. A drop
 
 All UI is inline-styled (no CSS files), renders at a high z-index, ships a dark and a light theme, and respects `prefers-reduced-motion`.
 
-<!-- TODO: capture ../../docs/screenshots/hero.png (widget expanded on the demo page) -->
+![VibeCheck widget on the demo page](../../docs/screenshots/hero.png)
 <!-- ![vibe-check overlay](../../docs/screenshots/hero.png) -->
 
 ## What you get — six tabs
@@ -32,7 +32,15 @@ The same local state records exact verified-fix and regression totals plus only
 those performance improvements supported by comparable snapshots. Impact copy
 uses “caught,” “verified,” and “helped,” and always includes measurement scope.
 
-<!-- TODO: capture one screenshot per tab into ../../docs/screenshots/ -->
+| Tab | Screenshot |
+|-----|------------|
+| Monitor | ![Monitor](../../docs/screenshots/monitor.png) |
+| Agent | ![Agent](../../docs/screenshots/agent.png) |
+| SEO | ![SEO](../../docs/screenshots/seo.png) |
+| AEO | ![AEO](../../docs/screenshots/aeo.png) |
+| Prompts | ![Prompts](../../docs/screenshots/prompts.png) |
+| Settings | ![Settings](../../docs/screenshots/settings.png) |
+
 <!-- ![Monitor](../../docs/screenshots/monitor.png) ![Agent](../../docs/screenshots/agent.png) -->
 <!-- ![SEO](../../docs/screenshots/seo.png) ![AEO](../../docs/screenshots/aeo.png) -->
 <!-- ![Prompts](../../docs/screenshots/prompts.png) ![Settings](../../docs/screenshots/settings.png) -->

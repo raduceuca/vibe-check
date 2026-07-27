@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import {
   AGENT_CLIENTS,
   HUB_START_COMMAND,
+  formatSetupPack,
   getAgentClientSetup,
   getWatchInstruction,
   type AgentClientId,
@@ -158,7 +159,7 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
   const ready = state === 'connected' || state === 'busy'
   const [client, setClient] = useState<AgentClientId>('codex')
   const [detailsOpen, setDetailsOpen] = useState(!ready)
-  const [copied, setCopied] = useState<'hub' | 'setup' | 'watch' | null>(null)
+  const [copied, setCopied] = useState<'hub' | 'setup' | 'watch' | 'pack' | null>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const selectedSetup = getAgentClientSetup(client)
   const projectId = status?.projectId ?? 'my-project'
@@ -173,7 +174,7 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
     if (resetTimer.current) clearTimeout(resetTimer.current)
   }, [])
 
-  const handleCopy = async (value: string, key: 'hub' | 'setup' | 'watch') => {
+  const handleCopy = async (value: string, key: 'hub' | 'setup' | 'watch' | 'pack') => {
     if (!await copyWithFallback(value)) return
     setCopied(key)
     if (resetTimer.current) clearTimeout(resetTimer.current)
@@ -301,6 +302,25 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
               copied={copied === 'watch'}
               onClick={() => { void handleCopy(watchInstruction, 'watch') }}
             />
+          </div>
+
+          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
+            <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>Copy the full setup pack</div>
+            <div style={{ ...bodyStyle, marginTop: 4 }}>
+              One clipboard block: hub command, {selectedSetup.label} setup, and the watch instruction.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+              <SetupCopyButton
+                label="Copy full setup pack"
+                copied={copied === 'pack'}
+                onClick={() => {
+                  void handleCopy(
+                    formatSetupPack({ projectId, agent: client, preferUp: true }),
+                    'pack',
+                  )
+                }}
+              />
+            </div>
           </div>
 
           <div style={{ ...bodyStyle, marginTop: 9, color: T.textSecondary }}>

@@ -72,10 +72,18 @@ annotations, and clipboard prompts work, but it cannot communicate with an agent
 Run this in its own terminal and leave it running:
 
 ```bash
+npx -y @wcgw/vibe-check-mcp@0.3.0 up --project my-storefront --agent codex
+```
+
+`up` starts the same hub as `hub`, then prints the setup pack (agent config +
+watch instruction) for the selected project. Use plain `hub` when you only need
+the server:
+
+```bash
 npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 ```
 
-Expected output:
+Expected output (hub line always; setup pack when using `up`):
 
 ```text
 [vibe-check] Hub listening on http://127.0.0.1:4200

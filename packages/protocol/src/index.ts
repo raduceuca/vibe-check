@@ -319,6 +319,50 @@ export const getAgentClientSetup = (client: AgentClientId): AgentClientSetup =>
 export const getWatchInstruction = (projectId: string): string =>
   `Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "${projectId}" and keep waiting for the next issue I send from the widget.`
 
+export const UP_START_COMMAND = `npx -y ${MCP_PACKAGE_SPEC} up`
+
+export interface SetupPackOptions {
+  readonly projectId: string
+  readonly agent: AgentClientId
+  /** Prefer the guided `up` hub command when true (default true). */
+  readonly preferUp?: boolean
+}
+
+/** One clipboard-ready block: hub + agent setup + watch instruction. */
+export const formatSetupPack = ({
+  projectId,
+  agent,
+  preferUp = true,
+}: SetupPackOptions): string => {
+  const setup = getAgentClientSetup(agent)
+  const hub = preferUp
+    ? `${UP_START_COMMAND} --project ${projectId} --agent ${agent}`
+    : HUB_START_COMMAND
+  const setupBlock = setup.format === 'json'
+    ? `Merge into .cursor/mcp.json under mcpServers:\n${setup.value}`
+    : setup.value
+  return [
+    `## VibeCheck setup — ${projectId}`,
+    '',
+    '### 1. Start the local hub',
+    hub,
+    '',
+    `### 2. ${setup.label} MCP`,
+    setup.destination,
+    setupBlock,
+    '',
+    '### 3. Restart or open a new agent session',
+    'MCP configuration is loaded when the agent session starts.',
+    '',
+    '### 4. Watch this project (paste into the agent)',
+    getWatchInstruction(projectId),
+    '',
+    '### 5. In the widget',
+    'Wait for Agent connected (green), then click **Send to agent** on an issue.',
+    '',
+  ].join('\n')
+}
+
 export const AGENT_CONNECTION_STATES = ['no-agent', 'watching', 'busy', 'stale'] as const
 export type AgentConnectionState = (typeof AGENT_CONNECTION_STATES)[number]
 

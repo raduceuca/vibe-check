@@ -41,6 +41,7 @@ export type {
   LeaseResult,
   AgentClientId,
   AgentClientSetup,
+  SetupPackOptions,
 } from './types.js'
 
 export {
@@ -55,8 +56,10 @@ export {
   DISPATCH_RESULT_CODES,
   MCP_PACKAGE_SPEC,
   HUB_START_COMMAND,
+  UP_START_COMMAND,
   getAgentClientSetup,
   getWatchInstruction,
+  formatSetupPack,
 } from './types.js'
 
 // Engine

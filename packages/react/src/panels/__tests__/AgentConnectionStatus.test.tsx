@@ -115,4 +115,17 @@ describe('AgentConnectionStatus', () => {
     expect(screen.getByText(/codex mcp add vibe-check/)).toBeTruthy()
     expect(document.getElementById('vibe-check-agent-setup-details')).toBeTruthy()
   })
+
+  it('copies a full setup pack for the selected agent', async () => {
+    render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('no-agent')} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /copy full setup pack/i }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    const pack = writeText.mock.calls[0]?.[0] ?? ''
+    expect(pack).toContain('## VibeCheck setup — project-a')
+    expect(pack).toContain('up --project project-a --agent codex')
+    expect(pack).toContain('codex mcp add vibe-check')
+    expect(pack).toContain('project_id "project-a"')
+  })
+
 })

@@ -2,11 +2,14 @@
 
 [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/raduceuca/vibe-check?utm_source=oss&utm_medium=github&utm_campaign=raduceuca%2Fvibe-check&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
-Browser performance and quality monitoring for the age of AI-assisted coding. It
-runs in your app, catches the issues vibe-coded sites ship with — janky frames,
+**Perf + SEO monitor that hands browser findings to your coding agent — then
+verifies the fix.**
+
+It runs in your app, catches the issues vibe-coded sites ship with — janky frames,
 DOM bloat, duplicate fetches, memory leaks, unoptimized images, missing SEO/AEO
 basics — and can dispatch a detected issue directly to the one AI-agent session
-watching that project.
+watching that project. Think of it as a live press check before you call the
+frontend done.
 
 ![Real VibeCheck widget-to-agent MCP round-trip](./apps/web/public/demo/vibe-check-agent-roundtrip.gif)
 
@@ -100,34 +103,47 @@ theme is available.
 
 - **Monitor** — live FPS lifeline, Web Vitals (LCP/INP/CLS), memory, and the SEO/AEO
   audit scores at a glance.
-  <!-- TODO: screenshot → docs/screenshots/monitor.png -->
+
+  ![Monitor tab](./docs/screenshots/monitor.png)
+
 - **Agent** — the durable issue queue (to fix / in progress / fixed). **Copy prompt**
   only copies text. **Send to agent** dispatches the issue to the project's
   connected watcher. Agent pickup, browser-evidence verification, and later
   regressions remain visible and persist per project across hub restarts. A
   project impact card keeps verified fixes, regressions caught, and conservative
-  measured improvements ready to copy as Markdown or JSON.
-  <!-- TODO: screenshot → docs/screenshots/agent.png -->
+  measured improvements ready to copy as Markdown or JSON. The setup card can
+  **Copy full setup pack** (hub + agent config + watch instruction) in one shot.
+
+  ![Agent tab](./docs/screenshots/agent.png)
+
 - **SEO** — a discoverability audit (title, meta description, Open Graph, canonical,
   headings, alt text, sitemap/robots, …) scored as a pass rate.
-  <!-- TODO: screenshot → docs/screenshots/seo.png -->
+
+  ![SEO tab](./docs/screenshots/seo.png)
+
 - **AEO** — answer-engine / AI-agent readiness (structured data, `llms.txt`,
   content-without-JS, AI-crawler access, MCP discovery, …).
-  <!-- TODO: screenshot → docs/screenshots/aeo.png -->
+
+  ![AEO tab](./docs/screenshots/aeo.png)
+
 - **Prompts** — a library of proactive audit prompts (full performance scan, bundle
   diet, memory-leak hunt, image optimization, console cleanup) to copy before any
   issue is even detected.
-  <!-- TODO: screenshot → docs/screenshots/prompts.png -->
+
+  ![Prompts tab](./docs/screenshots/prompts.png)
+
 - **Settings** — beacon/MCP connection status (reflects real delivery), the
   wording toggle, theme, and per-panel visibility.
-  <!-- TODO: screenshot → docs/screenshots/settings.png -->
+
+  ![Settings tab](./docs/screenshots/settings.png)
 
 **On-page annotations** — issues with a DOM location can be pinned as markers on
 the page itself, so you see *where* a problem lives, not just that it exists.
-<!-- TODO: screenshot → docs/screenshots/annotations.png -->
 
-> The tab-by-tab screenshots are still planned under `docs/screenshots/`; the
-> real end-to-end hero recording above is generated with `pnpm demo:record`.
+![On-page annotations](./docs/screenshots/annotations.png)
+
+> Screenshots were captured from the demo app. The real end-to-end hero GIF above
+> is generated with `pnpm demo:record`.
 
 ## How it works
 
@@ -166,7 +182,8 @@ Use this order for the first end-to-end connection:
 Start the shared hub:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.3.0 hub
+npx -y @wcgw/vibe-check-mcp@0.3.0 up --project my-storefront --agent codex
+# plain hub (no guided banner): npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 ```
 
 Point every local widget at that hub and give each project an explicit stable ID:
