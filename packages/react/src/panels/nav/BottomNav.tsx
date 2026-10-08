@@ -67,7 +67,6 @@ interface BottomNavProps {
 }
 
 export const BottomNav = ({ activeView, onSelect, mode, counts, agentConnectionState }: BottomNavProps) => {
-  const activeIndex = TAB_CONFIG.findIndex((tab) => tab.key === activeView)
   const items: readonly TabItem[] = TAB_CONFIG.map((tab) => {
     const count = tab.key === 'agent' ? counts.agent
       : tab.key === 'seo' ? counts.seo
@@ -101,9 +100,6 @@ export const BottomNav = ({ activeView, onSelect, mode, counts, agentConnectionS
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <span data-wcgw-nav-proof aria-hidden="true" style={{ position: 'absolute', top: 3, left: '50%', transform: 'translateX(-50%)', zIndex: 1, fontFamily: T.fontMono, fontSize: 8, lineHeight: 1, letterSpacing: '0.1em', color: T.textMuted, pointerEvents: 'none' }}>
-        PL {String(activeIndex + 1).padStart(2, '0')}/06
-      </span>
       <Tabs
         items={items}
         activeKey={activeView}

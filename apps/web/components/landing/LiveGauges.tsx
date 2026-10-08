@@ -14,7 +14,6 @@ import {
   type WebVitalsStats,
   type HeapMemory,
 } from '@wcgw/vibe-check-core'
-import { CalibrationRuler } from '@/components/brand/ProofMarks'
 import { LANDING_COPY } from '@/lib/landingCopy'
 
 // ── Live gauges — the always-measuring layer ─────────────────────────────────
@@ -149,18 +148,14 @@ export const LiveGauges = () => {
       <div className="vc-gauges-head">
         <span className="vc-gauges-live" aria-hidden="true" />
         <span className="vc-gauges-live-label">{LANDING_COPY.gauges.header}</span>
-        <CalibrationRuler className="vc-gauges-ruler" />
         <span className="vc-gauges-note">{LANDING_COPY.gauges.note}</span>
       </div>
       <div className="vc-gauges-grid">
-        {gauges.map((g, index) => {
-          const proofIndex = String(index + 1).padStart(2, '0')
-          return (
+        {gauges.map((g) => (
             <div
               className="vc-gauge"
               key={g.key}
               data-tone={g.tone}
-              data-proof-index={proofIndex}
             >
               <div className="vc-gauge-top">
                 <span className="vc-gauge-lab">{g.label}</span>
@@ -171,12 +166,8 @@ export const LiveGauges = () => {
                 {g.unit ? <span className="vc-gauge-unit">{g.unit}</span> : null}
               </div>
               <span className="vc-gauge-sub">{g.sub}</span>
-              <span className="vc-gauge-index" aria-hidden="true">
-                {proofIndex}
-              </span>
             </div>
-          )
-        })}
+        ))}
       </div>
     </div>
   )

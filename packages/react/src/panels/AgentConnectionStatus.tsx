@@ -15,6 +15,8 @@ interface AgentConnectionStatusProps {
   readonly mode: SuggestionMode
   readonly beaconUrl?: string
   readonly status?: BeaconStatus | null
+  /** When true, connected/busy renders a single status line (issues lead). */
+  readonly compactWhenReady?: boolean
 }
 
 export type AgentDisplayState = 'unconfigured' | 'offline' | 'waiting' | 'connected' | 'busy' | 'stale'
@@ -154,11 +156,48 @@ const integrationSnippet = `<VibeCheck
   projectId="my-project"
 />`
 
-export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnectionStatusProps) => {
+const ClientPicker = ({
+  client,
+  onSelect,
+}: {
+  readonly client: AgentClientId
+  readonly onSelect: (id: AgentClientId) => void
+}) => (
+  <div role="group" aria-label="Choose your AI coding client" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4, marginTop: 7 }}>
+    {AGENT_CLIENTS.map((clientId) => {
+      const setup = getAgentClientSetup(clientId)
+      const selected = client === clientId
+      return (
+        <button
+          key={clientId}
+          type="button"
+          aria-pressed={selected}
+          onClick={() => { onSelect(clientId) }}
+          style={{
+            ...actionStyle,
+            padding: '5px 4px',
+            color: selected ? T.text : T.textTertiary,
+            background: selected ? T.bgHover : T.bg,
+            borderColor: selected ? T.border : T.borderSubtle,
+          }}
+        >
+          {setup.label}
+        </button>
+      )
+    })}
+  </div>
+)
+
+export const AgentConnectionStatus = ({
+  mode,
+  beaconUrl,
+  status,
+  compactWhenReady = false,
+}: AgentConnectionStatusProps) => {
   const state = getAgentDisplayState(beaconUrl, status)
   const ready = state === 'connected' || state === 'busy'
   const [client, setClient] = useState<AgentClientId>('codex')
-  const [detailsOpen, setDetailsOpen] = useState(!ready)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [copied, setCopied] = useState<'hub' | 'setup' | 'watch' | 'pack' | null>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const selectedSetup = getAgentClientSetup(client)
@@ -167,7 +206,7 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
   const conflict = status?.projectStatus?.conflictAt != null
 
   useEffect(() => {
-    setDetailsOpen(!ready)
+    if (ready) setDetailsOpen(false)
   }, [ready])
 
   useEffect(() => () => {
@@ -181,6 +220,50 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
     resetTimer.current = setTimeout(() => setCopied(null), 2_000)
   }
 
+  const nextStep = (() => {
+    if (state === 'unconfigured') {
+      return {
+        title: mode === 'vibe' ? 'Add the hub URL' : 'Configure the widget',
+        body: 'Add beaconUrl and a stable projectId, then reload.',
+        code: integrationSnippet,
+        copyKey: 'setup' as const,
+        copyValue: integrationSnippet,
+        copyLabel: 'Copy snippet',
+      }
+    }
+    if (state === 'offline') {
+      return {
+        title: mode === 'vibe' ? 'Start the hub' : 'Start the local hub',
+        body: `Cannot reach ${beaconUrl}. Leave this running in a terminal.`,
+        code: HUB_START_COMMAND,
+        copyKey: 'hub' as const,
+        copyValue: HUB_START_COMMAND,
+        copyLabel: 'Copy hub command',
+      }
+    }
+    if (state === 'stale') {
+      return {
+        title: mode === 'vibe' ? 'Reconnect your agent' : 'Reconnect the watcher',
+        body: `The watcher for ${projectId} stopped. Paste the watch instruction in a new agent session.`,
+        code: watchInstruction,
+        copyKey: 'watch' as const,
+        copyValue: watchInstruction,
+        copyLabel: 'Copy watch instruction',
+      }
+    }
+    if (state === 'waiting') {
+      return {
+        title: mode === 'vibe' ? 'Ask your agent to watch' : 'Paste this in the agent',
+        body: `Hub is ready. One session should watch ${projectId}.`,
+        code: watchInstruction,
+        copyKey: 'watch' as const,
+        copyValue: watchInstruction,
+        copyLabel: 'Copy watch instruction',
+      }
+    }
+    return null
+  })()
+
   const summary = (() => {
     if (state === 'unconfigured') return 'Add both beaconUrl and a stable projectId to the widget.'
     if (state === 'offline') return `Cannot reach ${beaconUrl}. Start the local hub and leave it running.`
@@ -189,6 +272,35 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
     if (state === 'busy') return `${projectId} is owned by one agent session and is processing an issue.`
     return `${projectId} is owned by one agent session and ready to receive issues.`
   })()
+
+  if (ready && compactWhenReady && !detailsOpen) {
+    return (
+      <div data-testid="vibe-check-agent-status" style={{ ...containerStyle, padding: '8px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ width: 7, height: 7, borderRadius: T.radiusPill, background: AGENT_DISPLAY_COLORS[state], flexShrink: 0 }} />
+            <span style={{ color: AGENT_DISPLAY_COLORS[state], fontSize: 13, fontWeight: 650 }}>
+              {LABELS[state][mode]}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            aria-expanded={false}
+            aria-controls="vibe-check-agent-setup-details"
+            style={{ ...actionStyle, minHeight: 40, padding: '5px 8px', flexShrink: 0 }}
+          >
+            Setup
+          </button>
+        </div>
+        {conflict && (
+          <div role="alert" style={{ color: T.yellow, fontSize: 13, lineHeight: 1.5, marginTop: 8, textWrap: 'pretty' }}>
+            A second agent was rejected. Continue in the owning session, or call release_project there before switching agents.
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div data-testid="vibe-check-agent-status" style={containerStyle}>
@@ -226,90 +338,14 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
         </div>
       )}
 
-      {detailsOpen && (
-        <div id="vibe-check-agent-setup-details" style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
-          {state === 'unconfigured' && (
-            <div style={{ marginBottom: 11 }}>
-              <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>1. Configure the widget</div>
-              <div style={codeStyle}>{integrationSnippet}</div>
-            </div>
-          )}
-
-          {(state === 'unconfigured' || state === 'offline') && (
-            <div style={{ marginBottom: 11 }}>
-              <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>
-                {state === 'unconfigured' ? '2.' : '1.'} Start the local hub
-              </div>
-              <div style={codeStyle}>{HUB_START_COMMAND}</div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                <SetupCopyButton
-                  label="Copy hub command"
-                  copied={copied === 'hub'}
-                  onClick={() => { void handleCopy(HUB_START_COMMAND, 'hub') }}
-                />
-              </div>
-            </div>
-          )}
-
-          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>
-            {state === 'unconfigured' ? '3.' : state === 'offline' ? '2.' : '1.'} Add VibeCheck to your agent
-          </div>
-          <div role="group" aria-label="Choose your AI coding client" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4, marginTop: 7 }}>
-            {AGENT_CLIENTS.map((clientId) => {
-              const setup = getAgentClientSetup(clientId)
-              const selected = client === clientId
-              return (
-                <button
-                  key={clientId}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => { setClient(clientId); setCopied(null) }}
-                  style={{
-                    ...actionStyle,
-                    padding: '5px 4px',
-                    color: selected ? T.text : T.textTertiary,
-                    background: selected ? T.bgHover : T.bg,
-                    borderColor: selected ? T.border : T.borderSubtle,
-                  }}
-                >
-                  {setup.label}
-                </button>
-              )
-            })}
-          </div>
-          <div style={{ ...bodyStyle, marginTop: 7 }}>{selectedSetup.destination}</div>
-          <div style={codeStyle}>{selectedSetup.value}</div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-            <SetupCopyButton
-              label={`Copy ${selectedSetup.label} setup`}
-              copied={copied === 'setup'}
-              onClick={() => { void handleCopy(selectedSetup.value, 'setup') }}
-            />
-          </div>
-
-          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650, marginTop: 10 }}>
-            {state === 'unconfigured' ? '4.' : state === 'offline' ? '3.' : '2.'} Restart or open a new agent session
-          </div>
-          <div style={{ ...bodyStyle, marginTop: 4 }}>MCP configuration is loaded when the agent session starts.</div>
-
-          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650, marginTop: 10 }}>
-            {state === 'unconfigured' ? '5.' : state === 'offline' ? '4.' : '3.'} Ask it to watch this project
-          </div>
-          <div style={codeStyle}>{watchInstruction}</div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-            <SetupCopyButton
-              label="Copy watch instruction"
-              copied={copied === 'watch'}
-              onClick={() => { void handleCopy(watchInstruction, 'watch') }}
-            />
-          </div>
-
-          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
-            <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>Copy the full setup pack</div>
-            <div style={{ ...bodyStyle, marginTop: 4 }}>
-              One clipboard block: hub command, {selectedSetup.label} setup, and the watch instruction.
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+      {nextStep && (
+        <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
+          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>Next</div>
+          <div style={{ color: T.text, fontSize: 13, fontWeight: 650, marginTop: 4 }}>{nextStep.title}</div>
+          <div style={bodyStyle}>{nextStep.body}</div>
+          <div style={codeStyle}>{nextStep.code}</div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+            {(state === 'waiting' || state === 'stale') && (
               <SetupCopyButton
                 label="Copy full setup pack"
                 copied={copied === 'pack'}
@@ -320,12 +356,57 @@ export const AgentConnectionStatus = ({ mode, beaconUrl, status }: AgentConnecti
                   )
                 }}
               />
-            </div>
+            )}
+            <SetupCopyButton
+              label={nextStep.copyLabel}
+              copied={copied === nextStep.copyKey}
+              onClick={() => { void handleCopy(nextStep.copyValue, nextStep.copyKey) }}
+            />
           </div>
+          {(state === 'waiting' || state === 'stale') && (
+            <>
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((open) => !open)}
+                aria-expanded={detailsOpen}
+                aria-controls="vibe-check-agent-setup-details"
+                style={{ ...actionStyle, width: '100%', marginTop: 8 }}
+              >
+                {detailsOpen ? 'Hide MCP setup' : 'Need to add the MCP server?'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
-          <div style={{ ...bodyStyle, marginTop: 9, color: T.textSecondary }}>
-            Wait for this card to turn green, then click <strong>Send to agent</strong> on an issue.
+      {detailsOpen && (
+        <div id="vibe-check-agent-setup-details" style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.borderSubtle}` }}>
+          <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650 }}>Add VibeCheck to your agent</div>
+          <ClientPicker client={client} onSelect={(id) => { setClient(id); setCopied(null) }} />
+          <div style={{ ...bodyStyle, marginTop: 7 }}>{selectedSetup.destination}</div>
+          <div style={codeStyle}>{selectedSetup.value}</div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+            <SetupCopyButton
+              label={`Copy ${selectedSetup.label} setup`}
+              copied={copied === 'setup'}
+              onClick={() => { void handleCopy(selectedSetup.value, 'setup') }}
+            />
           </div>
+          {ready && (
+            <>
+              <div style={{ color: T.textSecondary, fontSize: 12, fontWeight: 650, marginTop: 10 }}>
+                Watch instruction
+              </div>
+              <div style={codeStyle}>{watchInstruction}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <SetupCopyButton
+                  label="Copy watch instruction"
+                  copied={copied === 'watch'}
+                  onClick={() => { void handleCopy(watchInstruction, 'watch') }}
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
 

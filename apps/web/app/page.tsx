@@ -13,13 +13,6 @@ import { RealAgentDemo } from '@/components/landing/RealAgentDemo'
 import { SectionHead } from '@/components/landing/SectionHead'
 import { SiteShell } from '@/components/site/SiteShell'
 import { PipelineDiagram } from '@/components/diagrams'
-import {
-  CropTicks,
-  ProofControlStrip,
-  ProofLabel,
-  RegistrationConstellation,
-  RegistrationTarget,
-} from '@/components/brand/ProofMarks'
 import { LANDING_COPY } from '@/lib/landingCopy'
 
 // A tight landing pitch, kept ≤ 160 chars so VibeCheck's own seo audit passes
@@ -111,14 +104,6 @@ const LandingPage = () => (
     <main className="vc-wrap">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <header className="vc-hero">
-        <div className="vc-proof-header" aria-label="Print control proof 01">
-          <CropTicks className="vc-proof-header-crop" />
-          <ProofControlStrip className="vc-proof-control-strip" />
-          <ProofLabel className="vc-proof-header-label">PROOF 01</ProofLabel>
-          <span className="vc-proof-header-rule" aria-hidden="true" />
-          <RegistrationTarget className="vc-proof-header-target" />
-        </div>
-
         <div className="vc-eyebrow">
           <span>{LANDING_COPY.hero.eyebrow[0]}</span>
           <span className="vc-dot" />
@@ -126,8 +111,6 @@ const LandingPage = () => (
           <span className="vc-dot" />
           <span>{LANDING_COPY.hero.eyebrow[2]}</span>
         </div>
-
-        <RegistrationConstellation className="vc-registration-constellation" />
 
         <h1 className="vc-hero-head">
           <span className="vc-hero-line">{LANDING_COPY.hero.headline[0]}</span>
@@ -246,7 +229,7 @@ const LandingPage = () => (
           sub={LANDING_COPY.sections.install.sub}
         />
         <h3 className="vc-h3">{LANDING_COPY.install.firstHeading}</h3>
-        <pre className="vc-pre" data-vc-proof-surface="code" data-proof-label="PLATE K">
+        <pre className="vc-pre">
 {`import { VibeCheck } from '@wcgw/vibe-check'
 
 {process.env.NODE_ENV !== 'production' && (
@@ -257,7 +240,7 @@ const LandingPage = () => (
 )}`}
         </pre>
         <h3 className="vc-h3">{LANDING_COPY.install.secondHeading}</h3>
-        <pre className="vc-pre" data-vc-proof-surface="code" data-proof-label="PLATE C">
+        <pre className="vc-pre">
 {`# Run once in a terminal
 npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 
@@ -275,8 +258,7 @@ claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect`}
       </section>
 
       {/* ── Footer / CTA ─────────────────────────────────────────────────── */}
-      <footer className="vc-footer" data-vc-proof-surface="footer">
-        <CropTicks className="vc-footer-crop" corner="bottom-left" />
+      <footer className="vc-footer">
         <div>
           <b>{LANDING_COPY.footerLead}</b> Ship it.
           <br />

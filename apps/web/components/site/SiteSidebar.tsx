@@ -9,11 +9,6 @@ import {
   NavigationWordmark,
   ProofVersion,
 } from '@/components/brand/NavigationBrand'
-import {
-  SidebarBoundary,
-  SidebarMobileBoundaryMark,
-  SidebarRailTerminals,
-} from './SidebarProofMarks'
 
 // ── The persistent left nav ───────────────────────────────────────────────────
 // A narrow, hairline-ruled sidebar shared across the landing, /scan and /fix. Its
@@ -156,7 +151,6 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
         </li>
       </ul>
 
-      <SidebarBoundary className="vc-side-boundary-resources" />
       <div className="vc-side-grouplabel">Resources</div>
       <ul className="vc-side-list">
         {data.resources.map((item) => (
@@ -171,7 +165,6 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
 
 const SidebarFooter = ({ data }: { data: SidebarData }) => (
   <>
-    <SidebarBoundary className="vc-side-boundary-footer" />
     <div className="vc-side-footer">
       <ProofVersion version={data.version} />
       <span className="vc-side-foot-sep" aria-hidden="true">
@@ -219,7 +212,6 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
     <>
       {/* Desktop: sticky rail */}
       <aside className="vc-side">
-        <SidebarRailTerminals />
         <div className="vc-side-top">
           <NavigationWordmark />
           <ProofVersion version={data.version} />
@@ -246,7 +238,6 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
           <span aria-hidden="true" />
           <span aria-hidden="true" />
         </button>
-        <SidebarMobileBoundaryMark className="vc-side-mobile-boundary-bar" />
       </div>
 
       {/* Mobile: drawer overlay */}
@@ -264,8 +255,6 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
         data-open={open ? 'true' : undefined}
         aria-hidden={open ? undefined : true}
       >
-        <SidebarRailTerminals />
-        <SidebarMobileBoundaryMark className="vc-side-mobile-boundary-drawer" />
         <div className="vc-side-top">
           <NavigationWordmark />
           <ProofVersion version={data.version} />
