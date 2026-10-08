@@ -336,7 +336,7 @@ export const runSetup = async (
     actions,
     nextSteps: [
       `Mount <VibeCheckDevtools /> once near your React app root from ${componentPath}.`,
-      `Start the shared hub: npx -y ${packageSpec} hub`,
+      `Start the guided hub: npx -y ${packageSpec} up --project ${projectId} --agent ${options.agent}`,
       `Restart or open a new ${options.agent} agent session, then verify: ${verify}`,
       getWatchInstruction(projectId),
     ],

@@ -111,29 +111,6 @@ const IssueRow = ({
         {suggestion.explanation}
       </div>
 
-      <div style={{
-        background: T.bgSubtle,
-        border: `1px solid ${T.borderSubtle}`,
-        borderRadius: T.radiusMd, padding: '10px 12px', marginBottom: 10,
-      }}>
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          marginBottom: 8,
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 500, color: T.textTertiary }}>
-            {mode === 'vibe' ? 'Prompt for your AI' : 'Agent prompt'}
-          </span>
-        </div>
-        <div style={{
-          fontSize: 14, color: T.textTertiary,
-          lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
-          fontFamily: T.fontMono,
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-        }}>
-          {suggestion.prompt.slice(0, 300)}{suggestion.prompt.length > 300 ? '…' : ''}
-        </div>
-      </div>
-
       <IssueActions
         tracked={tracked}
         mode={mode}
@@ -186,10 +163,20 @@ export const AgentPanel = memo(({
     await onCopy(prompt, 'all')
   }
 
+  const agentReady = beaconStatus?.lastOk === true
+    && (beaconStatus.projectStatus?.state === 'watching'
+      || beaconStatus.projectStatus?.state === 'busy')
+  const leadWithIssues = agentReady && active.length > 0
+
   return (
     <div style={{ paddingTop: 4 }}>
-      <AgentConnectionStatus mode={mode} beaconUrl={beaconUrl} status={beaconStatus} />
-      {impact && (
+      <AgentConnectionStatus
+        mode={mode}
+        beaconUrl={beaconUrl}
+        status={beaconStatus}
+        compactWhenReady={leadWithIssues}
+      />
+      {impact && !leadWithIssues && (
         <ImpactCard
           impact={impact}
           compact={false}
@@ -266,6 +253,15 @@ export const AgentPanel = memo(({
           >
             {mode === 'vibe' ? 'clear all fixed issues' : 'clear resolved'}
           </Button>
+        </div>
+      )}
+      {impact && leadWithIssues && (
+        <div style={{ marginTop: 12 }}>
+          <ImpactCard
+            impact={impact}
+            compact
+            onCopy={(text) => onCopy(text, 'impact-summary')}
+          />
         </div>
       )}
     </div>

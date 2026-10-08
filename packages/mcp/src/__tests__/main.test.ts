@@ -90,6 +90,17 @@ describe('runMain', () => {
       kind: 'continue',
       config: { role: 'hub', host: '127.0.0.1', port: 4200, registryPath: '/tmp/projects.json' },
     })
+    await expect(runMain(['up', '--project', 'store', '--agent', 'codex'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' }, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
+      kind: 'continue',
+      config: {
+        role: 'up',
+        host: '127.0.0.1',
+        port: 4200,
+        registryPath: '/tmp/projects.json',
+        projectId: 'store',
+        agent: 'codex',
+      },
+    })
     await expect(runMain(['connect'], {}, { stdout: () => undefined, stderr: () => undefined })).resolves.toEqual({
       kind: 'continue',
       config: { role: 'connect', hubUrl: 'http://127.0.0.1:4200' },

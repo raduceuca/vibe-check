@@ -15,7 +15,7 @@ export interface CliIo {
   readonly stderr: (value: string) => void
 }
 
-type LongRunningCliConfig = Extract<CliConfig, { readonly role: 'hub' | 'connect' }>
+type LongRunningCliConfig = Extract<CliConfig, { readonly role: 'hub' | 'up' | 'connect' }>
 
 export interface RunMainDependencies {
   readonly cwd?: string

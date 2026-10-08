@@ -13,7 +13,7 @@ import { useAnimations } from './theme.js'
 import type { PanelType, Position, ViewTab } from './panels/types.js'
 import { getHealth, healthKey, sevVar, sevGlow } from './panels/monitor/severity.js'
 import { surfaceStyle } from './panels/ui/surface.js'
-import { TopProofRegister } from './panels/ui/ProofMarks.js'
+import { CloseButton } from './panels/ui/CloseButton.js'
 import { CollapsedPill } from './panels/CollapsedPill.js'
 import { MonitorView } from './panels/monitor/MonitorView.js'
 import { BottomNav } from './panels/nav/BottomNav.js'
@@ -235,33 +235,32 @@ export const VibeCheck = memo(({
           ...pos,
         }}>
 
-        <TopProofRegister faulted={activeCount > 0} />
-
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '8px 16px 6px', cursor: 'default', userSelect: 'none',
-          flexShrink: 0, position: 'relative',
+          padding: '10px 10px 10px 16px', cursor: 'default', userSelect: 'none',
+          flexShrink: 0, borderBottom: `1px solid ${T.borderSubtle}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <div ref={panelHeaderRef} onClick={toggle} role="button" tabIndex={0} data-testid="vibe-check-header"
               aria-label="Collapse vibe check panel" aria-expanded={true}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minHeight: 40 }}
             >
               <span data-wcgw-breathe style={{
                 width: 8, height: 8, borderRadius: T.radiusPill, background: hColor, flexShrink: 0,
                 boxShadow: `0 0 8px ${sevGlow(hKey)}`, animation: 'vc-breathe 3s ease-in-out infinite',
               }} />
-              <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
-                vibe check
+              <span style={{ fontSize: 14, fontWeight: 650, color: T.text, letterSpacing: '-0.01em', textWrap: 'balance' }}>
+                VibeCheck
               </span>
             </div>
             <span style={{
-              fontSize: 14, fontWeight: 500, color: h.labelColor,
-              background: `color-mix(in srgb, ${h.labelColor} 14%, transparent)`, padding: '2px 8px', borderRadius: T.radiusSm,
+              fontSize: 12, fontWeight: 600, color: h.labelColor,
+              background: `color-mix(in srgb, ${h.labelColor} 14%, transparent)`, padding: '3px 8px', borderRadius: T.radiusSm,
             }}>{mode === 'vibe' ? h.vibeLabel : h.label}</span>
           </div>
+          <CloseButton onClick={toggle} ariaLabel="Collapse VibeCheck" />
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}

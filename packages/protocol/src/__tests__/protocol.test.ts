@@ -6,7 +6,9 @@ import {
   DETECTOR_NAMES,
   DISPATCH_RESULT_CODES,
   HUB_START_COMMAND,
+  UP_START_COMMAND,
   MCP_PACKAGE_SPEC,
+  formatSetupPack,
   SEVERITIES,
   getAgentClientSetup,
   getWatchInstruction,
@@ -129,6 +131,12 @@ describe('protocol enums', () => {
     expect(MCP_PACKAGE_SPEC).toBe('@wcgw/vibe-check-mcp@0.3.0')
     expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
     expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.3.0 hub')
+    expect(UP_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.3.0 up')
+    const pack = formatSetupPack({ projectId: 'storefront', agent: 'codex' })
+    expect(pack).toContain('## VibeCheck setup — storefront')
+    expect(pack).toContain('up --project storefront --agent codex')
+    expect(pack).toContain('codex mcp add vibe-check')
+    expect(pack).toContain('project_id "storefront"')
   })
 
   it('keeps first-class client setup documentation aligned with the protocol', () => {

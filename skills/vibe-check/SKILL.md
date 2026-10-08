@@ -41,7 +41,8 @@ import { PerfToggle } from '@wcgw/vibe-check'
 ### 3. Start the local hub, then register the MCP bridge
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.3.0 hub
+npx -y @wcgw/vibe-check-mcp@0.3.0 up --project my-project --agent codex
+# or plain hub: npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 ```
 
 Use the exact setup shown in the widget for Codex, Claude Code, or Cursor:
@@ -141,16 +142,18 @@ The `seo`, `aeo`, and `web-essentials` detectors each emit one issue per failed 
 
 ## MCP Tools
 
-When the MCP server is running, these tools are available to AI agents:
+When the hub is running and this session is connected via `connect`, these tools
+are available:
 
 - **`list_projects`** — List active project IDs and watcher state
+- **`get_project_impact`** — Verified fixes, regressions caught, measured before/after deltas
 - **`get_performance_snapshot`** — Current FPS, Web Vitals, memory, DOM count, issues
 - **`get_detected_issues`** — Filter active issues by severity or detector
-- **`get_fix_suggestions`** — Get structured fix guide with code examples for a specific issue
-- **`watch_performance`** — Monitor for new issues over N seconds
-- **`watch_for_issue`** — Claim one project and wait for a widget button dispatch
-- **`acknowledge_issue`** — Mark issue as seen
-- **`resolve_issue`** — Mark issue as fixed
+- **`get_fix_suggestions`** — Structured fix guide with code examples for one issue
+- **`watch_performance`** — Wait for the next snapshot (acquires the project lease)
+- **`watch_for_issue`** — Claim one project and wait for a widget **Send to agent** dispatch
+- **`acknowledge_issue`** — Mark issue as seen / working
+- **`resolve_issue`** — Request **browser-evidence verification** (does not instantly mark fixed)
 - **`release_project`** — Release this session's project lease
 
 ## Workflow
@@ -162,7 +165,10 @@ The typical workflow is:
 3. Tell the user the widget should now say **Agent connected** and ask them to
    click **Send to agent** on a detected issue.
 4. Use the returned issue and suggestion to inspect and fix the project.
-5. Call `resolve_issue`, then continue `watch_for_issue` or `release_project`.
+5. Call `resolve_issue` so the hub enters **verifying** and waits for clean browser
+   snapshots. Do not claim fixed until verification succeeds.
+6. Continue `watch_for_issue` or call `release_project` when done.
+7. Optionally call `get_project_impact` for verified outcomes.
 
 Never claim a copied prompt was delivered. Only a successful `watch_for_issue`
 result confirms widget-to-agent communication. If `lease-conflict` is returned,

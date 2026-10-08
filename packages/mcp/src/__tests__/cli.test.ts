@@ -124,4 +124,28 @@ describe('parseCliConfig', () => {
     expect(() => parseCliConfig([], {})).toThrow('vibe-check-mcp setup --agent')
     expect(() => parseCliConfig(['serve'], {})).toThrow('vibe-check-mcp setup --agent')
   })
+
+  it('parses up with optional project, agent, and port', () => {
+    expect(parseCliConfig(['up'], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' })).toEqual({
+      role: 'up',
+      host: '127.0.0.1',
+      port: 4200,
+      registryPath: '/tmp/projects.json',
+      projectId: undefined,
+      agent: undefined,
+    })
+    expect(parseCliConfig([
+      'up', '--project', 'storefront', '--agent', 'cursor', '--port', '4312',
+    ], { VIBE_CHECK_REGISTRY_PATH: '/tmp/projects.json' })).toEqual({
+      role: 'up',
+      host: '127.0.0.1',
+      port: 4312,
+      registryPath: '/tmp/projects.json',
+      projectId: 'storefront',
+      agent: 'cursor',
+    })
+    expect(() => parseCliConfig(['up', '--agent', 'windsurf'], {})).toThrow('Unknown up agent')
+    expect(() => parseCliConfig(['up', '--project'], {})).toThrow('requires a project ID')
+  })
+
 })

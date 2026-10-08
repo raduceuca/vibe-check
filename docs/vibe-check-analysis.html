@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VibeCheck — In-Depth Analysis</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --paper: #fffcf7;
+      --ink: #1a1916;
+      --muted: #5c584f;
+      --line: #ddd6c8;
+      --accent: #c44b1a;
+      --accent-soft: #f3e4d8;
+      --ok: #1f6b3a;
+      --warn: #8a5a00;
+      --bad: #9b1c1c;
+      --code-bg: #efeae0;
+      --shadow: 0 1px 0 rgba(26, 25, 22, 0.04), 0 12px 40px rgba(26, 25, 22, 0.06);
+      --radius: 12px;
+      --max: 46rem;
+      --font: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141311;
+        --paper: #1c1b18;
+        --ink: #f2efe6;
+        --muted: #a8a297;
+        --line: #343129;
+        --accent: #e88a5a;
+        --accent-soft: #3a2418;
+        --ok: #6fcf97;
+        --warn: #f0c674;
+        --bad: #f28b82;
+        --code-bg: #26241f;
+        --shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 16px 48px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+        var(--bg);
+      font-family: var(--font);
+      font-size: 18px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: calc(var(--max) + 18rem);
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+      display: grid;
+      grid-template-columns: 14rem minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .wrap {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding-top: 1.25rem;
+      }
+      nav.toc { position: static !important; }
+    }
+
+    nav.toc {
+      position: sticky;
+      top: 1.25rem;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    nav.toc .label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    nav.toc ol {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border-left: 1px solid var(--line);
+    }
+
+    nav.toc a {
+      display: block;
+      padding: 0.35rem 0 0.35rem 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      margin-left: -1px;
+    }
+
+    nav.toc a:hover {
+      color: var(--ink);
+      border-left-color: var(--accent);
+    }
+
+    article.paper {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow);
+      padding: 2.5rem 2.25rem 3rem;
+    }
+
+    @media (max-width: 600px) {
+      article.paper { padding: 1.5rem 1.15rem 2rem; }
+      body { font-size: 16.5px; }
+    }
+
+    header.hero {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 1.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .eyebrow {
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 0.75rem;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 4vw, 2.55rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.85rem;
+      font-weight: 700;
+    }
+
+    .lede {
+      font-size: 1.12rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
+      max-width: 40rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .meta span {
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.28rem 0.7rem;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      margin: 2.5rem 0 0.9rem;
+      padding-top: 0.5rem;
+      scroll-margin-top: 1.25rem;
+    }
+
+    h2::before {
+      content: "";
+      display: block;
+      width: 2.5rem;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      margin-bottom: 0.85rem;
+    }
+
+    h3 {
+      font-family: var(--sans);
+      font-size: 1.05rem;
+      margin: 1.75rem 0 0.65rem;
+      letter-spacing: -0.01em;
+      scroll-margin-top: 1.25rem;
+    }
+
+    p { margin: 0 0 1rem; }
+
+    a { color: var(--accent); }
+
+    strong { font-weight: 700; }
+
+    em { font-style: italic; }
+
+    blockquote {
+      margin: 1.25rem 0;
+      padding: 0.9rem 1.1rem;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: var(--ink);
+    }
+
+    blockquote p { margin: 0; }
+
+    ul, ol {
+      margin: 0 0 1.1rem;
+      padding-left: 1.25rem;
+    }
+
+    li { margin: 0.3rem 0; }
+
+    li::marker { color: var(--muted); }
+
+    pre {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      margin: 0 0 1.25rem;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      background: var(--code-bg);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      line-height: 1.4;
+      margin: 0 0 1.35rem;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    thead th {
+      text-align: left;
+      background: var(--code-bg);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    th, td {
+      padding: 0.7rem 0.8rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tbody tr:last-child th,
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--code-bg) 45%, transparent); }
+
+    .score {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+    }
+
+    .score.high { color: var(--ok); }
+    .score.mid { color: var(--warn); }
+    .score.low { color: var(--bad); }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      margin: 1.25rem 0;
+      background: color-mix(in srgb, var(--code-bg) 55%, var(--paper));
+    }
+
+    .callout strong {
+      display: block;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.35rem;
+      color: var(--muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin: 0 0 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.95rem 1rem;
+      background: color-mix(in srgb, var(--code-bg) 40%, var(--paper));
+    }
+
+    .card h4 {
+      margin: 0 0 0.35rem;
+      font-family: var(--sans);
+      font-size: 0.92rem;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    footer.note {
+      margin-top: 2.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .print-hint {
+      font-family: var(--sans);
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    @media print {
+      body { background: white; font-size: 11pt; }
+      .wrap { display: block; max-width: none; padding: 0; }
+      nav.toc { display: none; }
+      article.paper {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+      }
+      a { color: inherit; text-decoration: none; }
+      h2 { break-after: avoid; }
+      table, pre, blockquote { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="toc" aria-label="Table of contents">
+      <div class="label">Contents</div>
+      <ol>
+        <li><a href="#what">What it is</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#product-deep">What it does</a></li>
+        <li><a href="#current-state">Current state</a></li>
+        <li><a href="#gps">GPS</a></li>
+        <li><a href="#scorecard">Scorecard</a></li>
+        <li><a href="#success">Path to success</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#30-days">Next 30 days</a></li>
+        <li><a href="#closing">Closing</a></li>
+      </ol>
+    </nav>
+
+    <article class="paper">
+      <header class="hero">
+        <p class="eyebrow">Internal product memo</p>
+        <h1>VibeCheck: In-Depth Analysis</h1>
+        <p class="lede">
+          What the product is, where it stands today, a GPS framing
+          (Goals · Problems · Solutions), and a concrete path to make it a real success.
+        </p>
+        <div class="meta">
+          <span>Repo: vibe-check monorepo</span>
+          <span>npm packages @ 0.3.0</span>
+          <span>Site: vibecheck.wcgw.fun</span>
+          <span>Written: 2026-07-25</span>
+        </div>
+        <p class="print-hint">Tip: open this file in a browser. Use print → “Save as PDF” if you want a PDF copy.</p>
+      </header>
+
+      <section id="what">
+        <h2>What it is</h2>
+        <p>
+          <strong>VibeCheck is a closed-loop “press check” for AI-built frontends.</strong>
+          It watches a real browser session, names the defects vibe-coded UIs keep shipping,
+          and can hand one concrete finding to the one coding agent watching that project —
+          then verify the fix with fresh browser evidence rather than trusting the agent’s word.
+        </p>
+        <blockquote>
+          <p><em>Your agent shipped it. VibeCheck pulled the proof.</em><br />
+          Live site: <a href="https://vibecheck.wcgw.fun">vibecheck.wcgw.fun</a></p>
+        </blockquote>
+        <p>
+          That is not generic APM. The wedge is <strong>agent-era quality</strong>:
+          detect → dispatch → fix → <strong>prove</strong>.
+        </p>
+      </section>
+
+      <section id="architecture">
+        <h2>Architecture (what actually ships)</h2>
+        <pre><code>Browser widget (React)  ──POST snapshot──►  Local hub :4200
+        │                                      │
+        │  Send to agent                       │ project queues,
+        │                                      │ leases, workflow,
+        ▼                                      │ impact ledger
+  On-page annotations                    .vibecheck/state.json
+                                               ▲
+                          MCP bridge (stdio) ──┘
+                          Claude / Codex / Cursor</code></pre>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Package / app</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Protocol</td>
+              <td><code>@wcgw/vibe-check-protocol</code> (private, bundled)</td>
+              <td>Shared snapshot/issue/workflow types</td>
+            </tr>
+            <tr>
+              <td>Engine</td>
+              <td><code>@wcgw/vibe-check-core</code></td>
+              <td>Collectors + 13 detectors, zero runtime deps</td>
+            </tr>
+            <tr>
+              <td>UI</td>
+              <td><code>@wcgw/vibe-check</code></td>
+              <td>React overlay (Monitor / Agent / SEO / AEO / Prompts / Settings)</td>
+            </tr>
+            <tr>
+              <td>Agent bridge</td>
+              <td><code>@wcgw/vibe-check-mcp</code></td>
+              <td>Hub + stdio MCP bridge + setup/doctor CLI</td>
+            </tr>
+            <tr>
+              <td>Marketing + docs</td>
+              <td><code>apps/web</code></td>
+              <td>Next.js on Cloudflare, Fumadocs, fix guides, live demo</td>
+            </tr>
+            <tr>
+              <td>Top-of-funnel</td>
+              <td><code>/scan</code> + <code>apps/scan-worker</code></td>
+              <td>URL SEO/AEO scan + D1 leaderboard</td>
+            </tr>
+            <tr>
+              <td>Proof</td>
+              <td><code>e2e/mcp-roundtrip</code></td>
+              <td>Packed Playwright: real widget → real MCP delivery</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Rough scale</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>~LOC</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>apps/web</code></td>
+              <td>~15k</td>
+              <td>Largest surface: brand, docs, scan, fix guides</td>
+            </tr>
+            <tr>
+              <td><code>packages/core</code></td>
+              <td>~11k</td>
+              <td>Collectors, detectors, engine</td>
+            </tr>
+            <tr>
+              <td><code>packages/react</code></td>
+              <td>~7.5k</td>
+              <td>Widget UX, workflow UI, impact card</td>
+            </tr>
+            <tr>
+              <td><code>packages/mcp</code></td>
+              <td>~6.8k</td>
+              <td>Hub, leases, persistence, setup, doctor</td>
+            </tr>
+            <tr>
+              <td>Protocol + demo + scan-worker</td>
+              <td>smaller</td>
+              <td>Solid but not the bulk</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          <strong>npm:</strong> all three public packages at <strong>0.3.0</strong>
+          (released ~2026-07-14).<br />
+          <strong>Site:</strong> live, 200, Cloudflare + OpenNext, strong agent-facing surface
+          (<code>/llms.txt</code>, markdown negotiation, JSON-LD).
+        </p>
+      </section>
+
+      <section id="product-deep">
+        <h2>What it does, product-deep</h2>
+
+        <h3>1. Runtime measurement (collectors)</h3>
+        <p>
+          FPS, long frames / LoAF attribution, memory, Web Vitals (LCP/INP/CLS), resources,
+          console volume — continuous, not a one-shot Lighthouse run.
+        </p>
+
+        <h3>2. “Slop bestiary” (13 detectors)</h3>
+        <p><strong>Runtime and payload:</strong></p>
+        <ul>
+          <li>DOM bloat, duplicate requests, console spam, memory leak, layout thrashing</li>
+          <li>Unoptimized / large images, long-task attribution, resource bloat, heavy libraries</li>
+        </ul>
+        <p><strong>Discoverability:</strong></p>
+        <ul>
+          <li><strong>SEO</strong> (~20 checks)</li>
+          <li><strong>AEO</strong> (~9 checks: structured data, <code>llms.txt</code>, JS-only content, AI crawlers, MCP discovery)</li>
+          <li><strong>Web essentials</strong></li>
+        </ul>
+        <p>
+          This is a deliberate catalog of <strong>what AI-generated UIs tend to get wrong</strong>,
+          not a generic perf suite.
+        </p>
+
+        <h3>3. Agent workflow (the real product)</h3>
+        <p>v0.3.0 is not “metrics + clipboard.” It is:</p>
+        <ul>
+          <li>Project-scoped hub (parallel dev servers don’t fight over port 4200)</li>
+          <li>Exclusive watcher lease (one agent owns one project)</li>
+          <li>Durable phases: detected → sent → working → verifying → fixed / regressed</li>
+          <li>Stable page-aware issue identity across refresh/restart</li>
+          <li>Browser-evidence verification (stale/worsening metrics cannot mint a receipt)</li>
+          <li>Local impact ledger (fixes, regressions, conservative before/after deltas)</li>
+          <li><code>setup</code> / <code>register</code> / <code>doctor</code> for Codex, Claude Code, Cursor</li>
+        </ul>
+        <p><strong>10 MCP tools:</strong>
+          <code>list_projects</code>,
+          <code>get_project_impact</code>,
+          <code>get_performance_snapshot</code>,
+          <code>get_detected_issues</code>,
+          <code>get_fix_suggestions</code>,
+          <code>watch_performance</code>,
+          <code>watch_for_issue</code>,
+          <code>acknowledge_issue</code>,
+          <code>resolve_issue</code>,
+          <code>release_project</code>.
+        </p>
+
+        <h3>4. Growth surfaces beyond the npm package</h3>
+        <ul>
+          <li><strong>Interactive landing</strong> (“break this page,” live gauges, live widget on the marketing site itself)</li>
+          <li><strong>URL scan</strong> for SEO/AEO without install</li>
+          <li><strong>Fix guides</strong> per problem slug (SEO content engine)</li>
+          <li><strong>Claude skill</strong> under <code>skills/vibe-check/</code></li>
+          <li>Recorded <strong>real</strong> MCP round-trip GIF (not a mock UI)</li>
+        </ul>
+      </section>
+
+      <section id="current-state">
+        <h2>Current state</h2>
+
+        <h3>Engineering maturity: high for a solo OSS product</h3>
+        <p><strong>Strengths</strong></p>
+        <ul>
+          <li>Clear package boundaries; core stays zero-deps; protocol is the contract</li>
+          <li>Immutable / fail-closed multi-project design (leases, ambiguous project_id)</li>
+          <li>CI is serious: typecheck, unit tests, build, <strong>bundle size budget (45KB gz main chunk)</strong>, packed Playwright MCP round-trip, publish dry-run</li>
+          <li>Release automation + production smoke for the public site</li>
+          <li>Dogfooding: marketing site must pass (or honestly surface) its own SEO/AEO detectors</li>
+          <li>~79 test files; E2E covers dispatch, SEO suggestion fidelity, persistence, regression, multi-project isolation, client setup</li>
+        </ul>
+
+        <p><strong>Gaps / risks</strong></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Gap</th>
+              <th>Why it matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>React-only widget</strong></td>
+              <td>Core is framework-agnostic; Vue/Svelte/Next “batteries included” still thin</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-step agent loop</strong></td>
+              <td>Hub terminal + MCP register + paste watch instruction + wait green — power users will, most won’t</td>
+            </tr>
+            <tr>
+              <td><strong>Local-only hub</strong></td>
+              <td>Correct for privacy/dev; no team share, no CI cloud proof, no multi-machine continuity</td>
+            </tr>
+            <tr>
+              <td><strong>No GitHub social proof</strong></td>
+              <td>0 stars, 0 forks, no homepage field, no topics — invisible on discovery</td>
+            </tr>
+            <tr>
+              <td><strong>~0.5k monthly downloads</strong> per package</td>
+              <td>Pre-product-market-fit volume; mostly author/CI noise possible</td>
+            </tr>
+            <tr>
+              <td><strong>Docs screenshots still TODOs</strong></td>
+              <td>Hero GIF exists; tab screenshots don’t — hurts “what do I get?” conversion</td>
+            </tr>
+            <tr>
+              <td><strong>AGENTS.md lagging reality</strong></td>
+              <td>Still describes an older 6-tool / simpler MCP picture; agents onboard on stale mental model</td>
+            </tr>
+            <tr>
+              <td><strong>Single maintainer</strong></td>
+              <td>221 of ~223 commits; bus factor 1</td>
+            </tr>
+            <tr>
+              <td><strong>Brand domain <code>wcgw.fun</code></strong></td>
+              <td>Memorable for friends; weaker for cold enterprise / “is this real?”</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Product maturity: 0.3 feels like a real v1 of the <em>loop</em></h3>
+        <p>
+          Changelog honesty is a feature: v0.2 closed the “demo shows more than npm” gap;
+          v0.3 made workflow durable and verifiable. That is rare discipline for early OSS.
+        </p>
+        <p>What is <strong>not</strong> productized yet:</p>
+        <ul>
+          <li>Hosted multi-user issue tracking (explicit non-goal in designs — good)</li>
+          <li>Automatic agent pickup without a human “Send to agent” / watch session</li>
+          <li>Continuous CI integration as first-class (Playwright exists for <em>you</em>, not for customers’ pipelines)</li>
+          <li>Non-React first-class UX</li>
+          <li>Monetization of any kind</li>
+        </ul>
+
+        <h3>Market position</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Examples</th>
+              <th>VibeCheck difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Classic APM / RUM</td>
+              <td>Datadog, Sentry perf</td>
+              <td>Production ops, not “agent fix this DOM bloat now”</td>
+            </tr>
+            <tr>
+              <td>Lab audits</td>
+              <td>Lighthouse, PageSpeed</td>
+              <td>One-shot scores; no MCP workflow or live session</td>
+            </tr>
+            <tr>
+              <td>Browser MCPs</td>
+              <td>Chrome DevTools MCP, Playwright MCP</td>
+              <td>General browser control; not a curated vibe-slop detector + verify loop</td>
+            </tr>
+            <tr>
+              <td>Eval / browser-use agents</td>
+              <td>web-eval-agent etc.</td>
+              <td>Agent drives browser; VibeCheck instruments <em>your</em> app while <em>you</em> code</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          <strong>Category claim that can win</strong>
+          The QA layer between vibe coding and “ship it” — evidence-backed, agent-native, local-first.
+        </div>
+
+        <p>
+          Timing is good: MCP is mainstreaming; AI coding volume is exploding; quality debt is the new tax.
+          Chrome DevTools MCP and WebMCP raise the ceiling for “agents in the browser,” which
+          <strong>validates</strong> the category even as it pressures you to stay sharper on the
+          <em>defect catalog + verify</em> wedge.
+        </p>
+      </section>
+
+      <section id="gps">
+        <h2>GPS — Goals · Problems · Solutions</h2>
+
+        <h3>Goals (what “great success” should mean)</h3>
+        <p>Near-term (next 3–6 months) success is <strong>not</strong> “become Datadog.” It is:</p>
+        <ol>
+          <li><strong>Default conscience for AI-built React apps</strong> among Claude Code / Cursor / Codex power users</li>
+          <li><strong>Time-to-first “Send to agent” green receipt &lt; 5 minutes</strong> for a greenfield Vite/Next app</li>
+          <li><strong>Social proof:</strong> stars, a launch moment, 2–3 known creators using it on camera</li>
+          <li><strong>Retention loop:</strong> people keep the hub running because impact ledger + regression reopen feel valuable week after week</li>
+        </ol>
+        <p>Longer-term success:</p>
+        <ol start="5">
+          <li><strong>Category ownership</strong> of “browser evidence → coding agent” for frontend quality</li>
+          <li>Optional <strong>hosted/pro</strong> layer (team impact, CI gates, shared projects) without selling out local-first DNA</li>
+          <li>Framework surface area beyond React without diluting quality</li>
+        </ol>
+
+        <h3>Problems (user + product)</h3>
+        <p><strong>User problems (why this exists)</strong></p>
+        <ul>
+          <li>Agents ship UIs that <em>look</em> done and still thrash, leak, double-fetch, bloat the DOM, and fail SEO/AEO</li>
+          <li>DevTools / Lighthouse don’t speak MCP or own a fix workflow</li>
+          <li>Copy-paste “fix this” prompts are not delivery; agents lie about having fixed things</li>
+        </ul>
+
+        <p><strong>Product problems (why adoption may stall)</strong></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Setup ceremony (3+ processes: app, hub, agent)</td>
+              <td>High</td>
+            </tr>
+            <tr>
+              <td>Invisible repo (0 stars, no topics, homepage unset)</td>
+              <td>High</td>
+            </tr>
+            <tr>
+              <td>Niche domain / brand reach</td>
+              <td>Medium</td>
+            </tr>
+            <tr>
+              <td>React-only</td>
+              <td>Medium (hurts total market; not day-1 killer)</td>
+            </tr>
+            <tr>
+              <td>Value after first wow-moment unclear (is it a daily tool?)</td>
+              <td>Medium–High</td>
+            </tr>
+            <tr>
+              <td>Competing general browser MCPs blur the message</td>
+              <td>Medium</td>
+            </tr>
+            <tr>
+              <td>Solo capacity vs product breadth (web brand polish vs distribution)</td>
+              <td>High</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Solutions (how the product already solves the user problem)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>User pain</th>
+              <th>VibeCheck solution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Silent jank / leaks / bloat</td>
+              <td>Continuous collectors + named detectors</td>
+            </tr>
+            <tr>
+              <td>“Where is the bug?”</td>
+              <td>Annotation overlay + issue evidence</td>
+            </tr>
+            <tr>
+              <td>Agent can’t see the browser</td>
+              <td>Local hub + MCP tools + project isolation</td>
+            </tr>
+            <tr>
+              <td>Ambiguous multi-app routing</td>
+              <td><code>projectId</code> + exclusive leases + fail-closed ambiguity</td>
+            </tr>
+            <tr>
+              <td>Fake “I fixed it”</td>
+              <td>Verifying phase + clean snapshots required</td>
+            </tr>
+            <tr>
+              <td>No brag / no learning</td>
+              <td>Local impact ledger (Markdown/JSON)</td>
+            </tr>
+            <tr>
+              <td>Cold install pain</td>
+              <td><code>npx … setup --agent …</code> + doctor</td>
+            </tr>
+            <tr>
+              <td>Zero-install curiosity</td>
+              <td>Live landing + <code>/scan</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          The <strong>remaining</strong> solution work is mostly
+          <strong>distribution, time-to-value, and habit</strong> — not “invent more architecture.”
+        </p>
+      </section>
+
+      <section id="scorecard">
+        <h2>Honest scorecard</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Score</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Product vision clarity</td>
+              <td class="score high">9 / 10</td>
+              <td>Press-check metaphor is strong and consistent</td>
+            </tr>
+            <tr>
+              <td>Technical depth</td>
+              <td class="score high">9 / 10</td>
+              <td>Leases, persistence, verification, size budget — adult engineering</td>
+            </tr>
+            <tr>
+              <td>Agent integration quality</td>
+              <td class="score high">8.5 / 10</td>
+              <td>Real dispatch; multi-client setup; doctor</td>
+            </tr>
+            <tr>
+              <td>Onboarding friction</td>
+              <td class="score mid">5 / 10</td>
+              <td>Setup CLI helps; still multi-hop mental model</td>
+            </tr>
+            <tr>
+              <td>Distribution / GTM</td>
+              <td class="score low">2 / 10</td>
+              <td>Near-zero public presence relative to quality</td>
+            </tr>
+            <tr>
+              <td>Moat today</td>
+              <td class="score mid">6 / 10</td>
+              <td>Curated detectors + verify loop + UX; copyable in principle</td>
+            </tr>
+            <tr>
+              <td>Moat if executed</td>
+              <td class="score high">8 / 10</td>
+              <td>Brand + bestiary + impact truth + agent habits compound</td>
+            </tr>
+            <tr>
+              <td>Ready for “serious launch”</td>
+              <td class="score mid">7 / 10</td>
+              <td>Product yes; packaging / proof assets / GTM incomplete</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          <strong>Bottom line</strong>
+          Engineering is ahead of the market’s awareness of the product by a wide margin.
+          That is the main gap to close.
+        </div>
+      </section>
+
+      <section id="success">
+        <h2>How to make it a great success</h2>
+        <p>
+          <strong>Principle: ship the <em>habit</em>, not more surface.</strong>
+          You already have more product than most people will discover.
+          Success = many people complete one real loop, then leave it on.
+        </p>
+
+        <h3>Phase 0 — Unblock discovery (1 week, non-negotiable)</h3>
+        <ol>
+          <li>Set GitHub <strong>homepage</strong> to <code>https://vibecheck.wcgw.fun</code>, add topics: <code>mcp</code>, <code>performance</code>, <code>web-vitals</code>, <code>claude-code</code>, <code>cursor</code>, <code>react</code>, <code>devtools</code></li>
+          <li>Pin a <strong>60-second demo</strong> (you already have the real GIF — lead with it)</li>
+          <li>One sharp README opening: problem → 3-step setup → green receipt screenshot</li>
+          <li>Fill the screenshot TODOs (Monitor + Agent tabs at minimum)</li>
+          <li>Align <code>AGENTS.md</code> / skill text with 0.3 tools so agents install correctly</li>
+        </ol>
+        <p>Without this, more features are invisible R&amp;D.</p>
+
+        <h3>Phase 1 — Collapse time-to-wow</h3>
+        <p><strong>North star metric:</strong> minutes from clone to first successful <code>watch_for_issue</code> delivery.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Move</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong><code>npx vibe-check up</code></strong> one command</td>
+              <td>Hub + open doctor UI + print watch paste in one process</td>
+            </tr>
+            <tr>
+              <td><strong>Auto-watch instruction in setup</strong> that agents can run as a skill/slash command</td>
+              <td>Remove “user must babysit lease” for first run</td>
+            </tr>
+            <tr>
+              <td><strong>In-widget “Copy full setup pack”</strong></td>
+              <td>Single clipboard block for the user’s agent of choice</td>
+            </tr>
+            <tr>
+              <td><strong>Zero-config projectId</strong> from package.json name + strong default beacon</td>
+              <td>Fewer props to forget</td>
+            </tr>
+            <tr>
+              <td><strong>Next.js / Vite official templates</strong></td>
+              <td>One-click StackBlitz/CodeSandbox with green path</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>If setup stays “three terminals and a green light,” you stay a power-user tool.</p>
+
+        <h3>Phase 2 — Own a weekly ritual (retention)</h3>
+        <p>Impact ledger is the seed of habit. Make it shareable and social:</p>
+        <ul>
+          <li><strong>Weekly impact card</strong> export (Markdown for README / PR description / standup)</li>
+          <li><strong>“Regression caught”</strong> as a first-class celebration (agents over-claim; you catch them)</li>
+          <li>Optional <strong>CI gate</strong> later: fail PR if critical detectors fire in a Playwright smoke</li>
+        </ul>
+        <p>People keep tools that make them look careful.</p>
+
+        <h3>Phase 3 — Distribution that matches the craft</h3>
+        <ol>
+          <li><strong>Launch sequence:</strong> Show HN + r/ClaudeAI + r/cursor + X threads with the real GIF</li>
+          <li><strong>Agent marketplaces / skill registries</strong> (Claude skill, Cursor rules, Codex skills)</li>
+          <li><strong>Creator co-marketing:</strong> 3 influencers build a deliberately broken app live; VibeCheck catches it</li>
+          <li><strong>Comparison content:</strong> “Chrome DevTools MCP vs VibeCheck” — complementary: <em>DevTools is the microscope; VibeCheck is the press check</em></li>
+          <li><strong>SEO/AEO of the site itself</strong> — double down: <code>/fix/*</code> guides + scan leaderboard as evergreen acquisition</li>
+        </ol>
+        <p>Avoid: generic “perf monitoring” SEO wars with Lighthouse clones.</p>
+
+        <h3>Phase 4 — Expand surface carefully</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Expand</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Vue/Svelte thin adapters (or official headless recipes)</td>
+              <td>After React TTFW is &lt;5 min and launches land</td>
+            </tr>
+            <tr>
+              <td>Vanilla web component shell</td>
+              <td>Same</td>
+            </tr>
+            <tr>
+              <td>Hosted hub / team impact (paid)</td>
+              <td>Only after local habit is proven; keep local free forever</td>
+            </tr>
+            <tr>
+              <td>More detectors</td>
+              <td>Prefer precision and fix quality over count; 13 named well &gt; 40 noisy</td>
+            </tr>
+            <tr>
+              <td>Production RUM mode</td>
+              <td>Tempting; risks category confusion — keep as explicit “prod beacon” later</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Phase 5 — Business model (only after pull)</h3>
+        <p>
+          Local OSS free forever for individuals is the right default.
+          Monetize <strong>teams</strong>:
+        </p>
+        <ul>
+          <li>Shared impact across machines</li>
+          <li>Org-wide detector policy</li>
+          <li>CI tokens / hosted verification runners</li>
+          <li>Priority detector packs (e.g. ecommerce image discipline)</li>
+        </ul>
+        <p>
+          Do <strong>not</strong> monetize the basic send-to-agent loop early; that is the growth engine.
+        </p>
+      </section>
+
+      <section id="risks">
+        <h2>Strategic risks to manage</h2>
+        <ol>
+          <li>
+            <strong>Chrome / platform MCPs absorb “browser metrics for agents”</strong> —
+            Counter by staying the <strong>opinionated quality conscience</strong>
+            (bestiary + verify + impact), not a thin metrics pipe.
+          </li>
+          <li>
+            <strong>False positives kill trust</strong> —
+            Memory leak and duplicate-request detectors must stay conservative;
+            you already exclude self-traffic. Treat FP rate as a P0 product metric.
+          </li>
+          <li>
+            <strong>Over-branding vs clarity</strong> —
+            “Live press check” is excellent <em>after</em> people get it; cold traffic still needs plain:
+            <em>perf + SEO monitor that sends issues to your coding agent.</em>
+            Lead with plain; keep press check as signature.
+          </li>
+          <li>
+            <strong>Scope creep in <code>apps/web</code></strong> —
+            Brand system is beautiful; distribution ROI may beat another proof-rail polish pass.
+          </li>
+          <li>
+            <strong>Solo founder burn</strong> —
+            Freeze non-essential design systems; open “good first issues”
+            (adapters, screenshots, detector recipes) once stars exist.
+          </li>
+        </ol>
+      </section>
+
+      <section id="30-days">
+        <h2>What I would do in the next 30 days</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h4>1. Distribution hygiene</h4>
+            <p>GitHub homepage, topics, release blog, 3 screenshots</p>
+          </div>
+          <div class="card">
+            <h4>2. One-command local path</h4>
+            <p>Produce a green Agent-connected state with minimal hops</p>
+          </div>
+          <div class="card">
+            <h4>3. Launch post</h4>
+            <p>Real MCP GIF + “break this page” link</p>
+          </div>
+          <div class="card">
+            <h4>4. Instrument funnel</h4>
+            <p>Setup CLI success, doctor failure codes, npm download trend</p>
+          </div>
+          <div class="card">
+            <h4>5. Retention delight</h4>
+            <p>One-click weekly Markdown impact export</p>
+          </div>
+          <div class="card">
+            <h4>6. Scope freeze</h4>
+            <p>Leave new detectors and brand systems alone unless they unblock conversion</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="closing">
+        <h2>Closing judgment</h2>
+        <p>
+          VibeCheck is <strong>not</strong> a half-built idea. It is a
+          <strong>sharp, well-engineered product</strong> sitting at the intersection of:
+        </p>
+        <ul>
+          <li>exploding AI-generated frontend volume,</li>
+          <li>MCP as the agent I/O standard, and</li>
+          <li>a genuine hole between Lighthouse scores and “my agent actually fixed the jank.”</li>
+        </ul>
+        <p>
+          v0.3’s durable workflow + browser-verified impact is the right product spine.
+        </p>
+        <p><strong>Great success</strong> here looks less like “more features” and more like:</p>
+        <blockquote>
+          <p>
+            Thousands of React (then broader) apps leave VibeCheck mounted in dev;
+            agents routinely lease projects; teams paste weekly impact;
+            the name “press check” becomes the shorthand for agent-era frontend QA.
+          </p>
+        </blockquote>
+        <p>
+          You already built the instrument. The lever now is
+          <strong>make the first green receipt inevitable, then make the world hear it.</strong>
+        </p>
+      </section>
+
+      <footer class="note">
+        Generated from the in-session product analysis of the vibe-check monorepo.
+        File path: <code>docs/vibe-check-analysis.html</code>
+      </footer>
+    </article>
+  </div>
+</body>
+</html>

@@ -1,30 +1,27 @@
 import Link from 'next/link'
 
-export const PressRosette = () => (
+export const BrandMark = () => (
   <svg
-    data-vc-press-rosette=""
+    data-vc-brand-mark=""
     viewBox="0 0 20 20"
     aria-hidden="true"
     focusable="false"
     fill="none"
   >
-    <g className="vc-press-rosette-c">
-      <circle cx="10" cy="10" r="5.5" />
-    </g>
-    <g className="vc-press-rosette-m">
-      <circle cx="10" cy="10" r="5.5" />
-    </g>
-    <g className="vc-press-rosette-k">
-      <circle cx="10" cy="10" r="5.5" />
-      <circle cx="10" cy="10" r="1.5" />
-      <path d="M1 10h18M10 1v18" />
-    </g>
+    <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.4" />
+    <path
+      d="M6.6 10.2l2.3 2.3 4.6-5.3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 )
 
 export const NavigationWordmarkLabel = () => (
   <>
-    <PressRosette />
+    <BrandMark />
     <span className="vc-side-brand-name">
       Vibe<span className="vc-side-brand-2">Check</span>
     </span>
@@ -39,8 +36,6 @@ export const NavigationWordmark = () => (
 
 export const ProofVersion = ({ version }: { readonly version: string }) => (
   <span className="vc-proof-version" data-vc-proof-version="">
-    <span className="vc-proof-version-rule" aria-hidden="true" />
-    <span className="vc-proof-version-label">PROOF</span>
     <span>{version}</span>
   </span>
 )

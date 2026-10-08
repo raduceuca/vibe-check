@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Browser performance monitoring plugin for detecting issues caused by AI-assisted/vibe coding. Three packages form a pipeline: **core** collects metrics in the browser, **react** renders an overlay widget, and **mcp** exposes the data to AI agents via MCP tools + HTTP.
+Browser performance and quality monitoring for AI-assisted / vibe-coded frontends.
+It runs collectors and detectors in the browser, renders a React overlay, and can
+dispatch a concrete finding to one coding-agent session over MCP — then verify the
+fix with fresh browser evidence.
+
+Four packages form the pipeline:
+
+| Package | npm | Role |
+|---------|-----|------|
+| `@wcgw/vibe-check-protocol` | private (bundled) | Shared wire types, enums, agent setup helpers |
+| `@wcgw/vibe-check-core` | public | Zero-dep engine: collectors, detectors, beacon |
+| `@wcgw/vibe-check` | public | React overlay widget |
+| `@wcgw/vibe-check-mcp` | public | Local hub + stdio MCP bridge + setup/doctor CLI |
 
 ## Commands
 
@@ -15,83 +27,125 @@ pnpm test                             # Run all tests
 pnpm test:watch                       # Watch mode across all packages
 pnpm lint                             # TypeScript type-check (tsc --noEmit)
 pnpm test:coverage                    # Coverage report (vitest + v8)
+pnpm test:e2e:mcp                     # Packed widget → MCP round-trip (Playwright)
+pnpm test:clients                     # Isolated Codex / Claude / Cursor MCP config checks
+pnpm smoke:production                 # Public site smoke
+pnpm gen:docs                         # Regenerate detector reference in READMEs + skill
 
 # Single package
-cd packages/core && pnpm test         # Test core only
-cd packages/mcp && pnpm test          # Test mcp only
+cd packages/core && pnpm test
+cd packages/mcp && pnpm test
 
 # Single test file
 npx vitest run packages/core/src/collectors/__tests__/frameRate.test.ts
 
-# Watch a single test
-npx vitest packages/core/src/detectors/__tests__/domBloat.test.ts
-
-# Build a single package
-cd packages/core && pnpm build
-
-# Run demo app
+# Demo app (deliberately broken page)
 cd demo && pnpm dev
+
+# Marketing site
+cd apps/web && pnpm dev
 ```
 
 ## Architecture
 
-### Data Flow
+### Data flow
 
 ```
-Browser (core collectors) → VibeCheckEngine → BeaconClient (POST /api/snapshot)
-                                                      ↓
-                                              MCP Server (httpServer)
-                                                      ↓
-                                              VibeStore (immutable state)
-                                                      ↓
-                                              MCP Tools (AI agent reads)
+Browser widget  ──POST /api/snapshot──►  Local hub (:4200)
+     │                                      │
+     │  Send to agent                       │ project queues, leases,
+     ▼                                      │ workflow, impact ledger
+On-page annotations                   .vibecheck/state.json
+                                            ▲
+                     MCP bridge (stdio) ────┘
+                     Claude / Codex / Cursor
 ```
 
-### Package Dependency Chain
+One long-running **hub** process is shared by local projects. Each agent client
+spawns a short-lived **connect** bridge that never binds the browser port.
+Projects are isolated by `projectId`. One agent may lease one project at a time.
 
-`core` (zero deps) → `react` (depends on core) → consumer app
-`mcp` (standalone, depends on `@modelcontextprotocol/sdk` + `zod`)
+### Package dependency chain
 
-The MCP package does NOT depend on core. It receives snapshots over HTTP and has its own `types.ts` mirroring core's `VibeSnapshot` shape.
+```
+protocol (private) ──► core (zero runtime deps) ──► react (peer: React 18+)
+protocol ──► mcp (depends on @modelcontextprotocol/sdk + zod)
+```
 
-### Core Package (`@wcgw/vibe-check-core`)
+`mcp` does **not** depend on `core`. It shares types via `protocol` (bundled at
+build time). Apps: `apps/web` (marketing/docs/scan), `apps/scan-worker` (D1
+leaderboard), `demo`, `e2e/mcp-roundtrip`.
 
-- **Collectors** (`src/collectors/`) — measure browser metrics (FPS, long frames, memory, web vitals, resources, console). Each implements `Collector<T>` interface with `start/stop/getStats/onUpdate`.
-- **Detectors** (`src/detectors/`) — analyze snapshots for problems (DOM bloat, duplicate requests, memory leaks, etc.). Each is a factory function `create*Detector()` returning a `Detector` with `start/stop/getIssues/clear`. Issues are created via `createIssue()`.
-- **Engine** (`src/engine.ts`) — orchestrates collectors + detectors + beacon. `VibeCheckEngine` is the main entry point: `start()`, `stop()`, `getSnapshot()`, `onSnapshot(cb)`.
-- **BeaconClient** (`src/beacon/`) — sends snapshots to MCP server via `navigator.sendBeacon` or `fetch` POST to `/api/snapshot`.
-- **RingBuffer** (`src/utils/ringBuffer.ts`) — fixed-capacity circular buffer used by collectors.
-- **featureDetect** (`src/utils/featureDetect.ts`) — checks browser API availability (PerformanceObserver, LoAF, etc.).
+### Core (`@wcgw/vibe-check-core`)
 
-### React Package (`@wcgw/vibe-check`)
+- **Collectors** (`src/collectors/`) — FPS, long frames, memory, web vitals,
+  resources, console. Interface: `start` / `stop` / `getStats` / `onUpdate`.
+- **Detectors** (`src/detectors/`) — 13 factories (`create*Detector()`): DOM
+  bloat, duplicate requests, console spam, memory leak, layout thrashing,
+  unoptimized/large images, long-task attribution, resource bloat, heavy
+  library, web essentials, SEO, AEO.
+- **Engine** (`src/engine.ts`) — `VibeCheckEngine`: `start()`, `stop()`,
+  `getSnapshot()`, `onSnapshot(cb)`.
+- **BeaconClient** — `fetch` POST to hub (truthful status); `sendBeacon` is
+  legacy fallback only.
+- **Utils** — `RingBuffer`, `featureDetect`.
 
-- **VibeCheck** component — full overlay widget with panels (FPS, vitals, memory, issues)
-- **PerfToggle** component — keyboard-toggled (Ctrl+Shift+P) wrapper around VibeCheck
-- **Hooks** — `useVibeCheck` (creates + manages engine), `useFrameRate`, `useWebVitals`, `useMemory`, `useLongFrames`, `useDetectedIssues`
-- **Context** — `VibeCheckProvider` / `useVibeCheckEngine` for shared engine access
-- All UI uses **inline styles only** — no CSS files or dependencies
+### React (`@wcgw/vibe-check`)
 
-### MCP Package (`@wcgw/vibe-check-mcp`)
+- **VibeCheck** — six-tab overlay: Monitor, Agent, SEO, AEO, Prompts, Settings
+- **PerfToggle** — keyboard toggle (**Alt+Shift+V**)
+- **Hooks** — `useVibeCheck`, `useFrameRate`, `useWebVitals`, `useMemory`,
+  `useLongFrames`, `useDetectedIssues`, `useIssueWorkflow`, `useProjectImpact`, …
+- **Context** — `VibeCheckProvider` / `useVibeCheckEngine`
+- Inline styles only (no CSS files)
 
-- **httpServer** — receives POST `/api/snapshot` from browser beacon, serves SSE at `/api/stream`, health check at `/api/health`. Port defaults to 4200 (env: `VIBE_CHECK_PORT`).
-- **store** — immutable `VibeStore` with `updateSnapshot`, `acknowledgeIssue`, `resolveIssue`. Keeps last 100 issues in history.
-- **mcpServer** — registers 6 MCP tools: `get_performance_snapshot`, `get_detected_issues`, `get_fix_suggestions`, `watch_performance`, `acknowledge_issue`, `resolve_issue`.
-- **suggestions** — maps each `DetectorName` to a markdown template with causes, fix steps, and code examples.
-- Entry point runs both HTTP server (for browser) and stdio MCP transport (for AI agent) simultaneously.
+### MCP (`@wcgw/vibe-check-mcp`)
+
+CLI roles:
+
+| Command | Role |
+|---------|------|
+| `hub` | Long-running local hub (browser port, default 4200) |
+| `up` | Hub + printed setup/watch next-steps banner |
+| `connect` | Stdio MCP bridge to the hub (spawned by agent clients) |
+| `doctor` | Read-only connection diagnostics |
+| `stats` | Project impact (human / json / markdown) |
+| `setup` | Scaffold widget + agent config (`--agent` required) |
+| `register` | Register a project root in the local registry |
+
+**MCP tools (10):**
+
+1. `list_projects` — active projects and watcher state
+2. `get_project_impact` — verified fixes, regressions, measured deltas
+3. `get_performance_snapshot` — latest snapshot
+4. `get_detected_issues` — filter by severity / detector
+5. `get_fix_suggestions` — structured fix guide for one issue
+6. `watch_performance` — wait for next snapshot (acquires lease)
+7. `watch_for_issue` — claim project; wait for widget **Send to agent**
+8. `acknowledge_issue` — mark seen
+9. `resolve_issue` — request **browser-evidence verification** (not instant "fixed")
+10. `release_project` — drop this session's lease
+
+Issue workflow phases: **detected → sent → working → verifying → fixed / regressed**.
+Durable state lives in the project's `.vibecheck/state.json` (hub-owned).
 
 ### Claude Code Skill (`skills/vibe-check/`)
 
-`SKILL.md` provides a user-invocable skill for setting up vibe-check in a project and using the MCP tools.
+User-invocable skill for setup and MCP workflow. Keep it in sync with the tool
+list and lease/verify semantics above.
 
 ## Rules
 
 - TypeScript strict mode, no `any`
 - Named arrow function exports only (no `export default`)
-- Immutable patterns — never mutate inputs, return new objects (see `store.ts` for reference)
+- Immutable patterns — never mutate inputs, return new objects
 - Core package has **zero** runtime dependencies
 - React package peer-depends on React 18+
 - All UI uses inline styles (no CSS files)
-- Tests live in `__tests__/` directories co-located with source
-- Test environment is `jsdom` with vitest globals enabled
+- Tests live in `__tests__/` co-located with source
+- Test environment is `jsdom` with vitest globals
 - Every collector, detector, hook, and MCP tool needs tests
 - Build toolchain: tsup (ESM + CJS dual output with declarations)
+- Do not claim a copied prompt was delivered — only a successful
+  `watch_for_issue` result confirms widget-to-agent dispatch
+- On `lease-conflict`, do not retry in a loop; explain ownership
