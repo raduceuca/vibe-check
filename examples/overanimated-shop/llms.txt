@@ -1,0 +1,9 @@
+# overanimated-shop
+
+Deliberately heavy 3D ecommerce showcase for VibeCheck dogfooding.
+
+- Stack: Three.js, GSAP, Lenis, local GLB/HDR/AVIF/WebM assets
+- Hub project_id: overanimated-shop
+- Not a pnpm workspace package
+- Upstream: https://github.com/Rahul-singh13/ciao-energy-3d-experience
+- Pair with: examples/ai-saas-landing (Lumen SaaS twin)

@@ -14,6 +14,9 @@ import { PhaseLine } from '@/components/landing/PhaseLine'
 import { YourCallCard } from '@/components/landing/YourCallCard'
 import { InstallSteps } from '@/components/landing/InstallSteps'
 import { LandingFaq } from '@/components/landing/LandingFaq'
+import { RunRecording } from '@/components/landing/RunRecording'
+import { RunTranscript } from '@/components/landing/RunTranscript'
+import { StepHead } from '@/components/landing/StepHead'
 import { LANDING_COPY } from '@/lib/landingCopy'
 import { MCP_PACKAGE_VERSION } from '@wcgw/vibe-check-core'
 
@@ -166,26 +169,53 @@ const LandingPage = () => (
           <FaultBench />
 
           <section id="decide" className="vc-section" aria-labelledby="decide-heading">
-            <h2
+            <StepHead
               id="decide-heading"
-              style={{
-                margin: 0,
-                fontFamily: 'var(--vc-serif)',
-                fontWeight: 500,
-                fontSize: 'clamp(28px, 24px + 1vw, 40px)',
-                letterSpacing: '-0.015em',
-              }}
-            >
-              You pick what reaches the agent.
-            </h2>
-            <p className="vc-p" style={{ marginTop: 12 }}>
+              title="Nothing reaches your agent until you send it."
+              lede="Open a problem in the panel. You'll see what was measured, why it matters, and what to do about it, with two buttons under it: Send to agent and copy."
+            />
+            <p className="vc-p">
               Send to agent delivers that one issue to the coding agent watching your project.
               Copy puts the same prompt on your clipboard. A copied prompt isn&apos;t a delivery,
               and VibeCheck never counts it as one.
             </p>
             <p className="vc-p">
+              No agent is connected to this website, so Send to agent stays off here. In your own
+              project it turns on once the hub is running and one agent session is watching.
+            </p>
+            <h3
+              style={{
+                margin: '28px 0 0',
+                fontFamily: 'var(--vc-serif)',
+                fontWeight: 500,
+                fontSize: 22,
+              }}
+            >
+              One agent per project
+            </h3>
+            <p className="vc-p" style={{ marginTop: 10 }}>
+              Each project belongs to one agent session at a time. If a second session tries to
+              watch it, that session is told who holds the project. It doesn&apos;t quietly take
+              over.
+            </p>
+            <p className="vc-p">
               <Link className="vc-link" href="/docs/concepts/issue-lifecycle#delivery">
                 What each delivery message means
+              </Link>
+            </p>
+          </section>
+
+          <section id="fix" className="vc-section" aria-labelledby="fix-heading">
+            <StepHead
+              id="fix-heading"
+              title="Your agent gets evidence, not a hunch."
+              lede="Your coding agent connects through a small MCP bridge and calls watch_for_issue for one project. Then it waits. When you press Send to agent, that call returns your issue with its evidence: which detector fired, the numbers, the element. The agent can ask get_fix_suggestions for a fix guide, edits your code, and calls resolve_issue. That call doesn't mark anything fixed. It asks the browser to check."
+            />
+            <RunRecording />
+            <RunTranscript />
+            <p className="vc-p" style={{ marginTop: 18 }}>
+              <Link className="vc-link" href="/docs/reference/mcp-tools">
+                All ten MCP tools
               </Link>
             </p>
           </section>
