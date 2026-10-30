@@ -30,6 +30,9 @@ html {
   --vc-sig: #c0362c;
   --vc-focus: #111112;
   --vc-serif: var(--vc-font-serif), ui-serif, Georgia, 'Times New Roman', serif;
+  /* Geist package exposes --font-geist-sans / --font-geist-mono */
+  --vc-font-sans: var(--font-geist-sans);
+  --vc-font-mono: var(--font-geist-mono);
   --vc-sans: var(--vc-font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --vc-mono: var(--vc-font-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --vc-s1: 4px; --vc-s2: 8px; --vc-s3: 12px; --vc-s4: 16px; --vc-s5: 24px;
