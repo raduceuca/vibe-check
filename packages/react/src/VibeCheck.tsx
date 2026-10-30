@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, memo, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import type { VibeIssue, BeaconStatus, DispatchIssueResponse, VibeEngine } from '@wcgw/vibe-check-core'
 import { useVibeCheck } from './hooks/useVibeCheck.js'
 import { useIssueStore } from './hooks/useIssueStore.js'
@@ -7,6 +8,7 @@ import { useProjectImpact } from './hooks/useProjectImpact.js'
 import { usePreferences } from './hooks/usePreferences.js'
 import { useClipboard } from './hooks/useClipboard.js'
 import { useFpsHistory } from './hooks/useFpsHistory.js'
+import { usePortalHost } from './hooks/usePortalHost.js'
 import { VibeCheckProvider } from './context.js'
 import { T } from './tokens.js'
 import { useAnimations } from './theme.js'
@@ -61,6 +63,10 @@ export const VibeCheck = memo(({
   storageKey,
 }: VibeCheckProps) => {
   useAnimations()
+  // Server render and the hydration pass both see null and paint nothing, so
+  // stored prefs / persisted issues cannot mismatch the HTML (W1 / P5).
+  const portalHost = usePortalHost(enabled)
+  const hubConfigured = Boolean(beaconUrl && projectId)
   const resolvedProjectId = projectId ?? (
     typeof window !== 'undefined' && window.location.origin !== 'null'
       ? window.location.origin
@@ -136,13 +142,10 @@ export const VibeCheck = memo(({
     })
   }, [engine, resolvedProjectId])
 
+  // Local dismiss only — hub verification goes through onRequestVerification.
   const handleMarkResolved = useCallback((issueId: string): void => {
-    if (beaconUrl && resolvedProjectId) {
-      void issueWorkflow.requestVerification(issueId)
-      return
-    }
     markResolved(issueId)
-  }, [beaconUrl, issueWorkflow.requestVerification, markResolved, resolvedProjectId])
+  }, [markResolved])
 
   const reportedRef = useRef(new Set<string>())
   useEffect(() => {
@@ -181,7 +184,7 @@ export const VibeCheck = memo(({
     [activeCount, seoCount, aeoCount],
   )
 
-  if (!enabled) return null
+  if (!enabled || !portalHost) return null
   const effectivePosition = collapsed
     ? prefs.collapsedPosition ?? position
     : prefs.expandedPosition ?? position
@@ -199,21 +202,18 @@ export const VibeCheck = memo(({
       onDispatch={handleDispatch}
       onMarkSent={handleMarkSent}
       onMarkResolved={handleMarkResolved}
+      onRequestVerification={hubConfigured ? issueWorkflow.requestVerification : undefined}
+      hubConfigured={hubConfigured}
     />
   )
 
   // ── Collapsed — floating pill ──────────────────────────────────────────────
-  if (collapsed) {
-    return (
+  const content = collapsed ? (
       <>
         {annotationOverlay}
         <CollapsedPill snapshot={snapshot} activeCount={activeCount} onToggle={toggle} theme={prefs.theme} mode={mode} pos={pos} headerRef={pillRef} />
       </>
-    )
-  }
-
-  // ── Expanded — full panel with tabbed navigation ───────────────────────────
-  return (
+  ) : (
     <VibeCheckProvider value={engine}>
       {annotationOverlay}
       <div
@@ -288,9 +288,10 @@ export const VibeCheck = memo(({
                 onDispatch={handleDispatch}
                 onMarkSent={handleMarkSent}
                 onMarkResolved={handleMarkResolved}
-                onRequestVerification={issueWorkflow.requestVerification}
+                onRequestVerification={hubConfigured ? issueWorkflow.requestVerification : undefined}
                 onClearResolved={clearResolved}
                 onHideFixed={issueWorkflow.hideFixed}
+                hubConfigured={hubConfigured}
               />
             </div>
           )}
@@ -373,4 +374,6 @@ export const VibeCheck = memo(({
       </div>
     </VibeCheckProvider>
   )
+
+  return createPortal(content, portalHost)
 })
