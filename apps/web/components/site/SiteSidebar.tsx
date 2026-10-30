@@ -7,7 +7,7 @@ import type { NavItem, SidebarData } from '@/lib/nav'
 import { GithubMark, ExtArrow } from './navIcons'
 import {
   NavigationWordmark,
-  ProofVersion,
+  SiteVersion,
 } from '@/components/brand/NavigationBrand'
 
 // ── The persistent left nav ───────────────────────────────────────────────────
@@ -166,7 +166,7 @@ const SidebarBody = ({ data }: { data: SidebarData }) => {
 const SidebarFooter = ({ data }: { data: SidebarData }) => (
   <>
     <div className="vc-side-footer">
-      <ProofVersion version={data.version} />
+      <SiteVersion version={data.version} />
       <span className="vc-side-foot-sep" aria-hidden="true">
         ·
       </span>
@@ -214,7 +214,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
       <aside className="vc-side">
         <div className="vc-side-top">
           <NavigationWordmark />
-          <ProofVersion version={data.version} />
+          <SiteVersion version={data.version} />
         </div>
         <div className="vc-side-scroll">
           <SidebarBody data={data} />
@@ -225,7 +225,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
       {/* Mobile: slim top bar with a hamburger */}
       <div className="vc-side-bar">
         <NavigationWordmark />
-        <ProofVersion version={data.version} />
+        <SiteVersion version={data.version} />
         <button
           type="button"
           className="vc-side-burger"
@@ -257,7 +257,7 @@ export const SiteSidebar = ({ data }: { data: SidebarData }) => {
       >
         <div className="vc-side-top">
           <NavigationWordmark />
-          <ProofVersion version={data.version} />
+          <SiteVersion version={data.version} />
           <button
             type="button"
             className="vc-side-close"

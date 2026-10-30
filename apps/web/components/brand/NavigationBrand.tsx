@@ -4,6 +4,8 @@ export const BrandMark = () => (
   <svg
     data-vc-brand-mark=""
     viewBox="0 0 20 20"
+    width="20"
+    height="20"
     aria-hidden="true"
     focusable="false"
     fill="none"
@@ -22,9 +24,7 @@ export const BrandMark = () => (
 export const NavigationWordmarkLabel = () => (
   <>
     <BrandMark />
-    <span className="vc-side-brand-name">
-      Vibe<span className="vc-side-brand-2">Check</span>
-    </span>
+    <span className="vc-side-brand-name">VibeCheck</span>
   </>
 )
 
@@ -34,8 +34,11 @@ export const NavigationWordmark = () => (
   </Link>
 )
 
-export const ProofVersion = ({ version }: { readonly version: string }) => (
-  <span className="vc-proof-version" data-vc-proof-version="">
-    <span>{version}</span>
+/** Package version badge. Renders `v{version}` from the release pin. */
+export const SiteVersion = ({ version }: { readonly version: string }) => (
+  <span className="vc-site-version" data-vc-site-version="">
+    {version.startsWith('v') ? version : `v${version}`}
   </span>
 )
+
+

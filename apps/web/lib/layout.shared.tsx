@@ -4,7 +4,7 @@ import { SITE_VERSION } from './nav'
 import { GithubMark, ExtArrow } from '@/components/site/navIcons'
 import {
   NavigationWordmarkLabel,
-  ProofVersion,
+  SiteVersion,
 } from '@/components/brand/NavigationBrand'
 
 // Shared config for the Fumadocs docs layout. The docs sidebar is skinned (in
@@ -20,7 +20,7 @@ export const baseOptions = (): BaseLayoutProps => ({
     title: (
       <>
         <NavigationWordmarkLabel />
-        <ProofVersion version={SITE_VERSION} />
+        <SiteVersion version={SITE_VERSION} />
       </>
     ),
     url: '/',
@@ -65,7 +65,7 @@ export const DocsSidebarFooter = () => (
       </li>
     </ul>
     <div className="vc-side-footer">
-      <ProofVersion version={SITE_VERSION} />
+      <SiteVersion version={SITE_VERSION} />
       <span aria-hidden="true">·</span>
       <a
         className="vc-side-foot-gh"
