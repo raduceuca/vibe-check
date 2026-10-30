@@ -9,6 +9,7 @@ import { HeroNote } from '@/components/landing/HeroNote'
 import { LiveLine } from '@/components/landing/LiveLine'
 import { VibeLedger } from '@/components/landing/VibeLedger'
 import { LoopSteps } from '@/components/landing/LoopSteps'
+import { FaultBench } from '@/components/landing/FaultBench'
 import { StepHead } from '@/components/landing/StepHead'
 import { LANDING_COPY } from '@/lib/landingCopy'
 
@@ -136,27 +137,7 @@ const LandingPage = () => (
 
           <LoopSteps />
 
-          <section id="notice" className="vc-section" aria-labelledby="notice-heading">
-            <StepHead
-              id="notice-heading"
-              title={LANDING_COPY.notice.title}
-              lede={LANDING_COPY.notice.body[0]}
-            />
-            <p className="vc-p">{LANDING_COPY.notice.body[1]}</p>
-            <p
-              style={{
-                marginTop: 14,
-                fontSize: 14,
-                color: 'var(--vc-ink-3)',
-                lineHeight: 1.45,
-              }}
-            >
-              {LANDING_COPY.notice.footnote}
-            </p>
-            <p className="vc-p" style={{ marginTop: 18, color: 'var(--vc-ink-3)' }}>
-              Fault controls land next — the live corner panel already measures this page.
-            </p>
-          </section>
+          <FaultBench />
 
           <section id="install" className="vc-section" aria-labelledby="install-heading">
             <StepHead id="install-heading" title={LANDING_COPY.install.title} />
