@@ -7,7 +7,7 @@ vi.mock('../../utils/featureDetect.js', () => ({
   hasLayoutShift: vi.fn(() => true),
 }))
 
-import { WebVitalsCollector } from '../webVitals.js'
+import { WebVitalsCollector, computeInp, recordInteraction } from '../webVitals.js'
 import { hasLargestContentfulPaint, hasEventTiming, hasLayoutShift } from '../../utils/featureDetect.js'
 
 type ObserverCallback = (list: { getEntries: () => unknown[] }) => void
@@ -45,6 +45,15 @@ const createMockPerformanceObserver = () => {
 const triggerEntries = (type: string, entries: unknown[]) => {
   const cb = observerCallbacks.get(type)
   cb?.({ getEntries: () => entries })
+}
+
+// One event entry for a new interaction. Chrome's interaction ids grow (in
+// steps of 7); entries with interactionId 0 are not interactions (hover etc.).
+let nextInteractionId = 7
+const interaction = (duration: number, interactionId?: number) => {
+  const id = interactionId ?? nextInteractionId
+  if (interactionId === undefined) nextInteractionId += 7
+  return { name: 'pointerdown', duration, interactionId: id }
 }
 
 describe('WebVitalsCollector', () => {
@@ -163,18 +172,16 @@ describe('WebVitalsCollector', () => {
       // Create 100 events: 98 at 50ms, 1 at 300ms, 1 at 600ms
       const entries = []
       for (let i = 0; i < 98; i++) {
-        entries.push({ duration: 50 })
+        entries.push(interaction(50))
       }
-      entries.push({ duration: 300 })
-      entries.push({ duration: 600 })
+      entries.push(interaction(300))
+      entries.push(interaction(600))
 
       triggerEntries('event', entries)
 
       const stats = collector.getStats()
       expect(stats.inp).not.toBeNull()
-      // P98 index = Math.ceil(0.98 * 100) - 1 = 97 (0-indexed)
-      // Sorted: indices 0-97 are 50, index 98 is 300, index 99 is 600
-      // So sorted[97] = 50 (the last of the 98 fifty-ms entries)
+      // 100 interactions: ignore the 2 longest (one per 50) -> 50
       expect(stats.inp?.value).toBe(50)
     })
 
@@ -185,17 +192,16 @@ describe('WebVitalsCollector', () => {
       // 50 events: 48 at 100ms, 1 at 300ms, 1 at 600ms
       const entries = []
       for (let i = 0; i < 48; i++) {
-        entries.push({ duration: 100 })
+        entries.push(interaction(100))
       }
-      entries.push({ duration: 300 })
-      entries.push({ duration: 600 })
+      entries.push(interaction(300))
+      entries.push(interaction(600))
 
       triggerEntries('event', entries)
 
       const stats = collector.getStats()
       expect(stats.inp).not.toBeNull()
-      // P98 index = Math.ceil(0.98 * 50) - 1 = 49 - 1 = 48
-      // Sorted: [100x48, 300, 600], index 48 = 300
+      // 50 interactions: ignore the longest one -> 300
       expect(stats.inp?.value).toBe(300)
     })
 
@@ -203,7 +209,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 150 }])
+      triggerEntries('event', [interaction(150)])
 
       const stats = collector.getStats()
       expect(stats.inp?.value).toBe(150)
@@ -213,12 +219,11 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 100 }, { duration: 200 }])
-      triggerEntries('event', [{ duration: 300 }])
+      triggerEntries('event', [interaction(100), interaction(200)])
+      triggerEntries('event', [interaction(300)])
 
       const stats = collector.getStats()
-      // 3 events, P98 index = Math.ceil(0.98 * 3) - 1 = 2
-      // Sorted: [100, 200, 300], index 2 = 300
+      // 3 interactions: the longest counts -> 300
       expect(stats.inp?.value).toBe(300)
     })
 
@@ -226,7 +231,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 200 }])
+      triggerEntries('event', [interaction(200)])
       expect(collector.getStats().inp?.rating).toBe('good')
     })
 
@@ -234,7 +239,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 50 }])
+      triggerEntries('event', [interaction(50)])
       expect(collector.getStats().inp?.rating).toBe('good')
     })
 
@@ -242,7 +247,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 350 }])
+      triggerEntries('event', [interaction(350)])
       expect(collector.getStats().inp?.rating).toBe('needs-improvement')
     })
 
@@ -250,7 +255,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 500 }])
+      triggerEntries('event', [interaction(500)])
       expect(collector.getStats().inp?.rating).toBe('needs-improvement')
     })
 
@@ -258,7 +263,7 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 501 }])
+      triggerEntries('event', [interaction(501)])
       expect(collector.getStats().inp?.rating).toBe('poor')
     })
 
@@ -266,8 +271,83 @@ describe('WebVitalsCollector', () => {
       const collector = new WebVitalsCollector()
       collector.start()
 
-      triggerEntries('event', [{ duration: 1200 }])
+      triggerEntries('event', [interaction(1200)])
       expect(collector.getStats().inp?.rating).toBe('poor')
+    })
+
+    // C9: a slow hover handler is not an interaction.
+    it('ignores event entries that are not interactions (interactionId 0)', () => {
+      const collector = new WebVitalsCollector()
+      collector.start()
+
+      triggerEntries('event', [
+        { name: 'pointerover', duration: 320, interactionId: 0 },
+        { name: 'mouseover', duration: 320, interactionId: 0 },
+        { name: 'pointerenter', duration: 312 },
+        interaction(16, 4460),
+        interaction(16, 4460),
+      ])
+
+      expect(collector.getStats().inp).toEqual({ value: 16, rating: 'good' })
+    })
+
+    it('returns null INP while only hover events have been seen', () => {
+      const collector = new WebVitalsCollector()
+      collector.start()
+
+      triggerEntries('event', [{ name: 'mouseover', duration: 400, interactionId: 0 }])
+
+      expect(collector.getStats().inp).toBeNull()
+    })
+
+    it('counts each interaction once, at its longest entry', () => {
+      const collector = new WebVitalsCollector()
+      collector.start()
+
+      // pointerdown / pointerup / click of ONE interaction, then 49 fast ones.
+      triggerEntries('event', [interaction(40, 1), interaction(120, 1), interaction(80, 1)])
+      for (let i = 0; i < 49; i++) triggerEntries('event', [interaction(24)])
+
+      // 50 interactions: the single 120 ms interaction is the ignored outlier.
+      expect(collector.getStats().inp?.value).toBe(24)
+    })
+
+    it('prefers the browser interaction count when it is exposed', () => {
+      Object.defineProperty(performance, 'interactionCount', { configurable: true, value: 100 })
+      try {
+        const collector = new WebVitalsCollector()
+        collector.start()
+        triggerEntries('event', [interaction(600), interaction(300), interaction(90)])
+        // 100 interactions (most too fast for an entry): ignore the 2 longest -> 90
+        expect(collector.getStats().inp?.value).toBe(90)
+      } finally {
+        delete (performance as { interactionCount?: number }).interactionCount
+      }
+    })
+
+    it('keeps only the 10 longest interactions in memory', () => {
+      let longest: ReturnType<typeof recordInteraction> = []
+      for (let id = 1; id <= 500; id++) longest = recordInteraction(longest, id, id % 97)
+      expect(longest).toHaveLength(10)
+      expect(longest.map((sample) => sample.duration)).toEqual([96, 96, 96, 96, 96, 95, 95, 95, 95, 95])
+    })
+
+    it('updates an interaction in place when a longer entry for it arrives', () => {
+      const first = recordInteraction([], 7, 40)
+      const same = recordInteraction(first, 7, 30)
+      const longer = recordInteraction(first, 7, 90)
+      expect(same).toBe(first)
+      expect(longer).toEqual([{ id: 7, duration: 90 }])
+      expect(first).toEqual([{ id: 7, duration: 40 }])
+    })
+
+    it('computes INP as the longest interaction after ignoring one per 50', () => {
+      const longest = [600, 300, 200, 100].map((duration, index) => ({ id: index + 1, duration }))
+      expect(computeInp([], 0)).toBeNull()
+      expect(computeInp(longest, 4)).toBe(600)
+      expect(computeInp(longest, 50)).toBe(300)
+      expect(computeInp(longest, 149)).toBe(200)
+      expect(computeInp(longest, 10_000)).toBe(100)
     })
 
     it('returns null INP when API is unavailable', () => {
@@ -420,7 +500,7 @@ describe('WebVitalsCollector', () => {
       collector.start()
 
       triggerEntries('largest-contentful-paint', [{ startTime: 1500, size: 200 }])
-      triggerEntries('event', [{ duration: 120 }])
+      triggerEntries('event', [interaction(120)])
       triggerEntries('layout-shift', [
         { value: 0.02, startTime: 1000, hadRecentInput: false },
       ])

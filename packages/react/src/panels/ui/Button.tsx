@@ -1,8 +1,9 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import { T } from '../../tokens.js'
 
-// The one button in the widget. Hover (background) and press (scale 0.96) come
-// from the global [data-wcgw] button rules, so variants only own border/bg/text.
+// The one button in the widget. Hover (a tint layered over the variant
+// background) and press (scale 0.96) come from the global [data-wcgw] button
+// rules, so variants only own border/bg/text.
 type ButtonVariant = 'ghost' | 'success' | 'danger'
 type ButtonSize = 'sm' | 'md'
 
@@ -33,10 +34,12 @@ interface ButtonProps {
   readonly title?: string
   readonly disabled?: boolean
   readonly testId?: string
+  /** id of visible text that explains the button (e.g. why it is disabled). */
+  readonly describedBy?: string
 }
 
 export const Button = ({
-  children, onClick, variant = 'ghost', size = 'md', fullWidth, icon, ariaLabel, title, disabled, testId,
+  children, onClick, variant = 'ghost', size = 'md', fullWidth, icon, ariaLabel, title, disabled, testId, describedBy,
 }: ButtonProps) => (
   <button
     type="button"
@@ -44,6 +47,7 @@ export const Button = ({
     disabled={disabled}
     data-testid={testId}
     aria-label={ariaLabel}
+    aria-describedby={describedBy}
     title={title}
     style={{
       display: 'inline-flex',

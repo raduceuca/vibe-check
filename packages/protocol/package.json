@@ -1,6 +1,6 @@
 {
   "name": "@wcgw/vibe-check-protocol",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "private": true,
   "description": "Shared wire-protocol types and enums for vibe-check (internal — bundled into the published packages, never shipped on its own)",
@@ -21,7 +21,8 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsup",
+    "build": "node scripts/gen-version.mjs && tsup",
+    "gen:version": "node scripts/gen-version.mjs",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",

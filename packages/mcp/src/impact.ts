@@ -26,8 +26,9 @@ const METRIC_COPY: Readonly<Record<ImpactMetricKind, {
     label: 'transfer KB reduced',
     scope: 'per observed page load',
   },
+  // The label carries its unit noun: formatters print `${value} ${label}`.
   'blocking-ms-reduced': {
-    label: 'blocking time reduced',
+    label: 'ms of blocking time reduced',
     scope: 'per observed capture window',
   },
 }
@@ -71,20 +72,22 @@ export const deriveProjectImpact = (
     workflow.impactResetAt === null || at > workflow.impactResetAt
   const events = workflow.issues.flatMap((tracked) =>
     tracked.events.filter((item) => afterReset(item.at)))
-  const fixedKeys = new Set(workflow.issues
-    .filter((tracked) => tracked.events.some((item) => item.type === 'fixed' && afterReset(item.at)))
-    .map((tracked) => tracked.issueKey))
-  const fixTimes = workflow.issues.flatMap((tracked) => tracked.events
+  // Attribution: a fix counts toward the ledger only when that occurrence was
+  // sent to an agent first. A user-requested "check this fix" may still move
+  // an issue to 'fixed', but it is not a fix VibeCheck helped deliver.
+  const attributedFixes = workflow.issues.flatMap((tracked) => tracked.events
     .filter((item) => item.type === 'fixed' && afterReset(item.at))
     .flatMap((fixed) => {
-      const sent = tracked.events
-        .filter((item) => item.type === 'sent'
-          && item.occurrence === fixed.occurrence
-          && item.at < fixed.at
-          && afterReset(item.at))
-        .at(-1)
-      return sent && fixed.at > sent.at ? [fixed.at - sent.at] : []
+      const sent = tracked.events.filter((item) => item.type === 'sent'
+        && item.occurrence === fixed.occurrence
+        && item.at < fixed.at)
+      return sent.length > 0 ? [{ tracked, fixed, sent }] : []
     }))
+  const fixedKeys = new Set(attributedFixes.map(({ tracked }) => tracked.issueKey))
+  const fixTimes = attributedFixes.flatMap(({ fixed, sent }) => {
+    const latest = sent.filter((item) => afterReset(item.at)).at(-1)
+    return latest && fixed.at > latest.at ? [fixed.at - latest.at] : []
+  })
   const visibleReceipts = receipts.filter((receipt) => afterReset(receipt.verificationSnapshotAt))
   const grouped = new Map<string, ImpactMetric>()
   for (const receipt of visibleReceipts) {
@@ -106,7 +109,7 @@ export const deriveProjectImpact = (
     detected: events.filter((item) => item.type === 'detected').length,
     sent: events.filter((item) => item.type === 'sent').length,
     uniqueIssuesFixed: fixedKeys.size,
-    verifiedFixes: events.filter((item) => item.type === 'fixed').length,
+    verifiedFixes: attributedFixes.length,
     regressionsCaught: events.filter((item) => item.type === 'regressed').length,
     verificationFailures: events.filter((item) => item.type === 'verification-failed').length,
     medianFixTimeMs: median(fixTimes),
@@ -119,7 +122,7 @@ const impactSentence = (impact: ProjectImpactSummary): string =>
 
 export const formatImpactMarkdown = (impact: ProjectImpactSummary): string => {
   const metrics = impact.metrics.map((metric) =>
-    `- ${metric.value} ${metric.unit} ${metric.label} — ${metric.scope}${
+    `- ${metric.value} ${metric.label} — ${metric.scope}${
       metric.confidence === 'estimated' ? ' (estimated)' : ''
     }`)
   return [
@@ -139,7 +142,7 @@ export const formatImpactHuman = (impact: ProjectImpactSummary): string => [
   `${countLabel(impact.uniqueIssuesFixed, 'unique issue')} fixed`,
   `${countLabel(impact.verificationFailures, 'verification failure')} caught`,
   ...impact.metrics.map((metric) =>
-    `${metric.value} ${metric.unit} ${metric.label} (${metric.scope})${
+    `${metric.value} ${metric.label} (${metric.scope})${
       metric.confidence === 'estimated' ? ' — estimated' : ''
     }`),
 ].join('\n') + '\n'

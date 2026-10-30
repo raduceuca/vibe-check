@@ -1,23 +1,23 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { NavigationWordmark, ProofVersion } from './NavigationBrand'
+import { NavigationWordmark, SiteVersion } from './NavigationBrand'
 
 describe('navigation brand', () => {
-  it('uses a print-production rosette and proper-case wordmark', () => {
+  it('uses a check mark and proper-case wordmark', () => {
     const markup = renderToStaticMarkup(<NavigationWordmark />)
 
-    expect(markup).toContain('data-vc-press-rosette')
+    expect(markup).toContain('data-vc-brand-mark')
     expect(markup).toContain('Vibe')
     expect(markup).toContain('Check')
-    expect(markup).not.toContain('vc-side-brand-dot')
+    expect(markup).not.toContain('data-vc-press-rosette')
   })
 
-  it('presents the version as a proof notation', () => {
-    const markup = renderToStaticMarkup(<ProofVersion version="0.2.0" />)
+  it('presents the version without a proof label', () => {
+    const markup = renderToStaticMarkup(<SiteVersion version="0.2.0" />)
 
-    expect(markup).toContain('data-vc-proof-version')
-    expect(markup).toContain('PROOF')
-    expect(markup).toContain('0.2.0')
-    expect(markup).not.toContain('vc-side-ver-badge')
+    expect(markup).toContain('v0.2.0')
+    expect(markup).not.toContain('PROOF')
+    expect(markup).toContain('data-vc-site-version')
   })
 })
+

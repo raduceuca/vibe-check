@@ -216,6 +216,7 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
     const connection = page.getByTestId('vibe-check-agent-status')
     await expect(connection).toContainText('Waiting for')
     await expect(connection).toContainText(appAUrl)
+    await connection.getByRole('button', { name: 'Need to add the MCP server?' }).click()
     await expect(connection).toContainText(/codex mcp add vibe-check/)
     await expect(connection).toContainText(`project_id "${appAUrl}"`)
     await expect(page.getByRole('button', { name: /copy codex setup/i })).toBeVisible()
@@ -355,8 +356,12 @@ test('persists a verified fix and reopens its regression', async ({ page }) => {
     const resolution = payload(await agent.client.callTool({
       name: 'resolve_issue',
       arguments: { project_id: appAUrl, issue_id: issueId },
-    })) as ToolPayload & { readonly verifying?: boolean }
-    expect(resolution.verifying).toBe(true)
+    })) as ToolPayload & { readonly code?: string; readonly verification?: { readonly outcome?: string } | null }
+    expect(resolution.code).toBe('verifying')
+    expect(resolution.verification?.outcome === 'pending'
+      || resolution.verification?.outcome === 'fixed'
+      || resolution.verification == null).toBe(true)
+
     await expect.poll(() => workflowPhase(appAUrl, workflowUrl), { timeout: 20_000 })
       .toBe('fixed')
 

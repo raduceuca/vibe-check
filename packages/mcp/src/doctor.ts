@@ -1,9 +1,10 @@
 import {
-  HUB_START_COMMAND,
+  formatLeaseConflictMessage,
   getAgentClientSetup,
+  getHubStartCommand,
   getWatchInstruction,
-  type ProjectSummary,
-} from './types.js'
+} from '@wcgw/vibe-check-protocol'
+import type { ProjectSummary } from './types.js'
 import { createHubClient, type HubClient } from './hubClient.js'
 
 const SNAPSHOT_FRESH_MS = 10_000
@@ -65,10 +66,11 @@ const report = ({
   nextSteps,
 })
 
-const setupSteps = (projectId: string): readonly string[] => {
-  const codex = getAgentClientSetup('codex')
-  const claude = getAgentClientSetup('claude-code')
-  const cursor = getAgentClientSetup('cursor')
+// Agent config carries the hub URL when it is not the default (VIBE_CHECK_HUB_URL).
+const setupSteps = (projectId: string, hubUrl: string): readonly string[] => {
+  const codex = getAgentClientSetup('codex', { hubUrl })
+  const claude = getAgentClientSetup('claude-code', { hubUrl })
+  const cursor = getAgentClientSetup('cursor', { hubUrl })
   return [
     `Configure Codex: ${codex.value}`,
     `Configure Claude Code: ${claude.value}`,
@@ -112,7 +114,7 @@ export const runDoctor = async ({
       level: 'fail',
       message: `Cannot reach the VibeCheck hub at ${hubUrl}.`,
     })
-    nextSteps.push(`Start the hub: ${HUB_START_COMMAND}`)
+    nextSteps.push(`Start the hub: ${getHubStartCommand({ preferUp: false, hubUrl })}`)
     return report({
       hubUrl,
       generatedAt,
@@ -151,7 +153,8 @@ export const runDoctor = async ({
       level: 'fail',
       message: 'No browser projects are publishing to this hub.',
     })
-    nextSteps.push('Open or reload a development page that mounts VibeCheck with this hub URL.')
+    nextSteps.push(`Open or reload a development page that mounts VibeCheck with beaconUrl ${hubUrl}.`)
+    nextSteps.push('If that page is not on localhost (for example http://myapp.test:3000), restart the hub with --allow-origin <its origin>.')
     return report({
       hubUrl,
       generatedAt,
@@ -257,7 +260,7 @@ export const runDoctor = async ({
           level: 'warn',
           message: 'Agent watcher is connected; a second agent was rejected recently.',
         })
-        nextSteps.push('Continue in the owning session, or call release_project there before switching agents.')
+        nextSteps.push(formatLeaseConflictMessage(selectedProjectId, projectStatus.holder ?? null, generatedAt))
       } else {
         checks.push({
           id: 'watcher',
@@ -267,13 +270,22 @@ export const runDoctor = async ({
             : 'Agent watcher is connected.',
         })
       }
+    } else if (projectStatus.state === 'leased') {
+      // Since 0.4: a session holds the project but no watch_for_issue call is
+      // open. A Send from the widget is queued until it watches again.
+      checks.push({
+        id: 'watcher',
+        level: 'warn',
+        message: `An agent session claimed ${selectedProjectId} but is not waiting. Ask it to call watch_for_issue again.`,
+      })
+      nextSteps.push(getWatchInstruction(selectedProjectId))
     } else if (projectStatus.state === 'stale') {
       checks.push({ id: 'watcher', level: 'warn', message: 'The agent watcher stopped responding.' })
       nextSteps.push('Restart or reconnect the owning agent session, then call watch_for_issue again.')
       nextSteps.push(getWatchInstruction(selectedProjectId))
     } else {
       checks.push({ id: 'watcher', level: 'warn', message: `No agent is watching ${selectedProjectId}.` })
-      nextSteps.push(...setupSteps(selectedProjectId))
+      nextSteps.push(...setupSteps(selectedProjectId, hubUrl))
     }
   } catch (error) {
     checks.push({

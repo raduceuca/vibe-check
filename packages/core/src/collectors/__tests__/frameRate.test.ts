@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { FrameRateCollector, computeStats } from '../frameRate.js'
+import { FrameRateCollector, computeStats, estimateFrameInterval } from '../frameRate.js'
 import { EMPTY_FRAME_RATE_STATS } from '../../types.js'
 
 // ── rAF mock ─────────────────────────────────────────────────────────────────
@@ -104,28 +104,66 @@ describe('computeStats', () => {
     expect(stats.maxFrameTime).toBe(50)
   })
 
-  it('counts dropped frames (> 16.67ms)', () => {
+  it('counts a frame as dropped only when it missed at least one refresh (> 1.5x the display interval)', () => {
     const samples = [
-      { timestamp: 100, duration: 10 },
-      { timestamp: 110, duration: 20 },
-      { timestamp: 130, duration: 33 },
-      { timestamp: 163, duration: 16 },
+      { timestamp: 100, duration: 16.7 },
+      { timestamp: 117, duration: 16.6 },
+      { timestamp: 150, duration: 33.4 }, // one missed vsync
+      { timestamp: 167, duration: 16.7 },
+      { timestamp: 184, duration: 20 }, // late, but inside the same refresh
+      { timestamp: 234, duration: 50 }, // two missed vsyncs
     ]
     const stats = computeStats(samples)
-    expect(stats.droppedFrames).toBe(2) // 20ms and 33ms exceed 16.67ms
+    expect(stats.droppedFrames).toBe(2)
   })
 
   it('computes smoothness percentage', () => {
-    // 2 out of 4 frames are on time (16 and 16), 2 dropped (20 and 33)
+    // 60 Hz page: 2 of 4 frames missed a refresh.
     const samples = [
-      { timestamp: 100, duration: 16 },
-      { timestamp: 116, duration: 20 },
-      { timestamp: 136, duration: 33 },
-      { timestamp: 169, duration: 16 },
+      { timestamp: 100, duration: 16.7 },
+      { timestamp: 133, duration: 33.4 },
+      { timestamp: 183, duration: 50 },
+      { timestamp: 200, duration: 16.7 },
     ]
-    const stats = computeStats(samples)
     // (4 - 2) / 4 * 100 = 50%
-    expect(stats.smoothness).toBe(50)
+    expect(computeStats(samples, 16.7).smoothness).toBe(50)
+  })
+
+  it('measures against a given display interval when one is passed', () => {
+    const samples = Array.from({ length: 10 }, (_, i) => ({ timestamp: i * 33.4, duration: 33.4 }))
+    expect(computeStats(samples, 16.7).droppedFrames).toBe(10)
+    expect(computeStats(samples).droppedFrames).toBe(0)
+  })
+
+  // C10: rAF timestamps are coarsened (Chrome 0.1 ms, Firefox 1 ms), so an
+  // on-time 60 Hz frame measures 16.6-16.8 ms. None of them is a dropped frame.
+  it.each([0.1, 1, 0.005])('reports an idle 60 Hz page as smooth at %f ms timer resolution', (resolutionMs) => {
+    const samples: Array<{ timestamp: number; duration: number }> = []
+    let previous = 0
+    for (let i = 1; i <= 60; i++) {
+      const t = Math.round((1000 + i * (1000 / 60)) / resolutionMs) * resolutionMs
+      if (i > 1) samples.push({ timestamp: t, duration: +(t - previous).toFixed(4) })
+      previous = t
+    }
+    const stats = computeStats(samples)
+    expect(stats.droppedFrames).toBe(0)
+    expect(stats.smoothness).toBe(100)
+  })
+
+  it.each([
+    ['30 Hz (iOS Low Power Mode)', 1000 / 30],
+    ['50 Hz', 20],
+    ['120 Hz', 1000 / 120],
+    ['144 Hz', 1000 / 144],
+  ])('reports a steady %s page as smooth', (_label, interval) => {
+    const samples = Array.from({ length: 30 }, (_, i) => ({ timestamp: i * interval, duration: interval }))
+    expect(computeStats(samples).smoothness).toBe(100)
+  })
+
+  it('estimates the display interval as the median frame delta', () => {
+    expect(estimateFrameInterval([])).toBe(0)
+    expect(estimateFrameInterval([16.7, 16.6, 50, 16.8, 16.7])).toBe(16.7)
+    expect(estimateFrameInterval([8.3, 8.4])).toBeCloseTo(8.35)
   })
 
   it('reports 100% smoothness when all frames are within budget', () => {
@@ -210,8 +248,8 @@ describe('FrameRateCollector', () => {
     expect(callback).toHaveBeenCalled()
     const stats = callback.mock.calls[0][0]
     expect(stats.fps).toBeGreaterThan(0)
-    // 16.67ms > 1000/60 (16.666...) by a tiny margin, so frames may be counted as dropped
-    expect(stats.smoothness).toBeGreaterThanOrEqual(0)
+    // On-time frames are measured against the display interval, not a fixed 16.67 ms budget.
+    expect(stats.smoothness).toBe(100)
 
     collector.stop()
   })
@@ -291,6 +329,70 @@ describe('FrameRateCollector', () => {
     expect(lastCall.fps).toBeLessThanOrEqual(62)
 
     collector.stop()
+  })
+
+  it('keeps measuring a burst of jank against the display rate seen just before it', () => {
+    const collector = new FrameRateCollector()
+    collector.start()
+    flushOneFrame(1000)
+
+    // 2 s of smooth 60 Hz, then 1 s where every frame misses a refresh.
+    let t = simulateFrames(120, 16.7, 1000)
+    t = simulateFrames(30, 33.4, t)
+
+    const stats = collector.getStats()
+    expect(stats.fps).toBeLessThanOrEqual(31)
+    expect(stats.droppedFrames).toBeGreaterThanOrEqual(25)
+    expect(stats.smoothness).toBeLessThan(20)
+    collector.stop()
+  })
+
+  // C22: rAF pauses in a background tab. The gap is not a frame.
+  it('does not record a background-tab pause as a 30 s frame', () => {
+    const collector = new FrameRateCollector()
+    collector.start()
+    flushOneFrame(1000)
+    let t = simulateFrames(120, 16.7, 1000)
+    t += 30_000
+    flushOneFrame(t)
+    simulateFrames(31, 16.7, t)
+
+    const stats = collector.getStats()
+    expect(stats.maxFrameTime).toBeLessThan(20)
+    expect(stats.droppedFrames).toBe(0)
+    collector.stop()
+  })
+
+  it('starts measuring afresh after a visibility change', () => {
+    const collector = new FrameRateCollector()
+    collector.start()
+    flushOneFrame(1000)
+    let t = simulateFrames(60, 16.7, 1000)
+    document.dispatchEvent(new Event('visibilitychange'))
+    // A 600 ms gap would be a (long) frame; after a visibility change it is not.
+    t += 600
+    flushOneFrame(t)
+    simulateFrames(40, 16.7, t)
+
+    expect(collector.getStats().maxFrameTime).toBeLessThan(20)
+    collector.stop()
+  })
+
+  it('stops listening for visibility changes on stop', () => {
+    const remove = vi.spyOn(document, 'removeEventListener')
+    const collector = new FrameRateCollector()
+    collector.start()
+    collector.stop()
+    expect(remove).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+  })
+
+  // C20: no rAF outside a browser.
+  it('stays stopped instead of throwing when requestAnimationFrame is missing', () => {
+    globalThis.requestAnimationFrame = undefined as unknown as typeof requestAnimationFrame
+    const collector = new FrameRateCollector()
+    expect(() => collector.start()).not.toThrow()
+    expect(collector.getStats()).toEqual(EMPTY_FRAME_RATE_STATS)
+    expect(() => collector.stop()).not.toThrow()
   })
 
   it('cleans up state fully on stop', () => {

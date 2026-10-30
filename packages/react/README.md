@@ -4,8 +4,7 @@ React performance-monitoring overlay with AI/vibe-coding issue detection. A drop
 
 All UI is inline-styled (no CSS files), renders at a high z-index, ships a dark and a light theme, and respects `prefers-reduced-motion`.
 
-<!-- TODO: capture ../../docs/screenshots/hero.png (widget expanded on the demo page) -->
-<!-- ![vibe-check overlay](../../docs/screenshots/hero.png) -->
+![VibeCheck widget on the demo page](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/hero.png)
 
 ## What you get — six tabs
 
@@ -32,10 +31,15 @@ The same local state records exact verified-fix and regression totals plus only
 those performance improvements supported by comparable snapshots. Impact copy
 uses “caught,” “verified,” and “helped,” and always includes measurement scope.
 
-<!-- TODO: capture one screenshot per tab into ../../docs/screenshots/ -->
-<!-- ![Monitor](../../docs/screenshots/monitor.png) ![Agent](../../docs/screenshots/agent.png) -->
-<!-- ![SEO](../../docs/screenshots/seo.png) ![AEO](../../docs/screenshots/aeo.png) -->
-<!-- ![Prompts](../../docs/screenshots/prompts.png) ![Settings](../../docs/screenshots/settings.png) -->
+| Tab | Screenshot |
+|-----|------------|
+| Monitor | ![Monitor](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/monitor.png) |
+| Agent | ![Agent](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/agent.png) |
+| SEO | ![SEO](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/seo.png) |
+| AEO | ![AEO](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/aeo.png) |
+| Prompts | ![Prompts](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/prompts.png) |
+| Settings | ![Settings](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/screenshots/settings.png) |
+
 
 ## Installation
 
@@ -44,6 +48,9 @@ npm install -D @wcgw/vibe-check
 ```
 
 Peer dependencies: `react >= 18`, `react-dom >= 18`
+
+The published bundle starts with a `'use client'` directive so Next.js App
+Router treats the package as client code.
 
 ## Complete setup
 
@@ -69,13 +76,39 @@ function App() {
 
 On first run the widget shows a small **collapsed pill** in the corner (so you can see it's working). Click it to expand, or press **Alt+Shift+V** to hide/show it.
 
+### Next.js App Router
+
+Keep the widget in a Client Component. Prefer `next/dynamic` with `ssr: false`
+so the monitor never runs during the server render:
+
+```tsx
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const PerfToggle = dynamic(
+  () => import('@wcgw/vibe-check').then((mod) => mod.PerfToggle),
+  { ssr: false },
+)
+
+export const VibeCheckDevtools = () => (
+  <PerfToggle vibeCheckProps={{
+    beaconUrl: 'http://127.0.0.1:4200',
+    projectId: 'my-storefront',
+  }} />
+)
+```
+
+Mount that component from a layout or page that only runs in development.
+
+
 ### 2. Start the local hub
 
 Keep this process running alongside your dev server. One hub supports all your
 local projects.
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.3.0 hub
+npx -y @wcgw/vibe-check-mcp@0.4.0 hub
 ```
 
 ### 3. Wire the bridge into your AI agent
@@ -83,13 +116,13 @@ npx -y @wcgw/vibe-check-mcp@0.3.0 hub
 Choose Codex, Claude Code, or Cursor in the widget's setup card. For Codex:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
 ```
 
 For Claude Code:
 
 ```bash
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
 ```
 
 For Cursor, merge this entry into the top-level `mcpServers` object in
@@ -99,14 +132,14 @@ For Cursor, merge this entry into the top-level `mcpServers` object in
 {
   "vibe-check": {
     "command": "npx",
-    "args": ["-y", "@wcgw/vibe-check-mcp@0.3.0", "connect"]
+    "args": ["-y", "@wcgw/vibe-check-mcp@0.4.0", "connect"]
   }
 }
 ```
 
 Restart the agent client after changing its MCP configuration. The card keeps
 the exact setup and project-specific watch instruction visible until the agent
-connects. Run `npx -y @wcgw/vibe-check-mcp@0.3.0 doctor --project my-storefront` if a
+connects. Run `npx -y @wcgw/vibe-check-mcp@0.4.0 doctor --project my-storefront` if a
 step is not turning green.
 
 ### 4. Watch, then send

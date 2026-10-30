@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getStableIssueKey, normalizePageUrl, type VibeIssue } from '../index.js'
+import { getIssueIdentity, getStableIssueKey, normalizePageUrl, type VibeIssue } from '../index.js'
 
 const issue = (
   evidence: Record<string, unknown>,
@@ -59,6 +59,16 @@ describe('stable issue identity', () => {
       'http://localhost/a',
       issue({ src: '/hero-b.jpg' }, 'large-images'),
     ))
+  })
+
+  it('exposes a page-independent identity for keyed, in-place issue updates', () => {
+    const first = issue({ method: 'log', callCount: 20 }, 'console-spam', 'Console spam')
+    const second = issue({ method: 'log', callCount: 90 }, 'console-spam', 'Heavy console spam')
+    expect(getIssueIdentity(first)).toBe('console-spam|log')
+    expect(getIssueIdentity(first)).toBe(getIssueIdentity(second))
+    expect(getIssueIdentity(issue({ method: 'warn' }, 'console-spam'))).not.toBe(getIssueIdentity(first))
+    expect(getIssueIdentity(issue({ check: 'h1-missing' }))).toBe('seo|h1-missing')
+    expect(getIssueIdentity(issue({}, 'dom-bloat'))).toBe('dom-bloat|dom-bloat')
   })
 
   it('normalizes malformed relative URLs without throwing', () => {

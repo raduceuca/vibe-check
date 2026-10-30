@@ -20,6 +20,8 @@ export interface ImpactComparison {
   readonly baseline: ImpactBaseline
   readonly verification: ProjectSnapshotEnvelope
   readonly verifyingIssueKeys: readonly string[]
+  /** Weakest confidence of the browser evidence that confirmed the fix ('estimated' for 0.3 snapshots). */
+  readonly confidence?: ImpactConfidence
 }
 
 const blockingDuration = (snapshot: VibeSnapshot): number =>
@@ -61,6 +63,7 @@ export const createImpactReceipts = ({
   baseline,
   verification,
   verifyingIssueKeys,
+  confidence = 'measured',
 }: ImpactComparison): readonly ImpactReceipt[] => {
   if (normalizePageUrl(tracked.pageUrl) !== normalizePageUrl(baseline.pageUrl)
     || normalizePageUrl(baseline.pageUrl) !== normalizePageUrl(verification.pageUrl)
@@ -84,6 +87,7 @@ export const createImpactReceipts = ({
       before,
       after,
       unit,
+      confidence,
     }))
   }
 

@@ -1,5 +1,9 @@
 # Proof Divider System Implementation Plan
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn existing website, documentation, and widget hairlines into a coherent printing-proof separator system with major proof rails, compact CMYK rule marks, and neutral cut ticks.

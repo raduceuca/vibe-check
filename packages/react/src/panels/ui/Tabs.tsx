@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import { T } from '../../tokens.js'
 
 // ── The one tab bar ──────────────────────────────────────────────────────────
@@ -7,6 +7,12 @@ import { T } from '../../tokens.js'
 // (text, underline at bottom). The `pill` variant (no sliding indicator, active
 // gets a faint fill) backs the timescale segmented control. One indicator width,
 // one duration token, one radius token — tuning happens here, not in three files.
+//
+// Keyboard: the WAI-ARIA tabs pattern with automatic activation. Only the
+// selected tab is in the Tab order (roving tabIndex); ArrowLeft/ArrowRight wrap,
+// Home/End jump. Pass `idBase` + `panelId` when one element shows the selected
+// tab's content: each tab gets id `tabId(idBase, key)` and aria-controls, and
+// the consumer renders role="tabpanel" with aria-labelledby on that element.
 
 export interface TabItem {
   readonly key: string
@@ -31,6 +37,19 @@ interface TabsProps {
   // Extra per-tab style (padding, min-height) merged into every tab button.
   readonly tabStyle?: CSSProperties
   readonly containerStyle?: CSSProperties
+  /** Prefix for each tab's id (`tabId(idBase, key)`). */
+  readonly idBase?: string
+  /** id of the role="tabpanel" element the tabs control. */
+  readonly panelId?: string
+}
+
+export const tabId = (idBase: string, key: string): string => `${idBase}-tab-${key}`
+
+const NEXT_INDEX: Readonly<Record<string, (current: number, count: number) => number>> = {
+  ArrowRight: (current, count) => (current + 1) % count,
+  ArrowLeft: (current, count) => (current - 1 + count) % count,
+  Home: () => 0,
+  End: (_current, count) => count - 1,
 }
 
 const INDICATOR_WIDTH = 20
@@ -83,9 +102,21 @@ const indicatorStyle = (
 export const Tabs = ({
   items, activeKey, onSelect,
   variant = 'underline', edge = 'bottom', hairline = false, fill = true,
-  ariaLabel, tabStyle, containerStyle,
+  ariaLabel, tabStyle, containerStyle, idBase, panelId,
 }: TabsProps) => {
   const activeIndex = items.findIndex((t) => t.key === activeKey)
+  const focusIndex = activeIndex >= 0 ? activeIndex : 0
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const next = NEXT_INDEX[event.key]
+    if (!next || items.length === 0) return
+    event.preventDefault()
+    const index = next(activeIndex >= 0 ? activeIndex : 0, items.length)
+    const item = items[index]
+    if (!item) return
+    onSelect(item.key)
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus()
+  }
   const hairlineStyle: CSSProperties = hairline
     ? { [edge === 'top' ? 'borderTop' : 'borderBottom']: `1px solid ${T.borderSubtle}` }
     : {}
@@ -95,18 +126,23 @@ export const Tabs = ({
       role="tablist"
       aria-label={ariaLabel}
       aria-orientation="horizontal"
+      onKeyDown={handleKeyDown}
       style={{ display: 'flex', position: 'relative', flexShrink: 0, ...hairlineStyle, ...containerStyle }}
     >
       {variant === 'underline' && activeIndex >= 0 && (
         <span aria-hidden="true" style={indicatorStyle(activeIndex, items.length, edge)} />
       )}
-      {items.map((item) => {
+      {items.map((item, index) => {
         const active = item.key === activeKey
         return (
           <button
             key={item.key}
+            type="button"
             role="tab"
+            id={idBase ? tabId(idBase, item.key) : undefined}
             aria-selected={active}
+            aria-controls={panelId}
+            tabIndex={index === focusIndex ? 0 : -1}
             data-wcgw-tab
             title={item.title}
             aria-label={item.ariaLabel}
