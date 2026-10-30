@@ -86,7 +86,7 @@ const jsonLd = {
 }
 
 const LandingPage = () => (
-  <SiteShell landing>
+  <SiteShell landing footer>
     {/* schema.org structured data — read by answer engines and by VibeCheck's
         own aeo audit (structured-data-missing / -invalid). */}
     <script
@@ -126,7 +126,7 @@ const LandingPage = () => (
           className="vc-mono"
           style={{
             marginTop: 12,
-            fontSize: 11.5,
+            fontSize: 14,
             letterSpacing: '0.04em',
             color: 'var(--vc-ink-4)',
           }}

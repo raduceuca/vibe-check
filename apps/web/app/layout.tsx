@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 import { RootProvider } from 'fumadocs-ui/provider/next'
 import { SITE_URL, GITHUB_URL } from '@/lib/site'
+import { mono, sans, serif } from './fonts'
 import './global.css'
 
 export const metadata: Metadata = {
@@ -39,7 +40,11 @@ export const viewport: Viewport = {
 }
 
 const RootLayout = ({ children }: { children: ReactNode }) => (
-  <html lang="en" suppressHydrationWarning>
+  <html
+    lang="en"
+    suppressHydrationWarning
+    className={`${serif.variable} ${sans.variable} ${mono.variable}`}
+  >
     <body
       style={{
         minHeight: '100vh',
@@ -48,7 +53,12 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
         margin: 0,
       }}
     >
-      <RootProvider search={{ enabled: false }}>{children}</RootProvider>
+      <RootProvider
+        search={{ enabled: false }}
+        theme={{ defaultTheme: 'light', enableSystem: false }}
+      >
+        {children}
+      </RootProvider>
     </body>
   </html>
 )

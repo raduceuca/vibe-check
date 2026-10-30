@@ -15,7 +15,9 @@ describe('navigation brand', () => {
   it('presents the version without a proof label', () => {
     const markup = renderToStaticMarkup(<ProofVersion version="0.2.0" />)
 
-    expect(markup).toContain('0.2.0')
+    expect(markup).toContain('v0.2.0')
     expect(markup).not.toContain('PROOF')
+    expect(markup).toContain('data-vc-site-version')
   })
 })
+
