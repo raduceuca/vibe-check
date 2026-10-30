@@ -22,8 +22,17 @@ const DATE_PUBLISHED = '2025-11-01'
 const DATE_MODIFIED = '2026-10-30'
 
 export const metadata: Metadata = {
-  title: LANDING_COPY.title,
+  // absolute — avoid the root `%s · VibeCheck` template making the title too long
+  title: { absolute: 'VibeCheck — performance and SEO overlay for AI-built apps' },
   description: LANDING_DESCRIPTION,
+  openGraph: {
+    title: 'Your agent built it. You decide if it ships.',
+    description: LANDING_DESCRIPTION,
+  },
+  twitter: {
+    title: 'Your agent built it. You decide if it ships.',
+    description: LANDING_DESCRIPTION,
+  },
   alternates: { canonical: '/', types: { 'text/markdown': '/index.md' } },
 }
 

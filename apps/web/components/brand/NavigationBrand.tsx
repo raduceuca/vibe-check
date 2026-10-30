@@ -41,6 +41,4 @@ export const SiteVersion = ({ version }: { readonly version: string }) => (
   </span>
 )
 
-/** @deprecated Prefer SiteVersion — kept for sidebar/docs until they migrate. */
-export const ProofVersion = SiteVersion
 
