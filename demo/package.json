@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:placeholders": "node ./scripts/gen-placeholders.mjs",
+    "gen:catalog": "node ./scripts/gen-catalog.mjs"
   },
   "dependencies": {
     "@wcgw/vibe-check": "workspace:*",

@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "harbor-mug", "name": "Harbor mug", "qty": 1, "priceCents": 4200 }
+  ],
+  "count": 1,
+  "subtotalCents": 4200
+}

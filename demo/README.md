@@ -1,72 +1,89 @@
-# vibe-check demo
+# Tidewell (VibeCheck demo)
 
-A deliberately "vibe-coded" landing page — `VibeShip` — wired up so every common
-AI-generated performance mistake is present and trips a real detector. Open the
-panel (bottom-right, or **Alt+Shift+V**) and watch it light up.
+A fictional small-batch ceramics shop — **Tidewell** — with every common
+vibe-coding fault baked in on purpose. Project id: `tidewell`.
+
+> Tidewell is a made-up shop, built badly on purpose to show VibeCheck. Every
+> flaw on it is real.
+
+Shop chrome is adapted from **Formgong Stilla** (MIT) — sticky header, photo
+hero, product cards, split stories, newsletter. Layout CSS/images live under
+`public/shop-assets/` (see `STILLA-LICENSE.txt`). Ceramic product shots under
+`public/images/` are still local placeholders until real mug photos land — no
+picsum, no jsonplaceholder, no fake trusted-by logos or star totals.
+
+Lifestyle photos in the split/newsletter blocks are Stilla’s (activewear) for
+layout density; treat them as temporary stand-ins for studio photography.
 
 ## Run it
 
-Start the demo and the shared hub in separate terminals:
+```bash
+pnpm install
+pnpm --filter demo dev
+```
+
+In another terminal, start the hub (pin the MCP package version from setup /
+`MCP_PACKAGE_SPEC` — do not copy a hard-coded version from memory):
 
 ```bash
-pnpm dev                                # from demo/ — http://localhost:5173
-npx -y @wcgw/vibe-check-mcp@0.4.0 hub   # shared local hub on 127.0.0.1:4200
+npx -y @wcgw/vibe-check-mcp up --project tidewell --agent claude-code
 ```
 
-The page uses project ID `vibe-check-demo` and beacons to
-`http://127.0.0.1:4200`. Without the hub the widget still measures locally, but
-its agent status reports that the MCP server is offline.
+Open http://localhost:5173. The widget mounts only in Vite dev
+(`VibeCheckDevtools`) and beacons to `http://127.0.0.1:4200`.
 
-## What the page does wrong (and which detector catches it)
+## Scenario drawer
 
-Everything below is baked into the page — no clicking required.
+Bottom-left **Scenario** control (14px+ type, collapses to a 44px button):
 
-| Section (`src/App.tsx`) | Anti-pattern | Detector |
-|-------------------------|--------------|----------|
-| `Nav` | Fetches `/users/1` twice on mount, uncached | `duplicate-requests` |
-| `Hero` | `picsum.photos/2400/1200` background image — no `width`/`height`, no `loading="lazy"` | `unoptimized-images`, `large-images` |
-| `LogoBar` | A "tracking" script logs to the console every 3s | `console-spam` |
-| `Showcase` | Grid of images with no dimensions/lazy; 1600px sources rendered ~200px | `unoptimized-images`, `large-images` |
-| `Testimonials` | Renders all 200 items with no virtualization | `dom-bloat` |
-| `LiveCounter` | `setState` every 50ms + 30 animated bars | frame-rate drop |
-| document `<head>` | Whatever the demo page is missing (title, meta, lang, JSON-LD, …) | `web-essentials`, `seo`, `aeo` |
+- Master: **As the agent shipped it** / **With reference fixes**
+- Per-vibe Broken / Fixed toggles (Smooth, Light, Clean, Findable, Quotable)
+- `applies on reload` badges for head, server, and script faults — use **Reload now**
+- State: `?fixed=smooth,light` + cookie `tidewell_fixed`
+- Presets: `?scenario=broken` · `?scenario=fixed`
 
-The **SEO** and **AEO** tabs audit the demo page itself, so their scores reflect
-this page's `<head>` and markup.
+Broken implementations live in `src/shop/*` (one file per fault, marked
+`// VIBECHECK-FAULT: …`). Reference fixes live in `src/shop/fixed/*`.
+`git checkout -- demo/src/shop` re-breaks the shop sources.
 
-## Trigger buttons (left sidebar)
+## Fix it with your agent
 
-For on-demand extras beyond the baked-in issues:
+Works with **Claude Code**, **Codex**, and **Cursor** (any first-class client).
+Pick the matching `--agent` when you start the hub (`claude-code`, `codex`, or
+`cursor`).
 
-| Button | Fires | Detector |
-|--------|-------|----------|
-| **3 Console Errors** | 3× `console.error` | `console-spam` |
-| **Fire 5 Warnings** | 5× `console.warn` | `console-spam` |
-| **3x Duplicate Fetch** | same URL fetched 3× | `duplicate-requests` |
-| **Block Thread 500ms** | busy-loops the main thread | `long-task-attribution` |
-| **Block Thread 1s** | busy-loops the main thread | `long-task-attribution` |
+1. `pnpm install && pnpm --filter demo dev`
+2. `npx -y @wcgw/vibe-check-mcp up --project tidewell --agent claude-code`
+   (swap `--agent` for Codex / Cursor; pin `@wcgw/vibe-check-mcp` to the version
+   your setup / release uses)
+3. Paste the watch instruction for project `tidewell` into your agent.
+4. In the panel, press **Send to agent** on something like
+   "Your page still has a placeholder title".
+5. Watch **Verifying**, then **Fixed**.
 
-## Agent round-trip
+Copy-prompt alone does **not** mean delivery — only a successful
+`watch_for_issue` result confirms widget → agent dispatch.
 
-Open the widget's **Agent** tab and choose Codex, Claude Code, or Cursor. Register
-the bridge once, then restart your agent client. The commands for the first two
-clients are:
+## Regenerating assets
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
+node demo/scripts/gen-assets.mjs    # hero + product placeholders (+ SVG mugs)
+node demo/scripts/gen-catalog.mjs   # ~700 KB catalog-full.json
 ```
 
-For Cursor, merge the card's `vibe-check` entry into `mcpServers` in
-`.cursor/mcp.json`; do not replace existing server entries. Then copy this
-project-specific instruction:
+`public/vendor/moment.min.js` is a **tiny Tidewell stub** (not real Moment.js)
+so the `moment.min.js` URL still trips `heavy-library`. Vendoring real MIT
+Moment needs `[ok-to-add-dep]` consent first.
 
-```text
-Use the vibe-check MCP tools. Call list_projects, then call watch_for_issue with project_id "vibe-check-demo" and keep waiting for the next issue I send from the widget.
-```
+Hero AVIF/WebP for the reference fix is **[UNVERIFIED]** — fixed Hero uses
+smaller JPEG stand-ins with `srcset` and dimensions instead.
 
-When the widget says **Agent connected**, open **Agent**, expand a detected
-issue, and click **Send to agent**. The pending tool call returns that issue and
-its fix guide. **Copy prompt** remains a clipboard-only fallback. If the state
-does not turn green, run
-`npx -y @wcgw/vibe-check-mcp@0.4.0 doctor --project vibe-check-demo`.
+## Fault map (summary)
+
+| Vibe | As shipped | Detector |
+|------|------------|----------|
+| Smooth | Late banners, busy glaze configurator, 50ms stock ticker | layout-thrashing, long-task-attribution, FPS |
+| Light | 2k reviews, duplicate cart fetch, memory leak, huge hero, oversized products, moment stub, static catalog | dom-bloat, duplicate-requests, memory-leak, large/unoptimized-images, heavy-library, resource-bloat |
+| Clean | console.log every 300ms; bare `<head>` | console-spam, web-essentials |
+| Findable | `Vite + React` title, two h1s, empty alts, "Click here" | seo |
+| Quotable | no JSON-LD / main / llms / markdown; robots block GPTBot | aeo |

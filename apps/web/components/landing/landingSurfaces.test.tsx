@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { StepHead } from './StepHead'
 import { HeroNote } from './HeroNote'
 import { CopyButton } from './CopyButton'
+import { RunTranscript } from './RunTranscript'
 
 describe('landing surfaces', () => {
   it('renders StepHead without proof rails', () => {
@@ -34,5 +35,14 @@ describe('landing surfaces', () => {
     expect(markup).not.toContain('K 100')
     expect(markup).not.toContain('data-vc-crop-ticks')
     expect(markup).not.toContain('data-vc-proof-surface')
+  })
+
+  it('renders RunTranscript placeholder without inventing values', () => {
+    const markup = renderToStaticMarkup(<RunTranscript />)
+
+    expect(markup).toContain('Transcript of the run above')
+    expect(markup).toContain('e2e recorder')
+    expect(markup).not.toContain('watch_for_issue')
+    expect(markup).not.toContain('PROOF')
   })
 })
