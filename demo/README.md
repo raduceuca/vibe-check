@@ -48,9 +48,14 @@ Broken implementations live in `src/shop/*` (one file per fault, marked
 
 ## Fix it with your agent
 
+Works with **Claude Code**, **Codex**, and **Cursor** (any first-class client).
+Pick the matching `--agent` when you start the hub (`claude-code`, `codex`, or
+`cursor`).
+
 1. `pnpm install && pnpm --filter demo dev`
 2. `npx -y @wcgw/vibe-check-mcp up --project tidewell --agent claude-code`
-   (pin `@wcgw/vibe-check-mcp` to the version your setup / release uses)
+   (swap `--agent` for Codex / Cursor; pin `@wcgw/vibe-check-mcp` to the version
+   your setup / release uses)
 3. Paste the watch instruction for project `tidewell` into your agent.
 4. In the panel, press **Send to agent** on something like
    "Your page still has a placeholder title".
