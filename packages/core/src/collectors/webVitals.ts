@@ -68,16 +68,74 @@ const computeCLS = (entries: readonly LayoutShiftEntry[]): number => {
   return maxWindowSum
 }
 
-const computeP98 = (durations: readonly number[]): number => {
-  if (durations.length === 0) return 0
-  const sorted = [...durations].sort((a, b) => a - b)
-  const index = Math.ceil(0.98 * sorted.length) - 1
-  return sorted[Math.max(0, index)]
+// ── INP ──────────────────────────────────────────────────────────────────────
+// INP is per interaction, not per event (C9). Event entries with
+// interactionId 0 (hover, pointerover, mouseout, ...) are not interactions and
+// are ignored. Each interaction counts once, at its longest entry. Like the
+// web-vitals library, only the 10 longest interactions are kept, and INP is the
+// longest after ignoring one per 50 interactions (a p98 approximation).
+
+/** How many of the longest interactions are kept. */
+const MAX_TRACKED_INTERACTIONS = 10
+const INTERACTIONS_PER_IGNORED_OUTLIER = 50
+
+interface InteractionSample {
+  readonly id: number
+  readonly duration: number
+}
+
+interface EventTimingEntry {
+  readonly duration: number
+  readonly interactionId?: number
+}
+
+/** Adds one entry to the longest-interactions list (sorted longest first). Returns a new list, or the same one when nothing changed. */
+export const recordInteraction = (
+  longest: readonly InteractionSample[],
+  id: number,
+  duration: number,
+): readonly InteractionSample[] => {
+  const existing = longest.find((sample) => sample.id === id)
+  if (existing !== undefined && duration <= existing.duration) return longest
+  const shortest = longest[longest.length - 1]
+  if (
+    existing === undefined
+    && longest.length >= MAX_TRACKED_INTERACTIONS
+    && shortest !== undefined
+    && duration <= shortest.duration
+  ) {
+    return longest
+  }
+  const others = longest.filter((sample) => sample.id !== id)
+  return [...others, { id, duration }]
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, MAX_TRACKED_INTERACTIONS)
+}
+
+/** INP from the longest interactions and the total number of interactions on the page. */
+export const computeInp = (longest: readonly InteractionSample[], interactionCount: number): number | null => {
+  if (longest.length === 0) return null
+  const index = Math.min(
+    longest.length - 1,
+    Math.floor(Math.max(interactionCount, longest.length) / INTERACTIONS_PER_IGNORED_OUTLIER),
+  )
+  return longest[index]?.duration ?? null
+}
+
+// Chromium exposes the page's interaction count, including interactions too
+// fast to produce an event entry; fall back to the ones this collector saw.
+const browserInteractionCount = (): number | null => {
+  if (typeof performance === 'undefined') return null
+  const count: unknown = (performance as Performance & { readonly interactionCount?: unknown }).interactionCount
+  return typeof count === 'number' && Number.isFinite(count) ? count : null
 }
 
 export class WebVitalsCollector implements Collector<WebVitalsStats> {
   private lcpValue: number | null = null
-  private readonly eventDurations: number[] = []
+  private longestInteractions: readonly InteractionSample[] = []
+  // Interaction ids only grow, so a new highest id is a new interaction.
+  private maxInteractionId = 0
+  private seenInteractions = 0
   private readonly layoutShiftEntries: LayoutShiftEntry[] = []
   private readonly observers: PerformanceObserver[] = []
   private readonly listeners: Set<(stats: WebVitalsStats) => void> = new Set()
@@ -101,9 +159,12 @@ export class WebVitalsCollector implements Collector<WebVitalsStats> {
         ? { value: this.lcpValue, rating: rateVital(this.lcpValue, LCP_THRESHOLDS) }
         : null
 
-    const inpValue = computeP98(this.eventDurations)
+    const inpValue = computeInp(
+      this.longestInteractions,
+      browserInteractionCount() ?? this.seenInteractions,
+    )
     const inp =
-      this.eventDurations.length > 0
+      inpValue !== null
         ? { value: inpValue, rating: rateVital(inpValue, INP_THRESHOLDS) }
         : null
 
@@ -151,9 +212,15 @@ export class WebVitalsCollector implements Collector<WebVitalsStats> {
     if (!hasEventTiming()) return
 
     const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries() as ReadonlyArray<PerformanceEntry & { readonly duration: number }>
+      const entries = list.getEntries() as unknown as readonly EventTimingEntry[]
       for (const entry of entries) {
-        this.eventDurations.push(entry.duration)
+        const id = entry.interactionId
+        if (typeof id !== 'number' || id <= 0) continue
+        if (id > this.maxInteractionId) {
+          this.maxInteractionId = id
+          this.seenInteractions += 1
+        }
+        this.longestInteractions = recordInteraction(this.longestInteractions, id, entry.duration)
       }
       this.notify()
     })

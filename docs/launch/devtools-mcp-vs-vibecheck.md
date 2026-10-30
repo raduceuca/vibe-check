@@ -5,7 +5,6 @@ They solve different problems. Use both if you want.
 | | Chrome DevTools MCP | VibeCheck |
 |--|---------------------|-----------|
 | **Job** | General browser introspection & control for agents | Opinionated quality conscience for vibe-coded frontends |
-| **Metaphor** | Microscope | Press check |
 | **Primary UX** | Agent-driven tools | In-app widget + optional agent dispatch |
 | **Install** | MCP to Chrome / DevTools | npm widget + local hub + MCP bridge |
 | **Findings** | Whatever the agent queries | 13 named detectors + SEO/AEO audits |

@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { memo } from 'react'
+import { memo, useId, useState } from 'react'
 import type {
   BeaconStatus,
   DispatchIssueResponse,
@@ -20,8 +19,8 @@ import { Row } from './ui/Row.js'
 import { Button } from './ui/Button.js'
 import { SectionHeader } from './ui/SectionHeader.js'
 import { EmptyState } from './ui/EmptyState.js'
-import { Tabs, type TabItem } from './ui/Tabs.js'
-import { AgentConnectionStatus } from './AgentConnectionStatus.js'
+import { Tabs, tabId, type TabItem } from './ui/Tabs.js'
+import { AgentConnectionStatus, getAgentDisplayState } from './AgentConnectionStatus.js'
 import { IssueProgress } from './IssueProgress.js'
 import { ImpactCard } from './ImpactCard.js'
 
@@ -41,6 +40,8 @@ interface AgentPanelProps {
   readonly onRequestVerification?: (issueId: string) => Promise<void>
   readonly onClearResolved: () => void
   readonly onHideFixed?: (issueKeys: readonly string[]) => void
+  /** beaconUrl and projectId are both set (see IssueActions). */
+  readonly hubConfigured?: boolean
 }
 
 type TabKey = 'active' | 'progress' | 'resolved'
@@ -69,6 +70,21 @@ const localFromWorkflow = (workflow: TrackedProjectIssue): TrackedIssue => ({
   resolvedAt: workflow.events.find((event) => event.type === 'fixed')?.at ?? null,
 })
 
+// Evidence that tells two same-titled issues apart (the URL, image, script,
+// selector or library they are about), shortened to its distinctive end.
+const DISTINGUISHING_EVIDENCE = ['url', 'src', 'sourceURL', 'selector', 'library', 'method', 'check'] as const
+
+export const issueDistinguisher = (issue: VibeIssue): string | null => {
+  for (const key of DISTINGUISHING_EVIDENCE) {
+    const value = issue.evidence[key]
+    if (typeof value === 'string' && value.length > 0) {
+      const bare = value.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+      return bare.length > 36 ? `…${bare.slice(-35)}` : bare
+    }
+  }
+  return null
+}
+
 const IssueRow = ({
   tracked,
   mode,
@@ -80,6 +96,8 @@ const IssueRow = ({
   onMarkResolved,
   workflow,
   onRequestVerification,
+  hubConfigured,
+  titleSuffix,
 }: {
   readonly tracked: TrackedIssue
   readonly workflow: TrackedProjectIssue | null
@@ -91,6 +109,8 @@ const IssueRow = ({
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
   readonly onRequestVerification?: (issueId: string) => Promise<void>
+  readonly hubConfigured?: boolean
+  readonly titleSuffix?: string | null
 }) => {
   const { issue } = tracked
   const suggestion = getSuggestionCached(issue, mode)
@@ -99,7 +119,7 @@ const IssueRow = ({
   return (
     <Row
       severity={issue.severity}
-      title={mode === 'vibe' ? suggestion.title : issue.title}
+      title={`${mode === 'vibe' ? suggestion.title : issue.title}${titleSuffix ? ` · ${titleSuffix}` : ''}`}
       titleColor={isResolved ? T.textMuted : undefined}
       strikethrough={isResolved}
     >
@@ -122,6 +142,7 @@ const IssueRow = ({
         onMarkResolved={onMarkResolved}
         workflow={workflow}
         onRequestVerification={onRequestVerification}
+        hubConfigured={hubConfigured}
       />
     </Row>
   )
@@ -130,9 +151,11 @@ const IssueRow = ({
 export const AgentPanel = memo(({
   tracked, workflow = null, workflowStale = false, impact = null, mode, copiedId, onCopy,
   beaconUrl, beaconStatus, onDispatch, onMarkSent, onMarkResolved,
-  onRequestVerification, onClearResolved, onHideFixed,
+  onRequestVerification, onClearResolved, onHideFixed, hubConfigured = Boolean(beaconUrl),
 }: AgentPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>('active')
+  const queueTabsId = useId()
+  const queuePanelId = `${queueTabsId}-panel`
 
   const panelIssues: readonly PanelIssue[] = workflow
     ? workflow.issues.map((item) => ({ tracked: localFromWorkflow(item), workflow: item }))
@@ -151,6 +174,22 @@ export const AgentPanel = memo(({
   const tabIssues: Record<TabKey, readonly PanelIssue[]> = { active, progress, resolved }
   const currentIssues = tabIssues[activeTab]
 
+  // Vibe titles describe the problem, not the instance, so two duplicate
+  // requests read the same. Add what tells them apart when titles collide.
+  const vibeTitleCounts = new Map<string, number>()
+  if (mode === 'vibe') {
+    for (const item of currentIssues) {
+      const title = getSuggestionCached(item.tracked.issue, 'vibe').title
+      vibeTitleCounts.set(title, (vibeTitleCounts.get(title) ?? 0) + 1)
+    }
+  }
+  const titleSuffixFor = (issue: VibeIssue): string | null => {
+    if (mode !== 'vibe') return null
+    const title = getSuggestionCached(issue, 'vibe').title
+    if ((vibeTitleCounts.get(title) ?? 0) < 2) return null
+    return issueDistinguisher(issue) ?? issue.title
+  }
+
   const tabItems: readonly TabItem[] = [
     { key: 'active', content: mode === 'vibe' ? `to fix (${active.length})` : `active (${active.length})` },
     { key: 'progress', content: `in progress (${progress.length})` },
@@ -163,9 +202,8 @@ export const AgentPanel = memo(({
     await onCopy(prompt, 'all')
   }
 
-  const agentReady = beaconStatus?.lastOk === true
-    && (beaconStatus.projectStatus?.state === 'watching'
-      || beaconStatus.projectStatus?.state === 'busy')
+  const displayState = getAgentDisplayState(beaconUrl, beaconStatus)
+  const agentReady = displayState === 'connected' || displayState === 'busy'
   const leadWithIssues = agentReady && active.length > 0
 
   return (
@@ -198,7 +236,7 @@ export const AgentPanel = memo(({
       </SectionHeader>
 
       {workflowStale && workflow && (
-        <div role="status" style={{ color: T.yellow, fontSize: 12, margin: '-2px 0 8px' }}>
+        <div role="status" style={{ color: T.yellow, fontSize: 14, margin: '-2px 0 8px' }}>
           last known progress — hub offline
         </div>
       )}
@@ -211,32 +249,38 @@ export const AgentPanel = memo(({
         edge="bottom"
         hairline
         ariaLabel="Issue queues"
-        tabStyle={{ padding: '8px 0 10px', minHeight: 40 }}
+        idBase={queueTabsId}
+        panelId={queuePanelId}
+        tabStyle={{ padding: '8px 0 10px', minHeight: 40, whiteSpace: 'nowrap' }}
         containerStyle={{ marginBottom: 10 }}
       />
 
-      {currentIssues.length === 0 ? (
-        <EmptyState
-          showDot={activeTab === 'active'}
-          label={activeTab === 'active'
-            ? (mode === 'vibe' ? 'All good! No problems found' : 'No active issues')
-            : activeTab === 'progress'
-              ? (mode === 'vibe' ? 'Nothing in progress yet' : 'No agent work in progress')
-              : (mode === 'vibe' ? 'Nothing fixed yet' : 'No resolved issues')}
-        />
-      ) : (
-        <div>
-          {currentIssues.map((item) => (
-            <IssueRow
-              key={item.workflow?.issueKey ?? item.tracked.issue.id}
-              tracked={item.tracked} workflow={item.workflow} mode={mode} copiedId={copiedId}
-              onCopy={onCopy} beaconStatus={beaconStatus} onDispatch={onDispatch}
-              onMarkSent={onMarkSent} onMarkResolved={onMarkResolved}
-              onRequestVerification={onRequestVerification}
-            />
-          ))}
-        </div>
-      )}
+      <div role="tabpanel" id={queuePanelId} aria-labelledby={tabId(queueTabsId, activeTab)}>
+        {currentIssues.length === 0 ? (
+          <EmptyState
+            showDot={activeTab === 'active'}
+            label={activeTab === 'active'
+              ? (mode === 'vibe' ? 'All good! No problems found' : 'No active issues')
+              : activeTab === 'progress'
+                ? (mode === 'vibe' ? 'Nothing in progress yet' : 'No agent work in progress')
+                : (mode === 'vibe' ? 'Nothing fixed yet' : 'No resolved issues')}
+          />
+        ) : (
+          <div>
+            {currentIssues.map((item) => (
+              <IssueRow
+                key={item.workflow?.issueKey ?? item.tracked.issue.id}
+                tracked={item.tracked} workflow={item.workflow} mode={mode} copiedId={copiedId}
+                onCopy={onCopy} beaconStatus={beaconStatus} onDispatch={onDispatch}
+                onMarkSent={onMarkSent} onMarkResolved={onMarkResolved}
+                onRequestVerification={onRequestVerification}
+                hubConfigured={hubConfigured}
+                titleSuffix={titleSuffixFor(item.tracked.issue)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {activeTab === 'resolved' && resolved.length > 0 && (
         <div style={{ marginTop: 8 }}>

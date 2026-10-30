@@ -1,5 +1,9 @@
 # Proof-Control System Design
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 ## Objective
 
 Turn the existing CMYK accents into an unmistakable prepress control language across the public site and embeddable widget. The result should feel authored, witty, and contemporary: a modern performance instrument carrying the visual evidence of a live press proof.

@@ -1,5 +1,7 @@
+import type { DetectorRunStatus } from '@wcgw/vibe-check-protocol'
 import type { Detector, VibeIssue } from '../types.js'
 import { createIssue } from './createIssue.js'
+import { createRunTracker } from './runStatus.js'
 
 const SIZE_THRESHOLD_KB = 500
 const CHECK_INTERVAL_MS = 5_000
@@ -20,6 +22,7 @@ export const createLargeImagesDetector = (): Detector => {
   let issues: VibeIssue[] = []
   let timerId: ReturnType<typeof setInterval> | null = null
   const reportedSrcs = new Set<string>()
+  const tracker = createRunTracker('large-images')
 
   const trackSrc = (src: string): void => {
     reportedSrcs.add(src)
@@ -73,12 +76,15 @@ export const createLargeImagesDetector = (): Detector => {
         ]
       }
     }
+    tracker.evaluated(Date.now())
   }
 
   return {
     name: 'large-images',
 
     start(): void {
+      if (timerId !== null) return
+      tracker.start(Date.now())
       checkImages()
       timerId = setInterval(checkImages, CHECK_INTERVAL_MS)
     },
@@ -88,6 +94,7 @@ export const createLargeImagesDetector = (): Detector => {
         clearInterval(timerId)
         timerId = null
       }
+      tracker.stop()
     },
 
     getIssues(): readonly VibeIssue[] {
@@ -97,6 +104,11 @@ export const createLargeImagesDetector = (): Detector => {
     clear(): void {
       issues = []
       reportedSrcs.clear()
+      tracker.reset()
+    },
+
+    getStatus(): DetectorRunStatus {
+      return tracker.status()
     },
   }
 }

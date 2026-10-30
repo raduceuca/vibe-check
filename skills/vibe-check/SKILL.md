@@ -27,7 +27,9 @@ import { VibeCheck } from '@wcgw/vibe-check'
 )}
 ```
 
-Or use the keyboard toggle (Alt+Shift+V):
+Or use `PerfToggle`, which adds a keyboard shortcut. The widget starts as a
+collapsed pill (click it to open the panel); **Alt+Shift+V** hides or shows the
+whole widget, and a hidden widget stops measuring and sending snapshots:
 
 ```tsx
 import { PerfToggle } from '@wcgw/vibe-check'
@@ -38,18 +40,26 @@ import { PerfToggle } from '@wcgw/vibe-check'
 }} />}
 ```
 
+`import.meta.env.DEV` is Vite. In Next.js, mount the widget from a
+`'use client'` component and gate it on `process.env.NODE_ENV === 'development'`.
+
 ### 3. Start the local hub, then register the MCP bridge
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.3.0 up --project my-project --agent codex
-# or plain hub: npx -y @wcgw/vibe-check-mcp@0.3.0 hub
+npx -y @wcgw/vibe-check-mcp@0.4.0 up --project my-project --agent codex
+# or plain hub: npx -y @wcgw/vibe-check-mcp@0.4.0 hub
 ```
+
+Add `--port <n>` when 4200 is taken; the setup pack `up` prints then carries that
+hub address (`VIBE_CHECK_HUB_URL`) into the agent config. If the app runs on a
+host other than `localhost` / `127.0.0.1` (for example `http://shop.test:3000`),
+add `--allow-origin <origin>` or the hub refuses the browser's requests.
 
 Use the exact setup shown in the widget for Codex, Claude Code, or Cursor:
 
 ```bash
-codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
-claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
+codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
+claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.4.0 connect
 ```
 
 For Cursor, merge the JSON entry shown in the card into the top-level
@@ -64,11 +74,15 @@ client after registration.
 If any connection step fails, run:
 
 ```bash
-npx -y @wcgw/vibe-check-mcp@0.3.0 doctor --project my-project
+npx -y @wcgw/vibe-check-mcp@0.4.0 doctor --project my-project
 ```
 
 `doctor --json` provides machine-readable checks. `doctor` is read-only and must
 not be described as acquiring a project lease.
+
+To keep the workflow and impact record across hub restarts, register the
+project root once: `npx -y @wcgw/vibe-check-mcp@0.4.0 register --project my-project --root .`
+(`setup` does this for you).
 
 ## What It Detects
 
@@ -142,19 +156,21 @@ The `seo`, `aeo`, and `web-essentials` detectors each emit one issue per failed 
 
 ## MCP Tools
 
-When the hub is running and this session is connected via `connect`, these tools
-are available:
+When the hub is running and this session is connected via `connect`, these ten
+tools are available. Tools marked *claims the lease* take this session's
+exclusive hold on the project and fail with `lease-conflict` while another
+session holds it.
 
-- **`list_projects`** — List active project IDs and watcher state
-- **`get_project_impact`** — Verified fixes, regressions caught, measured before/after deltas
-- **`get_performance_snapshot`** — Current FPS, Web Vitals, memory, DOM count, issues
-- **`get_detected_issues`** — Filter active issues by severity or detector
-- **`get_fix_suggestions`** — Structured fix guide with code examples for one issue
-- **`watch_performance`** — Wait for the next snapshot (acquires the project lease)
-- **`watch_for_issue`** — Claim one project and wait for a widget **Send to agent** dispatch
-- **`acknowledge_issue`** — Mark issue as seen / working
-- **`resolve_issue`** — Request **browser-evidence verification** (does not instantly mark fixed)
-- **`release_project`** — Release this session's project lease
+- **`list_projects`** — List active local VibeCheck projects and their agent state
+- **`get_project_impact`** — Get persisted, browser-verified VibeCheck outcome statistics for one project (works after the browser tab is closed)
+- **`get_performance_snapshot`** — Get the latest browser performance snapshot for one project
+- **`get_detected_issues`** — Get active issues for one project, optionally filtered (`severity`, `detector`)
+- **`get_fix_suggestions`** — Get a fix suggestion for one detected issue
+- **`watch_performance`** — Claim one project and wait for its next browser performance snapshot (*claims the lease*)
+- **`watch_for_issue`** — Claim one project and wait for an issue explicitly sent from its widget (*claims the lease*)
+- **`acknowledge_issue`** — Tell the widget this session is working on one issue in the project it watches (*claims the lease*)
+- **`resolve_issue`** — Request browser-evidence verification after fixing an issue in one project (*claims the lease*; optional `wait_seconds`, 0–55)
+- **`release_project`** — Release this agent session's project lease so another session can watch it
 
 ## Workflow
 
@@ -162,17 +178,29 @@ The typical workflow is:
 
 1. Call `list_projects` and choose the requested project.
 2. Call `watch_for_issue` with its `project_id`; this acquires its exclusive lease.
+   One call waits at most 55 seconds. A `watch-timeout` result means nothing was
+   sent yet: call `watch_for_issue` again to keep waiting.
 3. Tell the user the widget should now say **Agent connected** and ask them to
-   click **Send to agent** on a detected issue.
+   click **Send to agent** on a detected issue. An issue sent while you were not
+   waiting stays queued and arrives on your next `watch_for_issue` call.
 4. Use the returned issue and suggestion to inspect and fix the project.
-5. Call `resolve_issue` so the hub enters **verifying** and waits for clean browser
-   snapshots. Do not claim fixed until verification succeeds.
-6. Continue `watch_for_issue` or call `release_project` when done.
+5. Call `resolve_issue`. The issue enters **verifying**; it becomes **fixed**
+   only after detectors that observed the page after your request stop reporting
+   it, and it goes back to **working** if it recurs. Pass `wait_seconds` (up to
+   55) to wait for that outcome. Report the returned `verification.outcome`
+   (`fixed`, `still-present`, or `pending`) as it is; never say "fixed" unless
+   the outcome is `fixed`.
+6. Continue `watch_for_issue` or call `release_project` when done. Releasing
+   keeps queued issues for the next session.
 7. Optionally call `get_project_impact` for verified outcomes.
 
 Never claim a copied prompt was delivered. Only a successful `watch_for_issue`
 result confirms widget-to-agent communication. If `lease-conflict` is returned,
-explain that another session owns the project; do not retry in a loop.
+pass on its message (it names the session that holds the project); do not retry
+in a loop. `issue-not-found` means the id is not in the project's snapshots or
+workflow: fetch fresh ids with `get_detected_issues`. `project-inactive` means
+the project is known but its browser tab sent nothing recently: ask the user to
+open the page.
 
 ## Configuration
 

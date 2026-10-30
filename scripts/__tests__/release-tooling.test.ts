@@ -32,23 +32,44 @@ const passingBody = (pathname: string): string => {
   if (pathname === '/robots.txt') return `User-agent: *\nSitemap: ${ORIGIN}/sitemap.xml\n`
   if (pathname === '/sitemap.xml') return `<?xml version="1.0"?><urlset><url><loc>${ORIGIN}/</loc></url></urlset>`
   if (pathname === '/llms.txt') return '# VibeCheck\nBrowser performance monitoring for AI-assisted coding.'
+  if (pathname === '/llms-full.txt') return '# VibeCheck\n\n# Documentation\n\n# Quickstart\n'
+  if (pathname === '/md/docs/quickstart') return '# Quickstart\n\nnpx -y @wcgw/vibe-check-mcp@0.4.0 up\n'
+  if (pathname === '/scan') return '<html><head><title>Scan your site · VibeCheck</title></head></html>'
+  if (pathname === '/fix/performance') return '<html><head><title>Performance — fix guides</title></head></html>'
+  if (pathname === '/api/scan') return JSON.stringify({ error: 'That URL points to a private address.' })
   return 'x'.repeat(2_048)
 }
 
 const passingType = (pathname: string): string => {
   if (pathname === '/opengraph-image') return 'image/png'
   if (pathname === '/sitemap.xml') return 'application/xml'
-  if (pathname === '/robots.txt' || pathname === '/llms.txt') return 'text/plain; charset=utf-8'
+  if (pathname === '/md/docs/quickstart') return 'text/markdown; charset=utf-8'
+  if (pathname === '/api/scan') return 'application/json'
+  if (pathname === '/robots.txt' || pathname === '/llms.txt' || pathname === '/llms-full.txt') return 'text/plain; charset=utf-8'
   return 'text/html; charset=utf-8'
 }
 
 const passingFetch = async (input: string | URL | Request): Promise<Response> => {
   const pathname = new URL(String(input)).pathname
   return new Response(passingBody(pathname), {
-    status: 200,
+    status: pathname === '/api/scan' ? 400 : 200,
     headers: { 'content-type': passingType(pathname) },
   })
 }
+
+const SMOKE_ROUTES = [
+  '/',
+  '/docs/quickstart',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/llms.txt',
+  '/opengraph-image',
+  '/llms-full.txt',
+  '/md/docs/quickstart',
+  '/scan',
+  '/fix/performance',
+  'POST /api/scan',
+]
 
 describe('production smoke checks', () => {
   it('validates every public production route', async () => {
@@ -60,16 +81,60 @@ describe('production smoke checks', () => {
       sleep: async () => undefined,
     })
 
-    expect(results).toHaveLength(6)
+    expect(results).toHaveLength(SMOKE_ROUTES.length)
     expect(results.every((result) => result.ok)).toBe(true)
-    expect(results.map((result) => result.path)).toEqual([
-      '/',
-      '/docs/quickstart',
-      '/robots.txt',
-      '/sitemap.xml',
-      '/llms.txt',
-      '/opengraph-image',
-    ])
+    expect(results.map((result) => result.path)).toEqual(SMOKE_ROUTES)
+  })
+
+  it('exercises the dynamic scan route with a refused POST and no scan', async () => {
+    const requests: Array<{ path: string; method: string; body: string | null }> = []
+    const fetchImpl = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      requests.push({
+        path: new URL(String(input)).pathname,
+        method: init?.method ?? 'GET',
+        body: typeof init?.body === 'string' ? init.body : null,
+      })
+      return passingFetch(input)
+    }
+
+    await runProductionSmoke({ origin: ORIGIN, fetchImpl, retries: 1, retryDelayMs: 0, sleep: async () => undefined })
+    const scan = requests.find((request) => request.path === '/api/scan')
+
+    expect(scan?.method).toBe('POST')
+    expect(JSON.parse(scan?.body ?? '{}')).toEqual({ url: 'http://127.0.0.1/' })
+    expect(requests.filter((request) => request.path !== '/api/scan').every((request) => request.method === 'GET')).toBe(true)
+  })
+
+  it('fails the scan check when the dynamic route errors instead of refusing', async () => {
+    const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+      const pathname = new URL(String(input)).pathname
+      if (pathname === '/api/scan') {
+        return new Response('<html>Internal error</html>', { status: 500, headers: { 'content-type': 'text/html' } })
+      }
+      return passingFetch(input)
+    }
+
+    const results = await runProductionSmoke({ origin: ORIGIN, fetchImpl, retries: 1, retryDelayMs: 0, sleep: async () => undefined })
+
+    expect(results.find((result) => result.path === 'POST /api/scan')).toMatchObject({
+      ok: false,
+      status: 500,
+      reason: 'expected HTTP 400, received 500',
+    })
+  })
+
+  it('fails the markdown route when it serves HTML instead of markdown', async () => {
+    const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+      const pathname = new URL(String(input)).pathname
+      if (pathname === '/md/docs/quickstart') {
+        return new Response('<html></html>', { status: 200, headers: { 'content-type': 'text/html' } })
+      }
+      return passingFetch(input)
+    }
+
+    const results = await runProductionSmoke({ origin: ORIGIN, fetchImpl, retries: 1, retryDelayMs: 0, sleep: async () => undefined })
+
+    expect(results.find((result) => result.path === '/md/docs/quickstart')?.reason).toContain('text/markdown')
   })
 
   it('retries a transient edge failure and reports the attempt count', async () => {
@@ -108,7 +173,7 @@ describe('production smoke checks', () => {
     })
 
     expect(results.every((result) => result.ok)).toBe(true)
-    expect(signals).toHaveLength(6)
+    expect(signals).toHaveLength(SMOKE_ROUTES.length)
     expect(signals.every((signal) => signal instanceof AbortSignal)).toBe(true)
   })
 
@@ -342,5 +407,88 @@ describe('GitHub release and monitoring workflows', () => {
     expect(workflow.on.workflow_dispatch.inputs.origin.default).toBe(ORIGIN)
     expect(workflow.jobs.smoke['timeout-minutes']).toBe(10)
     expect(workflow.jobs.smoke.steps[0].with).toMatchObject({ 'persist-credentials': false })
+  })
+
+  type Step = { name?: string; run?: string; uses?: string; env?: Record<string, string>; with?: Record<string, unknown> }
+
+  const releaseSteps = async (): Promise<Step[]> => {
+    const workflow = parse(await readFile(join(process.cwd(), '.github/workflows/release.yml'), 'utf8'))
+    return workflow.jobs.release.steps as Step[]
+  }
+
+  const indexOfRun = (steps: readonly Step[], fragment: string): number =>
+    steps.findIndex((step) => step.run?.includes(fragment) === true)
+
+  it('checks the deploy credentials before installing, building, or publishing (REL-3)', async () => {
+    const steps = await releaseSteps()
+    const preflight = indexOfRun(steps, 'scripts/release-preflight.mjs')
+
+    expect(preflight).toBeGreaterThan(-1)
+    expect(preflight).toBeLessThan(indexOfRun(steps, 'pnpm install --frozen-lockfile'))
+    expect(preflight).toBeLessThan(indexOfRun(steps, 'pnpm release:publish'))
+    expect(steps[preflight]?.env).toMatchObject({
+      CLOUDFLARE_API_TOKEN: '${{ secrets.CLOUDFLARE_API_TOKEN }}',
+      CLOUDFLARE_ACCOUNT_ID: '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}',
+      NEXT_PUBLIC_SCAN_API: '${{ vars.NEXT_PUBLIC_SCAN_API }}',
+    })
+  })
+
+  it('validates doc pins and the CHANGELOG before publishing (REL-2)', async () => {
+    const steps = await releaseSteps()
+
+    expect(indexOfRun(steps, 'pnpm release:validate -- "$VERSION"')).toBeLessThan(indexOfRun(steps, 'pnpm release:publish'))
+  })
+
+  it('asserts packed tarball contents instead of a publish dry run (REL-6)', async () => {
+    const steps = await releaseSteps()
+    const ci = await readFile(join(process.cwd(), '.github/workflows/ci.yml'), 'utf8')
+    const check = indexOfRun(steps, 'pnpm release:check-packages -- "$VERSION"')
+
+    expect(check).toBeGreaterThan(indexOfRun(steps, 'pnpm build'))
+    expect(check).toBeLessThan(indexOfRun(steps, 'pnpm release:publish'))
+    expect(ci).toContain('pnpm release:check-packages')
+    expect(steps.some((step) => step.run?.includes('publish:dry') === true)).toBe(false)
+    expect(ci).not.toContain('publish:dry')
+  })
+
+  it('passes the scan API setting explicitly to the site build (REL-15)', async () => {
+    const steps = await releaseSteps()
+    const deploy = steps.find((step) => step.run === 'pnpm --filter web cf:deploy')
+
+    expect(deploy?.env).toMatchObject({ NEXT_PUBLIC_SCAN_API: '${{ vars.NEXT_PUBLIC_SCAN_API }}' })
+  })
+
+  it('takes release notes from the CHANGELOG and keeps prereleases off latest (REL-7, REL-16)', async () => {
+    const steps = await releaseSteps()
+    const release = steps.find((step) => step.name === 'Create tag and GitHub release')?.run ?? ''
+
+    expect(release).toContain('node scripts/release-notes.mjs "$VERSION"')
+    expect(release).toContain('--notes-file "$notes"')
+    expect(release).not.toContain('--generate-notes')
+    expect(release).toContain('release_flag=--prerelease')
+    expect(release).toContain('release_flag=--latest')
+  })
+
+  it('pins every action to a full commit SHA (REL-13)', async () => {
+    for (const file of ['ci.yml', 'release.yml', 'production-smoke.yml']) {
+      const source = await readFile(join(process.cwd(), '.github/workflows', file), 'utf8')
+      const uses = [...source.matchAll(/uses:\s*(\S+)/g)].map((match) => match[1])
+
+      expect(uses.length).toBeGreaterThan(0)
+      for (const action of uses) expect(action, `${file}: ${action}`).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/)
+    }
+  })
+
+  it('tests the Node version that releases run on (REL-10)', async () => {
+    const steps = await releaseSteps()
+    const releaseNode = String(steps.find((step) => step.uses?.startsWith('actions/setup-node@'))?.with?.['node-version'])
+    const ci = parse(await readFile(join(process.cwd(), '.github/workflows/ci.yml'), 'utf8'))
+    const smoke = parse(await readFile(join(process.cwd(), '.github/workflows/production-smoke.yml'), 'utf8'))
+    const smokeNode = String((smoke.jobs.smoke.steps as Step[]).find((step) => step.uses?.startsWith('actions/setup-node@'))?.with?.['node-version'])
+    const nvmrc = (await readFile(join(process.cwd(), '.nvmrc'), 'utf8')).trim()
+
+    expect(ci.jobs.verify.strategy.matrix.node.map(String)).toContain(releaseNode)
+    expect(nvmrc).toBe(releaseNode)
+    expect(smokeNode).toBe(releaseNode)
   })
 })

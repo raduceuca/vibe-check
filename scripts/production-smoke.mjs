@@ -40,6 +40,49 @@ const routeSpecs = (origin) => [
     validate: ({ bytes }) => bytes >= 1_024,
     expectation: 'PNG payload of at least 1024 bytes',
   },
+  {
+    path: '/llms-full.txt',
+    contentType: 'text/plain',
+    validate: ({ text }) => text.includes('VibeCheck') && text.includes('# Documentation'),
+    expectation: 'full VibeCheck documentation export',
+  },
+  {
+    path: '/md/docs/quickstart',
+    contentType: 'text/markdown',
+    validate: ({ text }) => text.startsWith('# ') && text.includes('@wcgw/vibe-check-mcp'),
+    expectation: 'quickstart served as markdown',
+  },
+  {
+    path: '/scan',
+    contentType: 'text/html',
+    validate: ({ text }) => /<title>[^<]+<\/title>/.test(text),
+    expectation: 'scan page HTML title',
+  },
+  {
+    path: '/fix/performance',
+    contentType: 'text/html',
+    validate: ({ text }) => /<title>[^<]+<\/title>/.test(text),
+    expectation: 'performance fix guide HTML title',
+  },
+  {
+    // The only dynamic route. A loopback URL is refused by the SSRF guard
+    // before anything is fetched or recorded, so this proves the route runs
+    // without scanning anything.
+    path: '/api/scan',
+    label: 'POST /api/scan',
+    method: 'POST',
+    body: JSON.stringify({ url: 'http://127.0.0.1/' }),
+    expectedStatus: 400,
+    contentType: 'application/json',
+    validate: ({ text }) => {
+      try {
+        return typeof JSON.parse(text).error === 'string'
+      } catch {
+        return false
+      }
+    },
+    expectation: 'JSON error for a blocked private URL',
+  },
 ]
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
@@ -61,30 +104,34 @@ const checkRoute = async ({
   retryDelayMs,
   sleep,
 }) => {
-  let lastFailure = failure(spec.path, 0, 'check did not run')
+  const label = spec.label ?? spec.path
+  const expectedStatus = spec.expectedStatus ?? 200
+  let lastFailure = failure(label, 0, 'check did not run')
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       const response = await fetchImpl(`${origin}${spec.path}`, {
+        method: spec.method ?? 'GET',
+        ...(spec.body === undefined ? {} : { body: spec.body, headers: { 'content-type': 'application/json' } }),
         redirect: 'follow',
         signal: AbortSignal.timeout(requestTimeoutMs),
       })
       const contentType = response.headers.get('content-type') ?? ''
       const buffer = Buffer.from(await response.arrayBuffer())
       const text = spec.contentType === 'image/png' ? '' : buffer.toString('utf8')
-      if (response.status !== 200) {
-        lastFailure = failure(spec.path, attempt, `expected HTTP 200, received ${response.status}`, response.status)
+      if (response.status !== expectedStatus) {
+        lastFailure = failure(label, attempt, `expected HTTP ${expectedStatus}, received ${response.status}`, response.status)
       } else if (!contentType.includes(spec.contentType)) {
         lastFailure = failure(
-          spec.path,
+          label,
           attempt,
           `expected content-type ${spec.contentType}, received ${contentType || '(missing)'}`,
           response.status,
         )
       } else if (!spec.validate({ text, bytes: buffer.length })) {
-        lastFailure = failure(spec.path, attempt, `missing ${spec.expectation}`, response.status)
+        lastFailure = failure(label, attempt, `missing ${spec.expectation}`, response.status)
       } else {
         return {
-          path: spec.path,
+          path: label,
           ok: true,
           attempts: attempt,
           status: response.status,
@@ -93,7 +140,7 @@ const checkRoute = async ({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      lastFailure = failure(spec.path, attempt, `request failed: ${message}`)
+      lastFailure = failure(label, attempt, `request failed: ${message}`)
     }
 
     if (attempt < attempts && retryDelayMs > 0) await sleep(retryDelayMs)

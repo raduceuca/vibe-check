@@ -1,5 +1,9 @@
+import { MAX_WATCH_WAIT_SECONDS } from '@wcgw/vibe-check-protocol'
 import type {
+  DeliveryReceiptResult,
   DetectorName,
+  IssueActionResult,
+  IssueVerificationStatus,
   LeaseResult,
   ProjectSummary,
   ProjectStatus,
@@ -39,19 +43,51 @@ export interface HubClient {
   getWorkflow(projectId: string): Promise<ProjectWorkflow | null>
   getProjectImpact(projectId: string): Promise<ProjectImpactSummary | null>
   resetProjectImpact(projectId: string): Promise<void>
-  requestVerification(projectId: string, issueId: string): Promise<void>
+  requestVerification(projectId: string, issueId: string): Promise<IssueActionResult>
   getDetectedIssues(
     projectId: string,
     filters?: { readonly severity?: Severity; readonly detector?: DetectorName },
   ): Promise<readonly VibeIssue[]>
   getIssue(projectId: string, issueId: string): Promise<VibeIssue | null>
-  waitForSnapshot(projectId: string, sessionId: string, timeoutSeconds: number): Promise<VibeSnapshot | null>
-  acquireLease(projectId: string, sessionId: string): Promise<LeaseResult>
+  waitForSnapshot(
+    projectId: string,
+    sessionId: string,
+    timeoutSeconds: number,
+    signal?: AbortSignal,
+  ): Promise<VibeSnapshot | null>
+  acquireLease(projectId: string, sessionId: string, clientName?: string): Promise<LeaseResult>
   heartbeatLease(projectId: string, sessionId: string): Promise<LeaseResult>
   releaseLease(projectId: string, sessionId: string): Promise<void>
-  waitForIssue(projectId: string, sessionId: string, timeoutSeconds: number): Promise<QueuedIssue | null>
-  acknowledgeIssue(projectId: string, issueId: string): Promise<void>
-  resolveIssue(projectId: string, issueId: string): Promise<void>
+  waitForIssue(
+    projectId: string,
+    sessionId: string,
+    timeoutSeconds: number,
+    signal?: AbortSignal,
+  ): Promise<QueuedIssue | null>
+  confirmDelivery(
+    projectId: string,
+    sessionId: string,
+    deliveryId: string,
+  ): Promise<DeliveryReceiptResult>
+  returnDelivery(
+    projectId: string,
+    sessionId: string,
+    deliveryId: string,
+  ): Promise<DeliveryReceiptResult>
+  acknowledgeIssue(
+    projectId: string,
+    sessionId: string,
+    issueId: string,
+  ): Promise<IssueActionResult>
+  resolveIssue(
+    projectId: string,
+    sessionId: string,
+    issueId: string,
+  ): Promise<IssueActionResult>
+  getVerificationStatus(
+    projectId: string,
+    issueId: string,
+  ): Promise<IssueVerificationStatus | null>
 }
 
 const errorCode = (body: unknown): string => {
@@ -61,16 +97,24 @@ const errorCode = (body: unknown): string => {
   return 'request-failed'
 }
 
+const clampWatchSeconds = (timeoutSeconds: number): number =>
+  Math.min(Math.max(1, Math.floor(timeoutSeconds)), MAX_WATCH_WAIT_SECONDS)
+
 export const createHubClient = (inputBaseUrl: string): HubClient => {
   const baseUrl = inputBaseUrl.replace(/\/$/, '')
   const projectPath = (projectId: string): string =>
     `/internal/projects/${encodeURIComponent(projectId)}`
 
-  const request = async <T>(path: string, init?: RequestInit, allowNotFound = false): Promise<T | null> => {
+  const request = async <T>(
+    path: string,
+    init?: RequestInit,
+    allowNotFound = false,
+  ): Promise<T | null> => {
     let response: Response
     try {
       response = await fetch(`${baseUrl}${path}`, init)
     } catch (error) {
+      if (init?.signal?.aborted) throw error
       throw new HubClientError(0, 'hub-offline', error)
     }
     const body = await response.json().catch(() => null) as unknown
@@ -79,11 +123,68 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
     return body as T
   }
 
-  const post = <T>(path: string, body: unknown): Promise<T | null> => request<T>(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  const post = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T | null> =>
+    request<T>(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      ...(signal ? { signal } : {}),
+    })
+
+  const postLease = async (path: string, body: unknown): Promise<LeaseResult> => {
+    let response: Response
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    } catch (error) {
+      throw new HubClientError(0, 'hub-offline', error)
+    }
+    const payload = await response.json().catch(() => null) as unknown
+    // 409 lease-conflict / project-not-found / session-already-watching resolve as LeaseResult.
+    if (response.ok || response.status === 409) {
+      return payload as LeaseResult
+    }
+    throw new HubClientError(response.status, errorCode(payload), payload)
+  }
+
+  const postAction = async (path: string, body: unknown): Promise<IssueActionResult> => {
+    let response: Response
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    } catch (error) {
+      throw new HubClientError(0, 'hub-offline', error)
+    }
+    const payload = await response.json().catch(() => null) as unknown
+    if (response.ok || response.status === 404 || response.status === 409) {
+      return payload as IssueActionResult
+    }
+    throw new HubClientError(response.status, errorCode(payload), payload)
+  }
+
+  const postReceipt = async (path: string, body: unknown): Promise<DeliveryReceiptResult> => {
+    let response: Response
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    } catch (error) {
+      throw new HubClientError(0, 'hub-offline', error)
+    }
+    const payload = await response.json().catch(() => null) as unknown
+    if (response.ok || response.status === 404 || response.status === 409) {
+      return payload as DeliveryReceiptResult
+    }
+    throw new HubClientError(response.status, errorCode(payload), payload)
+  }
 
   return {
     async health(): Promise<HubHealth> {
@@ -130,8 +231,8 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
       await post(`/api/projects/${encodeURIComponent(projectId)}/impact/reset`, {})
     },
 
-    async requestVerification(projectId, issueId): Promise<void> {
-      await post(
+    async requestVerification(projectId, issueId): Promise<IssueActionResult> {
+      return postAction(
         `/api/projects/${encodeURIComponent(projectId)}/issues/${encodeURIComponent(issueId)}/verify`,
         {},
       )
@@ -153,38 +254,69 @@ export const createHubClient = (inputBaseUrl: string): HubClient => {
       )
     },
 
-    async waitForSnapshot(projectId, sessionId, timeoutSeconds): Promise<VibeSnapshot | null> {
+    async waitForSnapshot(projectId, sessionId, timeoutSeconds, signal): Promise<VibeSnapshot | null> {
       return await post<VibeSnapshot | null>(`${projectPath(projectId)}/snapshots/next`, {
         sessionId,
-        timeoutSeconds,
+        timeoutSeconds: clampWatchSeconds(timeoutSeconds),
+      }, signal)
+    },
+
+    async acquireLease(projectId, sessionId, clientName): Promise<LeaseResult> {
+      return postLease(`${projectPath(projectId)}/leases/acquire`, {
+        sessionId,
+        ...(clientName ? { clientName } : {}),
       })
     },
 
-    async acquireLease(projectId, sessionId): Promise<LeaseResult> {
-      return (await post<LeaseResult>(`${projectPath(projectId)}/leases/acquire`, { sessionId }))!
-    },
-
     async heartbeatLease(projectId, sessionId): Promise<LeaseResult> {
-      return (await post<LeaseResult>(`${projectPath(projectId)}/leases/heartbeat`, { sessionId }))!
+      return postLease(`${projectPath(projectId)}/leases/heartbeat`, { sessionId })
     },
 
     async releaseLease(projectId, sessionId): Promise<void> {
       await post(`${projectPath(projectId)}/leases/release`, { sessionId })
     },
 
-    async waitForIssue(projectId, sessionId, timeoutSeconds): Promise<QueuedIssue | null> {
+    async waitForIssue(projectId, sessionId, timeoutSeconds, signal): Promise<QueuedIssue | null> {
       return await post<QueuedIssue | null>(`${projectPath(projectId)}/issues/next`, {
         sessionId,
-        timeoutSeconds,
-      })
+        timeoutSeconds: clampWatchSeconds(timeoutSeconds),
+      }, signal)
     },
 
-    async acknowledgeIssue(projectId, issueId): Promise<void> {
-      await post(`${projectPath(projectId)}/issues/${encodeURIComponent(issueId)}/acknowledge`, {})
+    async confirmDelivery(projectId, sessionId, deliveryId): Promise<DeliveryReceiptResult> {
+      return postReceipt(
+        `${projectPath(projectId)}/deliveries/${encodeURIComponent(deliveryId)}/ack`,
+        { sessionId, deliveryId },
+      )
     },
 
-    async resolveIssue(projectId, issueId): Promise<void> {
-      await post(`${projectPath(projectId)}/issues/${encodeURIComponent(issueId)}/resolve`, {})
+    async returnDelivery(projectId, sessionId, deliveryId): Promise<DeliveryReceiptResult> {
+      return postReceipt(
+        `${projectPath(projectId)}/deliveries/${encodeURIComponent(deliveryId)}/nack`,
+        { sessionId, deliveryId },
+      )
+    },
+
+    async acknowledgeIssue(projectId, sessionId, issueId): Promise<IssueActionResult> {
+      return postAction(
+        `${projectPath(projectId)}/issues/${encodeURIComponent(issueId)}/acknowledge`,
+        { sessionId },
+      )
+    },
+
+    async resolveIssue(projectId, sessionId, issueId): Promise<IssueActionResult> {
+      return postAction(
+        `${projectPath(projectId)}/issues/${encodeURIComponent(issueId)}/resolve`,
+        { sessionId },
+      )
+    },
+
+    async getVerificationStatus(projectId, issueId): Promise<IssueVerificationStatus | null> {
+      return await request<IssueVerificationStatus>(
+        `${projectPath(projectId)}/issues/${encodeURIComponent(issueId)}/verification`,
+        undefined,
+        true,
+      )
     },
   }
 }

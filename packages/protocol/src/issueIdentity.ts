@@ -22,6 +22,16 @@ const detectorIdentity = (issue: VibeIssue): string => {
   return issue.detector
 }
 
+/**
+ * Page-independent identity of an issue: `<detector>|<what it is about>` (the
+ * check id, METHOD:url, image src, script URL, package, console method...).
+ * Two issues with the same identity describe the same problem, so a detector
+ * keeps at most one open issue per identity and updates it in place.
+ * getStableIssueKey() adds the project and normalized page URL to this.
+ */
+export const getIssueIdentity = (issue: VibeIssue): string =>
+  `${issue.detector}|${detectorIdentity(issue)}`
+
 export const normalizePageUrl = (input: string): string => {
   try {
     const url = new URL(input)

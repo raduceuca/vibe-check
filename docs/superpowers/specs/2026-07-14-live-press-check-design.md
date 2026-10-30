@@ -1,5 +1,9 @@
 # Live Press Check: Copy and Proof-Weight Design
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 **Date:** 2026-07-14
 **Status:** Approved direction, implementation pending
 

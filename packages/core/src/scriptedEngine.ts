@@ -1,4 +1,4 @@
-import type { DispatchIssueResponse, VibeSnapshot, VibeIssue } from './types.js'
+import type { DetectorName, DispatchIssueResponse, VibeSnapshot, VibeIssue } from './types.js'
 import {
   EMPTY_FRAME_RATE_STATS,
   EMPTY_LONG_FRAME_STATS,
@@ -121,8 +121,11 @@ export const createScriptedEngine = (scenario: ScriptedScenario): VibeEngine => 
       return current.issues
     },
 
-    clearIssues(): void {
-      current = { ...current, issues: [] }
+    clearIssues(detector?: DetectorName): void {
+      current = {
+        ...current,
+        issues: detector === undefined ? [] : current.issues.filter((issue) => issue.detector !== detector),
+      }
     },
 
     onSnapshot(callback: (snapshot: VibeSnapshot) => void): () => void {
