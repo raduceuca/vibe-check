@@ -49,8 +49,9 @@ const inspect = async ({
   manifest,
   readText: async (file: string) => contents[file] ?? (file === 'README.md'
     ? '# Widget\n\n![Monitor](https://raw.githubusercontent.com/raduceuca/vibe-check/main/docs/x.png)\n'
-    : "import { x } from '@wcgw/vibe-check-core'\n//# sourceMappingURL=index.js.map\n"),
+    : "'use client';\nimport { x } from '@wcgw/vibe-check-core'\n//# sourceMappingURL=index.js.map\n"),
 })
+
 
 describe('packed tarball contents (REL-6)', () => {
   it('accepts a correctly built and packed package', async () => {
@@ -148,11 +149,23 @@ describe('packed tarball contents (REL-6)', () => {
 
   it('rejects more than one sourceMappingURL comment per file (P13)', async () => {
     const problems = await inspect({
-      contents: { 'dist/index.js': 'export {}\n//# sourceMappingURL=index.js.map\n//# sourceMappingURL=index.js.map\n' },
+      contents: { 'dist/index.js': "'use client';\nexport {}\n//# sourceMappingURL=index.js.map\n//# sourceMappingURL=index.js.map\n" },
     })
 
     expect(problems).toEqual(['dist/index.js has 2 sourceMappingURL comments; expected at most 1'])
   })
+
+  it("requires a leading 'use client' directive on the react package entries (P4)", async () => {
+    const problems = await inspect({
+      contents: {
+        'dist/index.js': "import { x } from '@wcgw/vibe-check-core'\n//# sourceMappingURL=index.js.map\n",
+        'dist/index.cjs': "'use client';\nmodule.exports = {}\n//# sourceMappingURL=index.cjs.map\n",
+      },
+    })
+
+    expect(problems).toEqual(["dist/index.js is missing a leading 'use client' directive"])
+  })
+
 
   it('keeps core free of runtime dependencies', async () => {
     const problems = await inspect({

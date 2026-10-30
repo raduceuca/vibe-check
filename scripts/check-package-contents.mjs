@@ -107,6 +107,17 @@ export const inspectPackedPackage = async ({ name, version, files, manifest, rea
     if (sourceMapComments > 1) problems.push(`${file} has ${sourceMapComments} sourceMappingURL comments; expected at most 1`)
   }
 
+  // P4: Next.js App Router needs the directive on every published JS entry.
+  if (name === '@wcgw/vibe-check') {
+    for (const entry of ['dist/index.js', 'dist/index.cjs']) {
+      if (!fileSet.has(entry)) continue
+      const text = await readText(entry)
+      if (!text.startsWith("'use client';") && !text.startsWith('"use client";')) {
+        problems.push(`${entry} is missing a leading 'use client' directive`)
+      }
+    }
+  }
+
   if (fileSet.has('README.md')) {
     for (const source of readmeImageSources(await readText('README.md'))) {
       if (!/^https?:\/\//.test(source)) {

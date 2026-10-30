@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { BeaconStatus, DispatchIssueResponse, VibeIssue } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../../store/issueStore.js'
-import { IssueActions } from '../IssueActions.js'
+import { DISMISS_TITLE, IssueActions } from '../IssueActions.js'
 
 const issue: VibeIssue = {
   id: 'dom-1',
@@ -44,33 +44,40 @@ const connected: BeaconStatus = {
 interface RenderOptions {
   readonly trackedIssue?: TrackedIssue
   readonly status?: BeaconStatus | null
+  readonly hubConfigured?: boolean
   readonly onDispatch?: (selected: VibeIssue) => Promise<DispatchIssueResponse>
+  readonly onRequestVerification?: (issueId: string) => Promise<void>
+  readonly onMarkResolved?: (issueId: string) => void
 }
 
 const renderActions = ({
   trackedIssue = tracked,
   status = connected,
+  hubConfigured,
   onDispatch = vi.fn(async (): Promise<DispatchIssueResponse> => ({
     ok: true,
     code: 'dispatched',
     projectId: 'project-a',
     queueDepth: 0,
   })),
+  onRequestVerification,
+  onMarkResolved = vi.fn(),
 }: RenderOptions = {}) => {
   const onCopy = vi.fn(async () => true)
   const onMarkSent = vi.fn()
-  const onMarkResolved = vi.fn()
   render(<IssueActions
     tracked={trackedIssue}
     mode="technical"
     copiedId={null}
     beaconStatus={status}
+    hubConfigured={hubConfigured}
     onCopy={onCopy}
     onDispatch={onDispatch}
     onMarkSent={onMarkSent}
     onMarkResolved={onMarkResolved}
+    onRequestVerification={onRequestVerification}
   />)
-  return { onCopy, onDispatch, onMarkSent, onMarkResolved }
+  return { onCopy, onDispatch, onMarkSent, onMarkResolved, onRequestVerification }
 }
 
 describe('IssueActions', () => {
@@ -82,7 +89,7 @@ describe('IssueActions', () => {
     await waitFor(() => expect(handlers.onDispatch).toHaveBeenCalledWith(issue))
     expect(handlers.onMarkSent).toHaveBeenCalledWith('dom-1')
     expect((screen.getByRole('button', { name: 'Sent' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText('sent', { selector: 'span[role="status"]' })).toBeTruthy()
+    expect(screen.getByText('sent to agent', { selector: 'span[role="status"]' })).toBeTruthy()
   })
 
   it('keeps Copy prompt independent from delivery state', async () => {
@@ -154,7 +161,7 @@ describe('IssueActions', () => {
 
     const send = screen.getByRole('button', { name: /send to agent/i })
     expect((send as HTMLButtonElement).disabled).toBe(true)
-    expect(send.getAttribute('title')).toBe('Connect one agent watcher before sending')
+    expect(screen.getByText('Ask one agent session to watch this project first.')).toBeTruthy()
   })
 
   it('renders an already-sent issue as disabled Sent', () => {
@@ -165,11 +172,23 @@ describe('IssueActions', () => {
     expect((screen.getByRole('button', { name: 'Sent' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('offers the existing resolve action when requested', () => {
-    const handlers = renderActions()
+  it('offers dismiss when no hub is configured', () => {
+    const handlers = renderActions({
+      status: null,
+      hubConfigured: false,
+    })
 
-    fireEvent.click(screen.getByRole('button', { name: /resolve/i }))
-
+    const dismiss = screen.getByRole('button', { name: /^dismiss$/i })
+    expect(dismiss.getAttribute('title')).toBe(DISMISS_TITLE)
+    fireEvent.click(dismiss)
     expect(handlers.onMarkResolved).toHaveBeenCalledWith('dom-1')
+  })
+
+  it('offers check-this-fix verification when a hub is configured', async () => {
+    const onRequestVerification = vi.fn(async () => undefined)
+    renderActions({ onRequestVerification })
+
+    fireEvent.click(screen.getByRole('button', { name: /verify fix/i }))
+    await waitFor(() => expect(onRequestVerification).toHaveBeenCalledWith('dom-1'))
   })
 })
