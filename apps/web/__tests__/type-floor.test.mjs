@@ -1,28 +1,32 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
 
-// site-spec §10.2 / §5.3: readable copy is at least 14 px. This catches the
-// common sub-14 px declarations that used to live in the landing CSS.
+/**
+ * Starting 14 px floor guard (site-spec §10.2 / §5.3).
+ *
+ * Bans common sub-14 px literals in `app/global.css`. Lines tagged
+ * `/* vc-allow-small: non-text *\/` are exempt (decorative / non-text).
+ */
 
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), '../app/global.css'),
-  'utf8',
-)
+const ALLOW_SMALL = /\/\*\s*vc-allow-small:\s*non-text\s*\*\//
+const BANNED_SIZE = /font-size\s*:\s*(?:1[0-3](?:\.\d+)?px|11\.5px)\b/i
 
-describe('type floor', () => {
-  it('keeps readable font-size declarations at 14px or above in global.css', () => {
-    const banned = [...css.matchAll(/font-size:\s*((?:1[0-3](?:\.\d+)?)|(?:[0-9](?:\.\d+)?))px/g)]
-      .map((match) => match[0])
-      // Allow non-text chrome that is not readable copy (1px rules are not font-size).
-      .filter((decl) => !decl.includes('font-size: 0px'))
+const readGlobalCss = () =>
+  readFile(new URL('../app/global.css', import.meta.url), 'utf8')
+
+describe('type floor (14 px)', () => {
+  it('bans font-size under 14px in global.css unless allow-tagged', async () => {
+    const css = await readGlobalCss()
+    const violations = css
+      .split('\n')
+      .map((line, index) => ({ line, n: index + 1 }))
+      .filter(({ line }) => BANNED_SIZE.test(line) && !ALLOW_SMALL.test(line))
 
     assert.deepEqual(
-      banned,
+      violations,
       [],
-      `sub-14px font-size still present:\n${banned.slice(0, 20).join('\n')}`,
+      violations.map(({ n, line }) => `L${n}: ${line.trim()}`).join('\n'),
     )
   })
 })

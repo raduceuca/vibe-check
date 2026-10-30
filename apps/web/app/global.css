@@ -37,14 +37,6 @@ html {
   --vc-section-pad: clamp(72px, 51.2px + 5.33vw, 128px);
   --vc-gutter-widget: 400px;
   --vc-radius-sm: 8px; --vc-radius-lg: 12px;
-  /* Temporary aliases until proof furniture is deleted (§5.10). */
-  --vc-proof-c: var(--vc-ink-4);
-  --vc-proof-m: var(--vc-ink-4);
-  --vc-proof-y: var(--vc-ink-4);
-  --vc-proof-k: var(--vc-ink);
-  --vc-sig-bg: color-mix(in srgb, var(--vc-sig) 12%, transparent);
-  --vc-amber-bg: color-mix(in srgb, var(--vc-amber) 12%, transparent);
-  --vc-ok-bg: color-mix(in srgb, var(--vc-ok) 12%, transparent);
 }
 
 .vc-landing {
