@@ -11,9 +11,11 @@ const define = {
 
 export default defineConfig([
   {
+    // The CLI bin (package.json "bin" → dist/index.js). Nothing imports it, so
+    // it ships as ESM only, without CJS or type declarations (P12).
     entry: ['src/index.ts'],
-    format: ['esm', 'cjs'],
-    dts: { resolve: ['@wcgw/vibe-check-protocol'] },
+    format: ['esm'],
+    dts: false,
     clean: true,
     sourcemap: true,
     external: ['@modelcontextprotocol/sdk', 'zod'],

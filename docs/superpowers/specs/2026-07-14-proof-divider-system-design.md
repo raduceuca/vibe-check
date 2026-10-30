@@ -1,5 +1,9 @@
 # Proof Divider System
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 ## Objective
 
 Turn the printing-proof language into a structural separator system across the public website, documentation shell, and React widget. The marks should explain hierarchy and terminate existing rules, not behave like standalone decoration.

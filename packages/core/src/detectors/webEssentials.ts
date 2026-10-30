@@ -1,5 +1,7 @@
-import type { Detector, VibeIssue, Severity } from '../types.js'
-import { createIssue } from './createIssue.js'
+import type { Detector, Severity } from '../types.js'
+import type { AuditDetectorOptions } from '../utils/probe.js'
+import { createAuditDetector } from './auditRunner.js'
+import type { AuditFinding } from './auditRunner.js'
 
 interface EssentialCheck {
   readonly id: string
@@ -54,69 +56,21 @@ const CHECKS: readonly EssentialCheck[] = [
   // which checks them more thoroughly (length, placeholder defaults).
 ]
 
-export const createWebEssentialsDetector = (): Detector => {
-  let issues: VibeIssue[] = []
-  let hasRun = false
-  let stopped = false
-  let loadHandler: (() => void) | null = null
-  let timerId: ReturnType<typeof setTimeout> | null = null
+const runDomChecks = (): readonly AuditFinding[] =>
+  CHECKS
+    .filter((check) => !check.check())
+    .map((check) => ({
+      check: check.id,
+      severity: check.severity,
+      title: check.title,
+      description: check.description,
+    }))
 
-  const runChecks = (): void => {
-    if (typeof document === 'undefined') return
-    if (stopped || hasRun) return
-    hasRun = true
-
-    for (const check of CHECKS) {
-      const passes = check.check()
-      if (!passes) {
-        issues = [
-          ...issues,
-          createIssue(
-            'web-essentials',
-            check.severity,
-            check.title,
-            check.description,
-            { check: check.id },
-          ),
-        ]
-      }
-    }
-  }
-
-  return {
-    name: 'web-essentials',
-
-    start(): void {
-      if (typeof document === 'undefined') return
-      stopped = false
-      // Run after a short delay to let the app render.
-      if (document.readyState === 'complete') {
-        timerId = setTimeout(runChecks, 500)
-      } else {
-        loadHandler = () => { timerId = setTimeout(runChecks, 500) }
-        window.addEventListener('load', loadHandler, { once: true })
-      }
-    },
-
-    stop(): void {
-      stopped = true
-      if (timerId !== null) {
-        clearTimeout(timerId)
-        timerId = null
-      }
-      if (loadHandler !== null) {
-        window.removeEventListener('load', loadHandler)
-        loadHandler = null
-      }
-    },
-
-    getIssues(): readonly VibeIssue[] {
-      return issues
-    },
-
-    clear(): void {
-      issues = []
-      hasRun = false
-    },
-  }
-}
+/** Document-essentials audit. Runs once per start() / clear() / engine recheck(), after window load. */
+export const createWebEssentialsDetector = (options?: AuditDetectorOptions): Detector =>
+  createAuditDetector({
+    detector: 'web-essentials',
+    delayMs: 500,
+    domChecks: runDomChecks,
+    options,
+  })

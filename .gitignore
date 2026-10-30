@@ -10,3 +10,13 @@ coverage/
 .playwright-cli/
 .superpowers/
 output/
+
+# Local agent tooling (per-machine; not part of the product)
+/.agents/
+/.claude/
+/.codex/
+.impeccable/
+/skills-lock.json
+# Third-party skills linked from .agents/ (only skills/vibe-check ships)
+/skills/autofix
+/skills/code-review

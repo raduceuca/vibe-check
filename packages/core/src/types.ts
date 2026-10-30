@@ -45,8 +45,35 @@ export type {
   AgentClientId,
   AgentClientSetup,
   SetupPackOptions,
+  // Since 0.4 (CONTRACT §3.8). React imports only from core, so every shape it
+  // needs from the protocol is re-exported here.
+  DetectorKind,
+  DetectorRunStatus,
+  AuditRun,
+  AuditRunStatus,
+  AuditDetectorName,
+  SnapshotTruncation,
+  LeaseHolder,
+  LeaseRequest,
+  IssueActionResult,
+  IssueActionCode,
+  IssueVerificationStatus,
+  VerificationOutcome,
+  VerificationEvidence,
+  VerificationInconclusiveReason,
+  DeliveryReceiptRequest,
+  DeliveryReceiptResult,
+  DeliveryReceiptCode,
+  AgentClientSetupOptions,
+  HubStartCommandOptions,
+  McpToolDescriptor,
+  McpToolName,
+  McpToolParam,
+  PayloadLimits,
 } from '@wcgw/vibe-check-protocol'
 
+// Runtime values are bundled into core's own output (tsup noExternal), so the
+// zero-runtime-dependency rule holds.
 export {
   AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
@@ -57,6 +84,45 @@ export {
   getAgentClientSetup,
   getWatchInstruction,
   formatSetupPack,
+  // Since 0.4 (CONTRACT §3.8)
+  getHubStartCommand,
+  getDoctorCommand,
+  DEFAULT_HUB_URL,
+  DEFAULT_HUB_PORT,
+  HUB_URL_ENV,
+  normalizeHubUrl,
+  hubPortFromUrl,
+  isDispatchableAgentState,
+  DISPATCHABLE_AGENT_STATES,
+  formatLeaseConflictMessage,
+  agentClientLabel,
+  MCP_PACKAGE_NAME,
+  WIDGET_PACKAGE_NAME,
+  MCP_PACKAGE_VERSION,
+  MCP_TOOL_CATALOG,
+  MCP_TOOL_NAMES,
+  getMcpToolDescriptor,
+  classifyVerificationSnapshot,
+  issueLastSeenAt,
+  getIssueIdentity,
+  PAYLOAD_LIMITS,
+  boundIssue,
+  boundSnapshot,
+  fitEnvelopeToBytes,
+  AUDIT_DETECTORS,
+  DETECTOR_KINDS,
+  VERIFICATION_OUTCOMES,
+  ISSUE_ACTION_CODES,
+} from '@wcgw/vibe-check-protocol'
+
+// Engine-internal runtime helpers from the protocol (not part of core's public
+// index; used by the engine and beacon only).
+export {
+  boundIssues,
+  measureJsonBytes,
+  normalizePageUrl,
+  KEEPALIVE_BODY_LIMIT_BYTES,
+  SNAPSHOT_BODY_BUDGET_BYTES,
 } from '@wcgw/vibe-check-protocol'
 
 import type {
@@ -107,6 +173,7 @@ export const EMPTY_RESOURCE_STATS: ResourceStats = {
 
 // Engine config
 export interface VibeCheckConfig {
+  /** When false, start() is a no-op and the engine stays stopped. */
   readonly enabled: boolean
   readonly beaconUrl?: string
   readonly projectId?: string

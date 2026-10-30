@@ -216,6 +216,7 @@ test('packed widget dispatches a real DOM issue to its watching agent', async ({
     const connection = page.getByTestId('vibe-check-agent-status')
     await expect(connection).toContainText('Waiting for')
     await expect(connection).toContainText(appAUrl)
+    await connection.getByRole('button', { name: 'Need to add the MCP server?' }).click()
     await expect(connection).toContainText(/codex mcp add vibe-check/)
     await expect(connection).toContainText(`project_id "${appAUrl}"`)
     await expect(page.getByRole('button', { name: /copy codex setup/i })).toBeVisible()

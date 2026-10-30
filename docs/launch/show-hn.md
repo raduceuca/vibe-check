@@ -1,4 +1,4 @@
-# Show HN: VibeCheck – live press check for AI-built frontends
+# Show HN: VibeCheck – perf and SEO overlay that sends issues to your coding agent
 
 ## Plain pitch (first sentence)
 
@@ -6,7 +6,7 @@ VibeCheck is a perf + SEO monitor that runs in your React app, catches vibe-codi
 
 ## Short body (Show HN / Reddit)
 
-Agents ship frontends that look done and still thrash, leak memory, double-fetch, bloat the DOM, and fail SEO/AEO. Lighthouse is a one-shot score. Chrome DevTools MCP is a general browser microscope. VibeCheck is the **press check**: continuous detectors, on-page marks, **Send to agent**, durable workflow, and an impact ledger that only counts verified fixes.
+Agents ship frontends that look done and still thrash, leak memory, double-fetch, bloat the DOM, and fail SEO/AEO. Lighthouse is a one-shot score. Chrome DevTools MCP is a general browser microscope. VibeCheck stays on while you build: continuous detectors, on-page marks, **Send to agent**, a durable workflow, and an impact ledger that only counts fixes the browser has verified.
 
 Demo (real widget → real MCP round-trip, not a mock):
 https://github.com/raduceuca/vibe-check/blob/main/apps/web/public/demo/vibe-check-agent-roundtrip.gif
@@ -33,15 +33,14 @@ In the widget: **Copy full setup pack** (or paste the watch instruction printed 
 
 ### Screenshots
 
-- Monitor: `docs/screenshots/monitor.png`
-- Agent: `docs/screenshots/agent.png`
-- Hero: `docs/screenshots/hero.png`
+TODO: re-capture after the 0.4.0 widget lands. The current `docs/screenshots/*.png`
+show retired branding; do not post them.
 
 ---
 
 ## X / short thread bullets
 
-1. Your agent shipped the UI. Who pulled the proof?
+1. Your agent shipped the UI. Did anyone check it in a real browser?
 2. VibeCheck watches the live page for jank, DOM bloat, duplicate fetches, SEO/AEO gaps.
 3. Click **Send to agent** — one MCP watcher gets the exact issue + fix guide.
 4. Fix is only “fixed” when browser evidence clears. Regressions reopen.

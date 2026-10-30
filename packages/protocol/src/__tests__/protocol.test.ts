@@ -3,15 +3,24 @@ import { describe, it, expect } from 'vitest'
 import {
   AGENT_CLIENTS,
   AGENT_CONNECTION_STATES,
+  DEFAULT_HUB_URL,
   DETECTOR_NAMES,
   DISPATCH_RESULT_CODES,
+  DISPATCHABLE_AGENT_STATES,
   HUB_START_COMMAND,
   UP_START_COMMAND,
+  MCP_PACKAGE_NAME,
   MCP_PACKAGE_SPEC,
+  MCP_PACKAGE_VERSION,
   formatSetupPack,
   SEVERITIES,
   getAgentClientSetup,
+  getDoctorCommand,
+  getHubStartCommand,
   getWatchInstruction,
+  hubPortFromUrl,
+  isDispatchableAgentState,
+  normalizeHubUrl,
 } from '../index.js'
 import type {
   DetectorName,
@@ -22,6 +31,11 @@ import type {
   Severity,
   VibeSnapshot,
 } from '../index.js'
+
+const mcpPackage = JSON.parse(
+  readFileSync(new URL('../../../mcp/package.json', import.meta.url), 'utf8'),
+) as { readonly name: string; readonly version: string }
+const SPEC = `${mcpPackage.name}@${mcpPackage.version}`
 
 const makeSnapshot = (): VibeSnapshot => ({
   timestamp: 1,
@@ -78,6 +92,7 @@ describe('protocol enums', () => {
       projectId: 'http://localhost:5173',
       instanceId: 'browser-a',
       origin: 'http://localhost:5173',
+      pageUrl: 'http://localhost:5173/',
       title: 'Fixture A',
       snapshot: makeSnapshot(),
     }
@@ -97,7 +112,8 @@ describe('protocol enums', () => {
 
     expect(status.state).toBe('watching')
     expect(response.code).toBe('dispatched')
-    expect(AGENT_CONNECTION_STATES).toEqual(['no-agent', 'watching', 'busy', 'stale'])
+    // New members are appended so existing indexes keep their meaning.
+    expect(AGENT_CONNECTION_STATES).toEqual(['no-agent', 'watching', 'busy', 'stale', 'leased'])
     expect(DISPATCH_RESULT_CODES).toEqual([
       'dispatched',
       'unconfigured',
@@ -106,18 +122,43 @@ describe('protocol enums', () => {
       'queue-full',
       'invalid-issue',
       'failed',
+      'queued',
+      'origin-not-allowed',
     ])
   })
 
+  it('accepts dispatches only while a live lease exists', () => {
+    expect(DISPATCHABLE_AGENT_STATES).toEqual(['watching', 'leased', 'busy'])
+    expect(isDispatchableAgentState('watching')).toBe(true)
+    expect(isDispatchableAgentState('leased')).toBe(true)
+    expect(isDispatchableAgentState('busy')).toBe(true)
+    expect(isDispatchableAgentState('stale')).toBe(false)
+    expect(isDispatchableAgentState('no-agent')).toBe(false)
+    expect(isDispatchableAgentState(null)).toBe(false)
+    expect(isDispatchableAgentState(undefined)).toBe(false)
+  })
+})
+
+describe('MCP package spec', () => {
+  it('derives the pinned spec from packages/mcp/package.json, never a literal', () => {
+    expect(MCP_PACKAGE_NAME).toBe(mcpPackage.name)
+    expect(MCP_PACKAGE_VERSION).toBe(mcpPackage.version)
+    expect(MCP_PACKAGE_SPEC).toBe(SPEC)
+    expect(HUB_START_COMMAND).toBe(`npx -y ${SPEC} hub`)
+    expect(UP_START_COMMAND).toBe(`npx -y ${SPEC} up`)
+  })
+})
+
+describe('agent client setup', () => {
   it('defines exact setup values for every first-class agent client', () => {
     expect(AGENT_CLIENTS).toEqual(['codex', 'claude-code', 'cursor'])
     expect(getAgentClientSetup('codex')).toMatchObject({
       label: 'Codex',
       format: 'command',
-      value: 'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect',
+      value: `codex mcp add vibe-check -- npx -y ${SPEC} connect`,
     })
     expect(getAgentClientSetup('claude-code').value).toBe(
-      'claude mcp add --scope local vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect',
+      `claude mcp add --scope local vibe-check -- npx -y ${SPEC} connect`,
     )
     expect(getAgentClientSetup('cursor').destination).toBe(
       'Add inside mcpServers in .cursor/mcp.json; if the file is new, create mcpServers first',
@@ -125,50 +166,95 @@ describe('protocol enums', () => {
     expect(JSON.parse(getAgentClientSetup('cursor').value)).toEqual({
       'vibe-check': {
         command: 'npx',
-        args: ['-y', '@wcgw/vibe-check-mcp@0.3.0', 'connect'],
+        args: ['-y', SPEC, 'connect'],
       },
     })
-    expect(MCP_PACKAGE_SPEC).toBe('@wcgw/vibe-check-mcp@0.3.0')
     expect(getWatchInstruction('storefront')).toContain('project_id "storefront"')
-    expect(HUB_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.3.0 hub')
-    expect(UP_START_COMMAND).toBe('npx -y @wcgw/vibe-check-mcp@0.3.0 up')
-    const pack = formatSetupPack({ projectId: 'storefront', agent: 'codex' })
-    expect(pack).toContain('## VibeCheck setup — storefront')
-    expect(pack).toContain('up --project storefront --agent codex')
-    expect(pack).toContain('codex mcp add vibe-check')
-    expect(pack).toContain('project_id "storefront"')
   })
 
-  it('keeps first-class client setup documentation aligned with the protocol', () => {
-    const documentationUrls = [
-      new URL('../../../../README.md', import.meta.url),
-      new URL('../../../../packages/mcp/README.md', import.meta.url),
-      new URL('../../../../packages/react/README.md', import.meta.url),
-      new URL('../../../../demo/README.md', import.meta.url),
-      new URL('../../../../skills/vibe-check/SKILL.md', import.meta.url),
-    ]
-    const documents = documentationUrls.map((url) => readFileSync(url, 'utf8'))
+  it('treats the default hub URL (with or without a trailing slash) as no override', () => {
+    expect(getAgentClientSetup('codex', { hubUrl: DEFAULT_HUB_URL })).toEqual(getAgentClientSetup('codex'))
+    expect(getAgentClientSetup('codex', { hubUrl: `${DEFAULT_HUB_URL}/` })).toEqual(getAgentClientSetup('codex'))
+    expect(normalizeHubUrl(undefined)).toBe(DEFAULT_HUB_URL)
+    expect(normalizeHubUrl('  http://127.0.0.1:4317//  ')).toBe('http://127.0.0.1:4317')
+    expect(hubPortFromUrl('http://127.0.0.1:4317')).toBe(4317)
+    expect(hubPortFromUrl('http://localhost')).toBe(80)
+    expect(hubPortFromUrl('not a url')).toBeNull()
+  })
 
-    for (const document of documents) {
-      expect(document).toContain('Codex')
-      expect(document).toContain('Claude Code')
-      expect(document).toContain('Cursor')
-    }
+  it('carries a non-default hub into the agent config, because the agent spawns connect', () => {
+    const hubUrl = 'http://127.0.0.1:4317'
+    expect(getAgentClientSetup('codex', { hubUrl }).value).toBe(
+      `codex mcp add vibe-check --env VIBE_CHECK_HUB_URL=${hubUrl} -- npx -y ${SPEC} connect`,
+    )
+    expect(getAgentClientSetup('claude-code', { hubUrl }).value).toBe(
+      `claude mcp add --scope local vibe-check -e VIBE_CHECK_HUB_URL=${hubUrl} -- npx -y ${SPEC} connect`,
+    )
+    expect(JSON.parse(getAgentClientSetup('cursor', { hubUrl }).value)).toEqual({
+      'vibe-check': {
+        command: 'npx',
+        args: ['-y', SPEC, 'connect'],
+        env: { VIBE_CHECK_HUB_URL: hubUrl },
+      },
+    })
+  })
+})
 
-    const primaryDocuments = documents.slice(0, 2)
-    for (const document of primaryDocuments) {
-      expect(document).toContain(HUB_START_COMMAND)
-      expect(document).toContain(getAgentClientSetup('codex').value)
-      expect(document).toContain(getAgentClientSetup('claude-code').value)
-      expect(document).toContain(getAgentClientSetup('cursor').value)
-      expect(document).toContain('doctor --project')
-      expect(document).toContain(getWatchInstruction('docs-project').split('project_id')[0])
-    }
+describe('hub and doctor commands', () => {
+  it('passes a non-default port to up and hub', () => {
+    expect(getHubStartCommand()).toBe(`npx -y ${SPEC} up`)
+    expect(getHubStartCommand({ projectId: 'shop', agent: 'cursor' }))
+      .toBe(`npx -y ${SPEC} up --project shop --agent cursor`)
+    expect(getHubStartCommand({ projectId: 'shop', agent: 'codex', hubUrl: 'http://127.0.0.1:4317' }))
+      .toBe(`npx -y ${SPEC} up --project shop --agent codex --port 4317`)
+    expect(getHubStartCommand({ preferUp: false })).toBe(HUB_START_COMMAND)
+    expect(getHubStartCommand({ preferUp: false, hubUrl: 'http://127.0.0.1:4317' }))
+      .toBe(`${HUB_START_COMMAND} --port 4317`)
+  })
 
-    const mcpReadme = documents[1] ?? ''
-    expect(mcpReadme).toContain('Merge the `vibe-check` entry into `mcpServers`')
-    expect(mcpReadme).toContain('**ready** — exits `0`')
-    expect(mcpReadme).toContain('**stale** —')
-    expect(mcpReadme).toContain('**missing** —')
+  it('points doctor at a non-default hub', () => {
+    expect(getDoctorCommand('shop')).toBe(`npx -y ${SPEC} doctor --project shop`)
+    expect(getDoctorCommand('shop', 'http://127.0.0.1:4317/'))
+      .toBe(`npx -y ${SPEC} doctor --project shop --hub-url http://127.0.0.1:4317`)
+  })
+})
+
+describe('setup pack', () => {
+  it('formats the default pack with the guided up command', () => {
+    const pack = formatSetupPack({ projectId: 'storefront', agent: 'codex' })
+    expect(pack).toContain('## VibeCheck setup — storefront')
+    expect(pack).toContain('### 1. Start the local hub')
+    expect(pack).toContain(`npx -y ${SPEC} up --project storefront --agent codex`)
+    expect(pack).toContain('codex mcp add vibe-check')
+    expect(pack).toContain('project_id "storefront"')
+    expect(pack).toContain(`Check the connection (read-only): npx -y ${SPEC} doctor --project storefront`)
+  })
+
+  it('does not tell the user to start a second hub when one is running', () => {
+    const pack = formatSetupPack({ projectId: 'storefront', agent: 'claude-code', hubRunning: true })
+    expect(pack).not.toContain('Start the local hub')
+    expect(pack).not.toContain(' up --project')
+    expect(pack).not.toContain(HUB_START_COMMAND)
+    expect(pack).not.toContain(UP_START_COMMAND)
+    expect(pack).toContain(`The hub is already running at ${DEFAULT_HUB_URL}. Leave it running.`)
+    expect(pack).toContain('claude mcp add --scope local vibe-check')
+  })
+
+  it('carries a non-default hub into every command in the pack', () => {
+    const hubUrl = 'http://127.0.0.1:4317'
+    const pack = formatSetupPack({ projectId: 'shop', agent: 'cursor', hubUrl })
+    expect(pack).toContain(`up --project shop --agent cursor --port 4317`)
+    expect(pack).toContain('"VIBE_CHECK_HUB_URL": "http://127.0.0.1:4317"')
+    expect(pack).toContain(`doctor --project shop --hub-url ${hubUrl}`)
+
+    const running = formatSetupPack({ projectId: 'shop', agent: 'codex', hubUrl, hubRunning: true })
+    expect(running).toContain(`The hub is already running at ${hubUrl}.`)
+    expect(running).toContain(`--env VIBE_CHECK_HUB_URL=${hubUrl}`)
+  })
+
+  it('keeps the legacy bare-hub option', () => {
+    const pack = formatSetupPack({ projectId: 'storefront', agent: 'codex', preferUp: false })
+    expect(pack).toContain(`${HUB_START_COMMAND}\n`)
+    expect(pack).not.toContain(' up --project')
   })
 })

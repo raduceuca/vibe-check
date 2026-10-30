@@ -449,7 +449,7 @@ const App = () => (
     <CTA />
     {/* Wired to the local MCP server so the panel's connection status is live
         (Agent and Settings tabs) and beacon delivery actually happens. Start it with:
-        npx -y @wcgw/vibe-check-mcp@0.3.0 hub */}
+        npx -y @wcgw/vibe-check-mcp@0.4.0 hub */}
     <VibeCheck
       enabled
       position="bottom-right"

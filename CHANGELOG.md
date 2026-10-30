@@ -4,6 +4,60 @@ All notable changes across the `@wcgw/vibe-check`, `@wcgw/vibe-check-core`,
 `@wcgw/vibe-check-mcp`, and `@wcgw/vibe-check-protocol` packages. Versions are
 kept in lockstep.
 
+## 0.4.0
+
+Your agent built it. You decide if it ships. This release hardens the local hub,
+makes setup pins and verification evidence trustworthy, and keeps the human in
+control of what leaves the page.
+
+### New
+
+- **Derived MCP package pin.** Setup commands, the widget, and docs resolve
+  `@wcgw/vibe-check-mcp` from the published package version at build time, so a
+  release cannot point people at a version that does not exist.
+- **Ten named MCP tools from one catalog.** Tool names, descriptions, and
+  parameters come from a shared catalog the hub registers and the docs can
+  generate from — including `resolve_issue.wait_seconds` for waiting on browser
+  verification.
+- **Honest agent states.** A project is `watching` only while an agent is
+  actually waiting (or briefly after); otherwise a claimed project shows as
+  `leased`. Dispatches while nobody is waiting are `queued` and kept.
+- **Two-phase delivery.** A long-poll hand-off stays in flight until the bridge
+  acknowledges it; cancel or timeout returns the issue to the front of the
+  queue instead of dropping it.
+- **Probe-tagged audit fetches.** SEO/AEO probes share a cache and never count
+  as the page's own duplicate requests.
+- **Engine `recheck` / `clearIssues(detector)` / audit run status.** Snapshots
+  carry per-detector observation windows so the hub can tell a real fix from a
+  page that has not been checked yet. No-hub "mark as fixed" is an honest
+  **dismiss**.
+
+### Fixed
+
+- **Verification needs fresh observation.** A reload that changes nothing no
+  longer counts as a verified fix; an HMR fix can verify once detectors have
+  observed the page after the request.
+- **Bounded beacon payloads.** Heavy pages stay under the keepalive body budget;
+  the hub accepts and truncates oversized snapshots instead of rejecting them
+  structurally for size alone.
+- **Memory-leak heuristic.** Rising post-GC heap floors over a warm window
+  replace the old short sawtooth that false-positived on boot.
+
+### Security
+
+- **Hub origin and Host gate.** Browser `/api` routes accept loopback origins
+  (and an explicit allowlist) only, echo that Origin (never `*`), require
+  `Content-Type: application/json` on POSTs, and reject rebinding Host headers.
+  Malformed paths such as `/%` return 400 without taking the hub down.
+- **`--allow-origin` / `VIBE_CHECK_ALLOWED_ORIGINS` / `register --origin`.**
+  Custom dev hosts opt in; blocked origins are reported once with a plain-language
+  next step.
+
+### Breaking
+
+- Non-loopback browser origins must be allowlisted before the hub will talk to
+  them. Loopback (`localhost`, `*.localhost`, `127.0.0.0/8`, `[::1]`) stays open.
+
 ## 0.3.0
 
 The MCP workflow is now a durable, project-scoped product rather than a demo.

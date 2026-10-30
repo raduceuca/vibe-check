@@ -5,15 +5,16 @@ import {
   readImpactCache,
   writeImpactCache,
 } from '../store/impactCache.js'
+import { usePolling } from './usePolling.js'
 
 interface UseProjectImpactOptions {
   readonly beaconUrl?: string
   readonly projectId?: string
+  /** Stop polling (hub known to be down, or nothing on screen shows impact). */
+  readonly paused?: boolean
 }
 
-const POLL_INTERVAL_MS = 2_000
-
-export const useProjectImpact = ({ beaconUrl, projectId }: UseProjectImpactOptions) => {
+export const useProjectImpact = ({ beaconUrl, projectId, paused = false }: UseProjectImpactOptions) => {
   const [impact, setImpact] = useState<ProjectImpactSummary | null>(
     () => projectId ? readImpactCache(projectId) : null,
   )
@@ -37,24 +38,17 @@ export const useProjectImpact = ({ beaconUrl, projectId }: UseProjectImpactOptio
     setImpact(next)
   }, [baseUrl, projectId])
 
-  useEffect(() => {
-    if (!baseUrl || !projectId) return
-    let active = true
-    const refreshWhileActive = async (): Promise<void> => {
-      if (!active) return
-      try {
-        await refresh()
-      } catch {
-        // Keep the last persisted summary readable while the local hub is offline.
-      }
+  // Keep the last persisted summary readable while the local hub is offline.
+  const load = useCallback(async (): Promise<boolean> => {
+    try {
+      await refresh()
+      return true
+    } catch {
+      return false
     }
-    void refreshWhileActive()
-    const timer = setInterval(() => { void refreshWhileActive() }, POLL_INTERVAL_MS)
-    return () => {
-      active = false
-      clearInterval(timer)
-    }
-  }, [baseUrl, projectId, refresh])
+  }, [refresh])
+
+  usePolling(load, Boolean(baseUrl && projectId) && !paused)
 
   const resetImpact = useCallback(async (): Promise<void> => {
     if (!baseUrl || !projectId) throw new Error('VibeCheck hub is not configured')

@@ -1,20 +1,20 @@
 import { randomUUID } from 'node:crypto'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createHubClient } from './hubClient.js'
-import { createHubServer } from './hubServer.js'
 import { createLeaseManager } from './leaseManager.js'
 import { exitOnFatalError } from './fatal.js'
-import { runMain } from './main.js'
+import { ensureHubReachable, runMain, startHub } from './main.js'
 import { createMcpServer } from './mcpServer.js'
-import { formatSetupPack, getAgentClientSetup, getWatchInstruction, type AgentClientId } from '@wcgw/vibe-check-protocol'
 
 declare const __VIBE_CHECK_VERSION__: string
 
+const io = {
+  stdout: (value: string) => { process.stdout.write(value) },
+  stderr: (value: string) => { process.stderr.write(value) },
+}
+
 const main = async (): Promise<void> => {
-  const result = await runMain(process.argv.slice(2), process.env, {
-    stdout: (value) => process.stdout.write(value),
-    stderr: (value) => process.stderr.write(value),
-  }, {
+  const result = await runMain(process.argv.slice(2), process.env, io, {
     cwd: process.cwd(),
     version: __VIBE_CHECK_VERSION__,
   })
@@ -25,26 +25,13 @@ const main = async (): Promise<void> => {
   const { config } = result
 
   if (config.role === 'hub' || config.role === 'up') {
-    const hub = createHubServer({
-      version: __VIBE_CHECK_VERSION__,
-      registryPath: config.registryPath,
-      onPersistenceWarning: (message) => process.stderr.write(`[vibe-check] ${message}\n`),
-    })
-    hub.server.listen(config.port, config.host, () => {
-      const base = `http://${config.host}:${config.port}`
-      process.stderr.write(`[vibe-check] Hub listening on ${base}\n`)
-      if (config.role === 'up') {
-        const projectId = config.projectId ?? 'my-project'
-        const agent = (config.agent ?? 'codex') as AgentClientId
-        process.stderr.write(`[vibe-check] Guided setup for project "${projectId}" (${getAgentClientSetup(agent).label})\n`)
-        process.stderr.write(`${formatSetupPack({ projectId, agent, preferUp: false })}\n`)
-        process.stderr.write(`[vibe-check] Doctor (read-only): npx -y @wcgw/vibe-check-mcp@${__VIBE_CHECK_VERSION__} doctor --project ${projectId}\n`)
-        process.stderr.write(`[vibe-check] After the agent is watching, click Send to agent in the widget.\n`)
-        process.stderr.write(`[vibe-check] Watch instruction: ${getWatchInstruction(projectId)}\n`)
-      }
-    })
+    const started = await startHub(config, io, { version: __VIBE_CHECK_VERSION__ })
+    if (started.kind === 'exit') {
+      process.exitCode = started.code
+      return
+    }
     const shutdown = async (): Promise<void> => {
-      await hub.close()
+      await started.hub.close()
       process.exit(0)
     }
     process.on('SIGINT', () => { void shutdown() })
@@ -53,9 +40,14 @@ const main = async (): Promise<void> => {
   }
 
   const client = createHubClient(config.hubUrl)
-  await client.health()
-  const leases = createLeaseManager(client, randomUUID())
+  await ensureHubReachable(config.hubUrl, client)
+  // The SDK fills getClientVersion after the client initializes; lease acquire
+  // reads it lazily so lease-conflict messages can name the holder.
+  let mcpRef: ReturnType<typeof createMcpServer> | null = null
+  const leases = createLeaseManager(client, randomUUID(), () =>
+    mcpRef?.server.server.getClientVersion()?.name ?? null)
   const mcp = createMcpServer(client, leases, __VIBE_CHECK_VERSION__)
+  mcpRef = mcp
   await mcp.server.connect(new StdioServerTransport())
   process.stderr.write(`[vibe-check] MCP bridge connected to ${config.hubUrl}\n`)
 
