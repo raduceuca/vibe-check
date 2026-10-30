@@ -10,7 +10,10 @@ import { LiveLine } from '@/components/landing/LiveLine'
 import { VibeLedger } from '@/components/landing/VibeLedger'
 import { LoopSteps } from '@/components/landing/LoopSteps'
 import { FaultBench } from '@/components/landing/FaultBench'
-import { StepHead } from '@/components/landing/StepHead'
+import { PhaseLine } from '@/components/landing/PhaseLine'
+import { YourCallCard } from '@/components/landing/YourCallCard'
+import { InstallSteps } from '@/components/landing/InstallSteps'
+import { LandingFaq } from '@/components/landing/LandingFaq'
 import { LANDING_COPY } from '@/lib/landingCopy'
 
 const LANDING_DESCRIPTION = LANDING_COPY.metaDescription
@@ -139,18 +142,38 @@ const LandingPage = () => (
 
           <FaultBench />
 
-          <section id="install" className="vc-section" aria-labelledby="install-heading">
-            <StepHead id="install-heading" title={LANDING_COPY.install.title} />
-            <HeroSetupLine />
-            <p className="vc-p" style={{ marginTop: 18 }}>
-              Full install steps, agent config, and the dogfood demo ship with the rest of the
-              rebuild.{' '}
-              <Link className="vc-link" href="/docs/quickstart">
-                Read the quickstart
+          <section id="decide" className="vc-section" aria-labelledby="decide-heading">
+            <h2
+              id="decide-heading"
+              style={{
+                margin: 0,
+                fontFamily: 'var(--vc-serif)',
+                fontWeight: 500,
+                fontSize: 'clamp(28px, 24px + 1vw, 40px)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              You pick what reaches the agent.
+            </h2>
+            <p className="vc-p" style={{ marginTop: 12 }}>
+              Send to agent delivers that one issue to the coding agent watching your project.
+              Copy puts the same prompt on your clipboard. A copied prompt isn&apos;t a delivery,
+              and VibeCheck never counts it as one.
+            </p>
+            <p className="vc-p">
+              <Link className="vc-link" href="/docs/concepts/issue-lifecycle#delivery">
+                What each delivery message means
               </Link>
-              .
             </p>
           </section>
+
+          <PhaseLine />
+
+          <YourCallCard />
+
+          <InstallSteps />
+
+          <LandingFaq />
         </LiveEngineProvider>
       </AgentPickerProvider>
     </main>

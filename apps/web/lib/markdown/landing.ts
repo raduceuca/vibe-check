@@ -34,9 +34,23 @@ ${LANDING_COPY.notice.body[0]}
 
 ${LANDING_COPY.notice.body[1]}
 
+## ${LANDING_COPY.confirm.title}
+
+${LANDING_COPY.confirm.body}
+
+## ${LANDING_COPY.yourCall.title}
+
+${LANDING_COPY.yourCall.body}
+
 ## ${LANDING_COPY.install.title}
 
+${LANDING_COPY.install.body}
+
     ${LANDING_COPY.install.setupCommand('claude-code')}
+
+## ${LANDING_COPY.faq.title}
+
+${LANDING_COPY.faq.items.map((item) => `### ${item.q}\n\n${item.a}`).join('\n\n')}
 
 ## Links
 
