@@ -15,11 +15,13 @@ import { YourCallCard } from '@/components/landing/YourCallCard'
 import { InstallSteps } from '@/components/landing/InstallSteps'
 import { LandingFaq } from '@/components/landing/LandingFaq'
 import { LANDING_COPY } from '@/lib/landingCopy'
+import { MCP_PACKAGE_VERSION } from '@wcgw/vibe-check-core'
 
 const LANDING_DESCRIPTION = LANDING_COPY.metaDescription
 
 const DATE_PUBLISHED = '2025-11-01'
-const DATE_MODIFIED = '2026-10-30'
+const DATE_MODIFIED = '2026-10-26'
+const AUTHOR_FRAGMENT = 'radu'
 
 export const metadata: Metadata = {
   // absolute — avoid the root `%s · VibeCheck` template making the title too long
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/', types: { 'text/markdown': '/index.md' } },
 }
 
-const AUTHOR_ID = `${GITHUB_URL}#author`
+const AUTHOR_ID = `${SITE_URL}#${AUTHOR_FRAGMENT}`
 const ORG_ID = `${SITE_URL}#org`
 
 const jsonLd = {
@@ -47,8 +49,10 @@ const jsonLd = {
       '@id': `${SITE_URL}#app`,
       name: SITE_NAME,
       applicationCategory: 'DeveloperApplication',
-      operatingSystem: 'Web',
+      operatingSystem: 'macOS, Linux, Windows (Node.js 20+)',
+      softwareVersion: MCP_PACKAGE_VERSION,
       url: SITE_URL,
+      downloadUrl: 'https://www.npmjs.com/package/@wcgw/vibe-check',
       description: LANDING_DESCRIPTION,
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       isAccessibleForFree: true,
@@ -67,6 +71,16 @@ const jsonLd = {
       url: SITE_URL,
       description: LANDING_DESCRIPTION,
       publisher: { '@id': ORG_ID },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/#webpage`,
+      url: SITE_URL,
+      name: 'VibeCheck — performance and SEO overlay for AI-built apps',
+      description: LANDING_DESCRIPTION,
+      dateModified: DATE_MODIFIED,
+      author: { '@id': AUTHOR_ID },
+      isPartOf: { '@id': `${SITE_URL}#website` },
     },
     {
       '@type': 'Person',
