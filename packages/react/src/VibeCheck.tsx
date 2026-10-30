@@ -58,7 +58,7 @@ export const VibeCheck = memo(({
   enabled = true, position = 'bottom-right',
   panels = DEFAULT_PANELS,
   beaconUrl, projectId, onIssue,
-  engine: providedEngine = null,
+  engine: providedEngine,
   startCollapsed = false,
   storageKey,
 }: VibeCheckProps) => {

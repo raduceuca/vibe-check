@@ -1,69 +1,84 @@
+import { MCP_PACKAGE_SPEC } from '@wcgw/vibe-check-core'
+
 export const LANDING_COPY = {
-  title: 'VibeCheck — the live press check for AI-built frontends',
+  title: 'VibeCheck — your agent built it. You decide if it ships.',
   metaDescription:
-    'A live press check for AI-built frontends. Catch performance and discoverability defects, then hand the marked-up evidence back to your coding agent.',
+    'A dev overlay that checks your AI-built frontend for jank, bloat, leaks and SEO/AEO gaps, sends the issue you pick to your coding agent, and verifies the fix.',
   hero: {
-    eyebrow: ['VibeCheck', 'live press check', 'AI-built frontend'],
-    headline: ['Your agent shipped it.', 'VibeCheck pulled the proof.'],
+    kicker: 'For React apps built with Claude Code, Codex, or Cursor',
+    headline: ['Your agent built it.', 'You decide if it ships.'] as const,
     lede:
-      'A live press check for the AI-built frontend. VibeCheck reads every pass for jank, leaks, DOM bloat, layout shift, and discoverability defects—then hands the marked-up evidence back to your coding agent before those mistakes harden into production.',
-    liveNote: 'The proof in the bottom-right is live—it is reading this page now.',
+      "VibeCheck is a performance and SEO overlay for AI-built frontends. It runs in the corner of your dev server, names what's wrong on the live page, and sends the one issue you pick to the coding agent working on it. A fix counts only when fresh browser readings say so.",
+    primaryCta: 'Set it up in five minutes',
+    secondaryCta: 'Break this page first',
+    setupLabel: 'Set up with',
+    noteWide:
+      "That dark panel is VibeCheck, measuring this tab right now. It's the same package you'd install.",
+    noteNarrow:
+      'VibeCheck is running on this page. Tap the pill in the bottom corner to open it.',
+    liveLineSsr: 'Running on this page now',
   },
-  sections: {
-    problem: {
-      title: 'What slips through the first pass',
-      sub: 'before the ink dries',
-      body: [
-        'The first pass can look clean and still be wrong. An AI agent ships a frontend that holds together in the happy path, then leaks memory across routes, bloats the DOM to 10k nodes, fires the same request eight times, janks on scroll, shifts as assets load, and quietly disappears from search and answer engines. The screen looked finished. Nobody pulled a proof.',
-        'VibeCheck is the press check your coding agent was missing. It watches each run like a printer reads a proof sheet: measuring the page, marking the defects, and returning exact evidence through MCP so the agent can correct the next pass.',
-      ],
-    },
-    demo: {
-      title: 'Pull a bad proof',
-      sub: 'make the defects visible',
-      body: 'These are not mockups. Each control deliberately throws part of this page out of register: memory, DOM size, layout, requests, or the console. The live proof in the corner marks the fault within seconds. Clear the proof when you are done and the page returns to register.',
-    },
-    measurements: {
-      title: 'Every pass, measured',
-      sub: 'live control strip',
-      body: 'A press operator does not judge a run by sight alone; the control strip tells the truth. VibeCheck does the same for the browser, continuously reading frame health, main-thread stalls, JS-heap memory, and Core Web Vitals from this page. These are live measurements, not a mockup.',
-      closing: 'Those are the control readings. On top of them, VibeCheck identifies thirteen recurring defects by name and marks the exact evidence your agent needs for the correction.',
-    },
-    bestiary: {
-      title: 'The Slop Bestiary',
-      sub: 'thirteen recurring misprints',
-      body: 'A specimen drawer of the defects AI agents keep putting back into circulation. Each card names the culprit, records how it slips into the run, and shows the exact proof mark VibeCheck emits when it catches one.',
-      auditBody: 'Two specimens—seo and aeo—run as pass/fail press checks. Pull a proof of the page you are reading and see what search crawlers and answer engines actually receive, misses included.',
-    },
-    loop: {
-      title: 'From proof mark to fix',
-      sub: 'the correction loop',
-      body: 'A useful proof does more than say something is wrong. The widget captures the reading, sends it to the local MCP server, and gives your coding agent the marked evidence it needs to propose the correction.',
-      transition: 'Here is an illustrative correction loop as your agent sees it: a defect is marked, the evidence travels over MCP, a diff is proposed, and the next pass returns to register. The public demo stays local-only. Put it through the press:',
-    },
-    install: {
-      title: 'Install the press check',
-      sub: 'two blocks',
-      closing: 'Nine project-scoped MCP tools, an llms.txt, and a Claude skill ship with the press check. The widget marks the defects; your agent gets the evidence.',
-    },
+  look: {
+    title: 'This page, checked as you read it.',
+    body:
+      'Five readings from the same engine as the panel in the corner, measured in your browser while you read. Break anything below and watch its row change.',
+    caption:
+      'Same engine as the panel in the corner, running in this tab. No hub is configured on this site, so nothing it measures leaves your browser.',
+    recheck: 'Run the audits again',
+    showAll: 'Show all 28 checks',
   },
-  demo: {
-    reset: 'Clear the proof',
-    calm: 'Proof is clean. Introduce a fault above; the live press check will mark it within seconds.',
+  loop: {
+    title: 'Four steps. One of them is yours.',
+    body:
+      'Your agent is fast. It\'s also confident about things it never looked at. VibeCheck puts a check between "it compiles" and "it ships", and you\'re the one holding it.',
+    steps: [
+      {
+        name: 'VibeCheck notices.',
+        sentence:
+          'It measures the running page from the corner of your dev server: frames, layout, memory, requests, the console, and how search and answer engines read it.',
+        link: 'Break this page',
+        href: '#notice',
+        yours: false,
+      },
+      {
+        name: 'You decide.',
+        sentence:
+          'Nothing goes to your agent until you press Send to agent on the issue you care about. Ignoring the rest is allowed.',
+        link: 'How sending works',
+        href: '#decide',
+        yours: true,
+      },
+      {
+        name: 'Your agent fixes.',
+        sentence:
+          'One agent session holds your project and receives exactly that issue, with the evidence attached.',
+        link: 'See a real run',
+        href: '#fix',
+        yours: false,
+      },
+      {
+        name: 'The browser confirms.',
+        sentence:
+          'The issue counts as fixed only after two fresh snapshots arrive without it. If it comes back later, it\'s marked regressed.',
+        link: 'How verifying works',
+        href: '#confirm',
+        yours: false,
+      },
+    ] as const,
   },
-  gauges: {
-    header: 'Live proof · this page, right now',
-    note: 'read from the same collectors the widget ships',
-  },
-  audit: {
-    heading: 'Pull a discoverability proof',
-    button: 'Run the SEO / AEO press check',
-    scanLink: 'Run a press check on any URL →',
+  notice: {
+    title: 'Now break it the way agents do.',
+    body: [
+      'Agents are generous. They render all two thousand rows, drop a photo straight off the camera into a thumbnail, fetch the same data from two components, and add a banner that loads late. The page still looks finished in a screenshot. It only feels wrong when you use it.',
+      'Each button below does one of those things to this page, for real. Press one and watch the corner.',
+    ] as const,
+    footnote:
+      'These controls change your copy of this page only. Search engines and other visitors get the real one.',
   },
   install: {
-    firstHeading: 'Mount the live proof',
-    secondHeading: 'Connect the correction loop',
-    quickstart: 'Set up the press check in five minutes →',
+    title: 'Set it up in five minutes',
+    setupCommand: (agent: 'claude-code' | 'codex' | 'cursor') =>
+      `npx -y ${MCP_PACKAGE_SPEC} setup --agent ${agent}`,
   },
-  footerLead: 'Pull a proof before you call it done.',
+  footerLead: 'Keep building fast. Keep the final say.',
 } as const
