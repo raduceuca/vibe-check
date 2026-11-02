@@ -118,7 +118,7 @@ const tidewellPlugin = (): Plugin => {
           fixed.has('clean') || fixed.has('findable') || fixed.has('quotable')
         const lightFixed = fixed.has('light')
 
-        if (pathOnly === '/images/hero-4000.jpg') {
+        if (pathOnly === '/images/hero-4000.png') {
           res.setHeader('Cache-Control', 'no-store')
         }
 

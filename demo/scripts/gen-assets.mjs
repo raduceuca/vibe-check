@@ -2,16 +2,16 @@
 /**
  * Generate Tidewell image placeholders under demo/public/images/.
  *
- * - hero-4000.jpg — intentionally huge (~2.4 MB) so large-images trips.
- *   Written as an uncompressed PNG with a .jpg name (browsers decode it;
- *   transferSize is what the detector measures).
- * - hero-800.jpg / hero-1600.jpg — smaller compressed stand-ins for the
- *   reference fix srcset. [UNVERIFIED] for AVIF/WebP; JPEG-as-PNG used instead.
- * - product-N.jpg — 1600×1200 glaze fields for unoptimized-images.
- * - product-N-sm.jpg — ~560×420 for fixed srcset.
+ * - hero-4000.png — intentionally huge (~2.4 MB) so large-images trips.
+ * - hero-800.png / hero-1600.png — smaller stand-ins for the reference fix srcset.
+ * - product-N.png — 1600×1200 glaze fields for unoptimized-images.
+ * - product-N-sm.png — ~560×420 for fixed srcset.
  * - mug-N.svg — simple ceramic mug shapes (colour from glaze, not photography).
+ *
+ * PNG IDAT must use zlib-wrapped deflate (`deflateSync`). Raw deflate
+ * (`deflateRawSync`) produces files browsers refuse to decode.
  */
-import { deflateRawSync } from 'node:zlib'
+import { deflateSync } from 'node:zlib'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -60,15 +60,15 @@ const writePng = (width, height, paint, level) => {
     for (let x = 0; x < width; x++) {
       const [r, g, b] = paint(x, y, width, height)
       const i = rowStart + 1 + x * 3
-      raw[i] = r
-      raw[i + 1] = g
-      raw[i + 2] = b
+      raw[i] = r & 0xff
+      raw[i + 1] = g & 0xff
+      raw[i + 2] = b & 0xff
     }
   }
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
-    chunk('IDAT', deflateRawSync(raw, { level })),
+    chunk('IDAT', deflateSync(raw, { level })),
     chunk('IEND', Buffer.alloc(0)),
   ])
 }
@@ -98,16 +98,16 @@ const heroPaint = (x, y, w, h) => {
 
 // ~2.4 MB store-level PNG — large-images (≥500 KB) on first view
 const heroHuge = writePng(1200, 700, heroPaint, 0)
-writeFileSync(join(outDir, 'hero-4000.jpg'), heroHuge)
-console.log(`hero-4000.jpg ${(heroHuge.length / 1024 / 1024).toFixed(2)} MB`)
+writeFileSync(join(outDir, 'hero-4000.png'), heroHuge)
+console.log(`hero-4000.png ${(heroHuge.length / 1024 / 1024).toFixed(2)} MB`)
 
 const hero1600 = writePng(1600, 900, heroPaint, 6)
-writeFileSync(join(outDir, 'hero-1600.jpg'), hero1600)
-console.log(`hero-1600.jpg ${(hero1600.length / 1024).toFixed(0)} KB`)
+writeFileSync(join(outDir, 'hero-1600.png'), hero1600)
+console.log(`hero-1600.png ${(hero1600.length / 1024).toFixed(0)} KB`)
 
 const hero800 = writePng(800, 450, heroPaint, 6)
-writeFileSync(join(outDir, 'hero-800.jpg'), hero800)
-console.log(`hero-800.jpg ${(hero800.length / 1024).toFixed(0)} KB`)
+writeFileSync(join(outDir, 'hero-800.png'), hero800)
+console.log(`hero-800.png ${(hero800.length / 1024).toFixed(0)} KB`)
 
 for (let i = 1; i <= 8; i++) {
   const { rgb, name } = GLAZES[i - 1]
@@ -117,20 +117,19 @@ for (let i = 1; i <= 8; i++) {
     const cy = y / h - 0.5
     const d = Math.sqrt(cx * cx + cy * cy)
     const shade = 1 - d * 0.55
-    // subtle mug silhouette ring
     const inMug = d < 0.28 && cy > -0.05
     const rim = Math.abs(d - 0.28) < 0.02 && cy > -0.08
     const boost = rim ? 1.15 : inMug ? 0.92 : 1
     return [
-      Math.max(0, Math.min(255, br * shade * boost)),
-      Math.max(0, Math.min(255, bg * shade * boost)),
-      Math.max(0, Math.min(255, bb * shade * boost)),
+      Math.max(0, Math.min(255, Math.round(br * shade * boost))),
+      Math.max(0, Math.min(255, Math.round(bg * shade * boost))),
+      Math.max(0, Math.min(255, Math.round(bb * shade * boost))),
     ]
   }
   const full = writePng(1600, 1200, paint, 6)
-  writeFileSync(join(outDir, `product-${i}.jpg`), full)
+  writeFileSync(join(outDir, `product-${i}.png`), full)
   const sm = writePng(560, 420, paint, 6)
-  writeFileSync(join(outDir, `product-${i}-sm.jpg`), sm)
+  writeFileSync(join(outDir, `product-${i}-sm.png`), sm)
 
   const [r, g, b] = rgb
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -144,7 +143,20 @@ for (let i = 1; i <= 8; i++) {
 </svg>
 `
   writeFileSync(join(outDir, `mug-${i}.svg`), svg)
-  console.log(`product-${i}.jpg ${(full.length / 1024).toFixed(0)} KB + sm + mug-${i}.svg`)
+  console.log(`product-${i}.png ${(full.length / 1024).toFixed(0)} KB + sm + mug-${i}.svg`)
 }
 
-console.log(`Wrote placeholders to ${outDir}`)
+console.log(`Wrote procedural placeholders to ${outDir}`)
+
+// Prefer real Stilla photos when Pillow is available (looks like a shop, not noise).
+try {
+  const { spawnSync } = await import('node:child_process')
+  const photo = spawnSync('python3', [join(__dirname, 'gen-photo-assets.py')], { stdio: 'inherit' })
+  if (photo.status === 0) {
+    console.log('Replaced placeholders with Stilla photo stand-ins (gen-photo-assets.py)')
+  } else {
+    console.warn('gen-photo-assets.py skipped/failed — keeping procedural PNGs')
+  }
+} catch (err) {
+  console.warn('gen-photo-assets.py unavailable — keeping procedural PNGs')
+}

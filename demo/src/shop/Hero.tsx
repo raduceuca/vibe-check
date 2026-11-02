@@ -4,7 +4,7 @@ export const Hero = ({ findableFixed = false }: { readonly findableFixed?: boole
   <section className="hero" aria-labelledby="hero-h">
     {/* Broken: oversized hero (~2.4 MB) with no dimensions / srcset */}
     <img
-      src="/images/hero-4000.jpg"
+      src="/images/hero-4000.png"
       {...(findableFixed
         ? { alt: 'Tidewell studio shelf of glazed mugs' }
         : { alt: '' })}

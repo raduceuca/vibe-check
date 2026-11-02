@@ -67,7 +67,7 @@ Copy-prompt alone does **not** mean delivery — only a successful
 ## Regenerating assets
 
 ```bash
-node demo/scripts/gen-assets.mjs    # hero + product placeholders (+ SVG mugs)
+node demo/scripts/gen-assets.mjs    # PNG placeholders; prefers Stilla photos via gen-photo-assets.py
 node demo/scripts/gen-catalog.mjs   # ~700 KB catalog-full.json
 ```
 

@@ -21,8 +21,8 @@ export const ProductGrid = ({
           <article key={p.id} className="card" data-i={i}>
             <div className="ph">
               <img
-                src={`/images/product-${n}.jpg`}
-                srcSet={`/images/product-${n}-sm.jpg 560w, /images/product-${n}.jpg 1600w`}
+                src={`/images/product-${n}.png`}
+                srcSet={`/images/product-${n}-sm.png 560w, /images/product-${n}.png 1600w`}
                 sizes="(max-width: 900px) 50vw, 25vw"
                 width={280}
                 height={350}
