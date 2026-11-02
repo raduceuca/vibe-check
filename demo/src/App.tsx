@@ -33,6 +33,9 @@ import { GlazePicker as FixedGlazePicker } from './shop/fixed/GlazePicker'
 import { StockTicker as BrokenStockTicker } from './shop/StockTicker'
 import { StockTicker as FixedStockTicker } from './shop/fixed/StockTicker'
 
+import { OverTheTopMotion as BrokenMotion } from './shop/OverTheTopMotion'
+import { OverTheTopMotion as FixedMotion } from './shop/fixed/OverTheTopMotion'
+
 import { Reviews as BrokenReviews } from './shop/Reviews'
 import { Reviews as FixedReviews } from './shop/fixed/Reviews'
 
@@ -67,6 +70,7 @@ export const App = () => {
   const NewsletterInvite = smooth ? FixedNewsletterInvite : BrokenNewsletterInvite
   const GlazePicker = smooth ? FixedGlazePicker : BrokenGlazePicker
   const StockTicker = smooth ? FixedStockTicker : BrokenStockTicker
+  const OverTheTopMotion = smooth ? FixedMotion : BrokenMotion
 
   const Header = light ? FixedHeader : BrokenHeader
   const Hero = light ? FixedHero : BrokenHero
@@ -95,6 +99,7 @@ export const App = () => {
       <Newsletter findableFixed={findable} />
       <Footer findableFixed={findable} quotableFixed={quotable} />
       <CartPoller />
+      <OverTheTopMotion />
     </>
   )
 
