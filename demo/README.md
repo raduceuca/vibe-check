@@ -83,7 +83,7 @@ smaller JPEG stand-ins with `srcset` and dimensions instead.
 | Vibe | As shipped | Detector |
 |------|------------|----------|
 | Smooth | Late banners, busy glaze configurator, 50ms stock ticker | layout-thrashing, long-task-attribution, FPS |
-| Light | 2k reviews, duplicate cart fetch, memory leak, huge hero, oversized products, moment stub, static catalog | dom-bloat, duplicate-requests, memory-leak, large/unoptimized-images, heavy-library, resource-bloat |
+| Light | 2k reviews mounted in a clipped “SEO dump” (page shows 3), duplicate cart fetch, memory leak, huge hero, oversized products, moment stub, static catalog | dom-bloat, duplicate-requests, memory-leak, large/unoptimized-images, heavy-library, resource-bloat |
 | Clean | console.log every 300ms; bare `<head>` | console-spam, web-essentials |
 | Findable | `Vite + React` title, two h1s, empty alts, "Click here" | seo |
 | Quotable | no JSON-LD / main / llms / markdown; robots block GPTBot | aeo |

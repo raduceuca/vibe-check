@@ -21,7 +21,7 @@ export const VIBE_LABELS: Readonly<Record<Vibe, string>> = {
 export const VIBE_FAULTS: Readonly<Record<Vibe, readonly string[]>> = {
   smooth: ['layout-thrashing (LateBanners)', 'long-task-attribution (GlazePicker)', 'FPS (StockTicker)'],
   light: [
-    'dom-bloat (Reviews)',
+    'dom-bloat (2k reviews CSS-collapsed)',
     'duplicate-requests (cart)',
     'memory-leak (RecentlyViewed)',
     'large-images / unoptimized-images',

@@ -14,7 +14,8 @@ const BODIES = [
   'The handle fits my hand.',
 ]
 
-/** 2,000 first-name-only reviews for the Harbor mug (dom-bloat when all rendered). */
+/** 2,000 first-name-only reviews for the Harbor mug.
+ * Broken Reviews mounts all of them in a visually clipped dump (dom-bloat without scroll spam). */
 export const HARBOR_REVIEWS: readonly { readonly id: string; readonly name: string; readonly body: string }[] =
   Array.from({ length: 2000 }, (_, i) => ({
     id: `rev-${i}`,
