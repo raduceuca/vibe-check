@@ -1,0 +1,6 @@
+# Vite React example
+
+A minimal VibeCheck integration example for Vite and React.
+
+- Home: https://example.com/
+- Docs: https://vibecheck.wcgw.fun/docs/examples
