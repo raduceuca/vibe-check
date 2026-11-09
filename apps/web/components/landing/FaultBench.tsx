@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import { useLiveEngine } from '@/components/live/LiveEngineProvider'
 import { LANDING_COPY } from '@/lib/landingCopy'
 import { StepHead } from './StepHead'
@@ -12,8 +12,13 @@ import {
 } from './faults/registry'
 import type { Fault, FaultId } from './faults/types'
 
+const subscribeToNothing = () => () => undefined
+
 export const FaultBench = () => {
   const { engine } = useLiveEngine()
+  // fault.available() feature-detects browser APIs the server cannot see.
+  // Render every fault as available until hydration so both renders match.
+  const hydrated = useSyncExternalStore(subscribeToNothing, () => true, () => false)
   const bannerRef = useRef<HTMLDivElement>(null)
   const reviewsRef = useRef<HTMLDivElement>(null)
   const photoRef = useRef<HTMLDivElement>(null)
@@ -112,7 +117,7 @@ export const FaultBench = () => {
               </h3>
               <div style={{ display: 'grid', gap: 14 }}>
                 {faults.map((fault) => {
-                  const reason = fault.available()
+                  const reason = hydrated ? fault.available() : null
                   const pressed = active === fault.id
                   return (
                     <div key={fault.id} style={{ display: 'grid', gap: 6 }}>

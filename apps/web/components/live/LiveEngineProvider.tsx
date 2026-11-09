@@ -11,6 +11,7 @@ import {
 import type { VibeEngine, VibeSnapshot } from '@wcgw/vibe-check-core'
 import { VibeWidget } from '@/components/vibe/VibeWidget'
 import { WidgetLayoutSync } from '@/components/vibe/WidgetLayoutSync'
+import { createLiveStore } from './liveStore'
 
 interface LiveEngineValue {
   readonly engine: VibeEngine | null
@@ -62,11 +63,7 @@ export const LiveEngineProvider = ({ children }: { readonly children: ReactNode 
   const value = useMemo<LiveEngineValue>(() => ({
     engine,
     ready: engine !== null,
-    subscribe: (listener) => {
-      if (!engine) return () => undefined
-      return engine.onSnapshot(listener)
-    },
-    getSnapshot: () => engine?.getSnapshot() ?? null,
+    ...createLiveStore(engine),
   }), [engine])
 
   return (

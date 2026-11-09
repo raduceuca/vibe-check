@@ -406,6 +406,10 @@ html {
   flex: 1 1 auto;
   min-width: 0;
 }
+/* The top bar shell stacks bar, page and footer; only the sidebar shell is a row. */
+.vc-app-topbar {
+  display: block;
+}
 
 /* Desktop rail */
 .vc-side {
