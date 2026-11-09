@@ -4,6 +4,7 @@ dist/
 .env.*
 .DS_Store
 coverage/
+.next/
 *.tsbuildinfo
 *.map
 .worktrees/
