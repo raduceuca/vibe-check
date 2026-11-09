@@ -42,7 +42,7 @@ export const InstallSteps = () => {
         <AgentPicker name="vc-install-agent" />
       </div>
 
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 28 }}>
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 28 }}>
         <li>
           <h3 style={{ margin: 0, fontFamily: 'var(--vc-serif)', fontWeight: 500, fontSize: 22 }}>
             {LANDING_COPY.install.steps[0].title}
