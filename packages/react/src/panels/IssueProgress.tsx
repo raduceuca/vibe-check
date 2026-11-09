@@ -7,10 +7,12 @@ import type {
 } from '@wcgw/vibe-check-core'
 import { T } from '../tokens.js'
 
+// 'sent' means the hub accepted the issue and no agent has confirmed receipt
+// yet, so it reads "queued", never "sent". 'working' starts at that receipt.
 const PHASE_LABELS: Readonly<Record<IssuePhase, string>> = {
   detected: 'Detected',
-  sent: 'Sent',
-  working: 'Agent working',
+  sent: 'Queued for agent',
+  working: 'With agent',
   verifying: 'Verifying',
   fixed: 'Fixed',
   regressed: 'Regressed',
@@ -18,8 +20,8 @@ const PHASE_LABELS: Readonly<Record<IssuePhase, string>> = {
 
 const VIBE_PHASE_LABELS: Readonly<Record<IssuePhase, string>> = {
   detected: 'To fix',
-  sent: 'Sent to AI',
-  working: 'AI is working',
+  sent: 'Waiting for your AI to pick it up',
+  working: 'With your AI',
   verifying: 'Checking the fix',
   fixed: 'Fixed',
   regressed: 'Came back',
@@ -27,12 +29,13 @@ const VIBE_PHASE_LABELS: Readonly<Record<IssuePhase, string>> = {
 
 const EVENT_LABELS: Readonly<Record<IssueWorkflowEvent['type'], string>> = {
   detected: 'Detected',
-  sent: 'Sent',
-  working: 'Agent working',
-  'verification-requested': 'Verification requested',
+  sent: 'Queued for agent',
+  working: 'With agent',
+  'verification-requested': 'Check requested',
   'verification-failed': 'Still detected',
   fixed: 'Fixed',
   regressed: 'Regressed',
+  'dispatch-dropped': 'Send dropped: no agent received it',
 }
 
 const phaseColor = (phase: IssuePhase): string => {
@@ -52,7 +55,7 @@ const badgeStyle = (phase: IssuePhase): CSSProperties => ({
   border: `1px solid color-mix(in srgb, ${phaseColor(phase)} 45%, transparent)`,
   color: phaseColor(phase),
   background: `color-mix(in srgb, ${phaseColor(phase)} 10%, transparent)`,
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 650,
 })
 
@@ -68,12 +71,12 @@ export const IssueProgress = ({ tracked, mode }: IssueProgressProps) => {
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7 }}>
         <span style={badgeStyle(tracked.phase)}>{labels[tracked.phase]}</span>
         {tracked.occurrenceCount > 1 && (
-          <span style={{ color: T.textTertiary, fontSize: 12 }}>
+          <span style={{ color: T.textTertiary, fontSize: 14 }}>
             Occurrence {tracked.occurrenceCount}
           </span>
         )}
         {tracked.regressionCount > 0 && (
-          <span style={{ color: T.red, fontSize: 12 }}>
+          <span style={{ color: T.red, fontSize: 14 }}>
             Regressed {tracked.regressionCount} {tracked.regressionCount === 1 ? 'time' : 'times'}
           </span>
         )}
@@ -88,7 +91,7 @@ export const IssueProgress = ({ tracked, mode }: IssueProgressProps) => {
       }}>
         {tracked.events.map((event, index) => (
           <li key={`${event.type}-${event.at}-${index}`} style={{
-            display: 'flex', alignItems: 'center', gap: 5, color: T.textMuted, fontSize: 11,
+            display: 'flex', alignItems: 'center', gap: 5, color: T.textMuted, fontSize: 14,
           }}>
             {index > 0 && <span aria-hidden="true">→</span>}
             <span>{EVENT_LABELS[event.type]}</span>

@@ -1,6 +1,8 @@
+import type { DetectorRunStatus } from '@wcgw/vibe-check-protocol'
 import type { Detector, VibeIssue, Severity } from '../types.js'
 import { hasMutationObserver } from '../utils/featureDetect.js'
 import { createIssue } from './createIssue.js'
+import { createRunTracker } from './runStatus.js'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,6 +103,7 @@ export const createUnoptimizedImagesDetector = (): Detector => {
   // Srcs already folded into a group, so re-observing the same node doesn't
   // double-count. Bounded to MAX_TRACKED_SRCS.
   const countedSrcs = new Set<string>()
+  const tracker = createRunTracker('unoptimized-images', { settleAfterMs: 1_000 })
 
   const trackSrc = (src: string): void => {
     countedSrcs.add(src)
@@ -184,6 +187,7 @@ export const createUnoptimizedImagesDetector = (): Detector => {
     if (typeof document === 'undefined') return
     const images = document.querySelectorAll('img')
     images.forEach((img) => checkImage(img))
+    tracker.evaluated(Date.now())
   }
 
   const handleMutations = (mutations: MutationRecord[]): void => {
@@ -200,13 +204,16 @@ export const createUnoptimizedImagesDetector = (): Detector => {
         }
       }
     }
+    tracker.evaluated(Date.now())
   }
 
   return {
     name: 'unoptimized-images',
 
     start(): void {
-      if (!hasMutationObserver()) return
+      const supported = hasMutationObserver()
+      tracker.start(Date.now(), supported)
+      if (!supported) return
       if (observer !== null) return
 
       // Scan existing images first
@@ -227,6 +234,7 @@ export const createUnoptimizedImagesDetector = (): Detector => {
       }
       countedSrcs.clear()
       indexBySignature.clear()
+      tracker.stop()
     },
 
     getIssues(): readonly VibeIssue[] {
@@ -237,6 +245,11 @@ export const createUnoptimizedImagesDetector = (): Detector => {
       issues = []
       countedSrcs.clear()
       indexBySignature.clear()
+      tracker.reset()
+    },
+
+    getStatus(): DetectorRunStatus {
+      return tracker.status()
     },
   }
 }

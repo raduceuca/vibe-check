@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { VibeSnapshot } from '@wcgw/vibe-check-core'
 import {
@@ -9,7 +9,6 @@ import {
   EMPTY_WEB_VITALS,
 } from '@wcgw/vibe-check-core'
 import type { TrackedIssue } from '../../store/issueStore.js'
-import { BottomNav } from '../nav/BottomNav.js'
 import { MonitorView } from './MonitorView.js'
 
 const SNAPSHOT: VibeSnapshot = {
@@ -43,9 +42,9 @@ const TRACKED: TrackedIssue = {
   resolvedAt: null,
 }
 
-describe('monitor proof details', () => {
-  it('adds live-sample, calibration, audit, and issue registration details', () => {
-    const { container } = render(
+describe('monitor sections', () => {
+  it('shows issues without print-mark chrome', () => {
+    render(
       <MonitorView
         snapshot={SNAPSHOT}
         mode="vibe"
@@ -57,25 +56,11 @@ describe('monitor proof details', () => {
       />,
     )
 
-    expect(container.querySelector('[data-wcgw-read-sample]')?.textContent).toBe('READ / SAMPLE')
-    expect(container.querySelectorAll('[data-wcgw-calibration-ruler]')).toHaveLength(1)
-    expect(container.querySelectorAll('[data-wcgw-audit-plate]')).toHaveLength(2)
-    expect(container.querySelectorAll('[data-wcgw-issue-register]')).toHaveLength(1)
-    expect(container.querySelector('[data-wcgw-proof-marks-heading]')?.textContent).toBe('proof marks')
-    expect(container.querySelectorAll('[data-wcgw-proof-divider="major"]')).toHaveLength(2)
-    expect(container.querySelectorAll('[data-wcgw-proof-divider="minor"]')).toHaveLength(1)
-  })
-
-  it('labels the active navigation view as a proof plate', () => {
-    const { container } = render(
-      <BottomNav
-        activeView="monitor"
-        onSelect={vi.fn()}
-        mode="vibe"
-        counts={{ agent: 0, seo: 0, aeo: 0 }}
-      />,
-    )
-
-    expect(container.querySelector('[data-wcgw-nav-proof]')?.textContent).toBe('PL 01/06')
+    expect(screen.getByText('problems')).toBeTruthy()
+    expect(screen.queryByText('proof marks')).toBeNull()
+    expect(screen.queryByText('READ / SAMPLE')).toBeNull()
+    expect(screen.queryByText(/CHK /)).toBeNull()
+    expect(document.querySelectorAll('[data-wcgw-calibration-ruler]')).toHaveLength(0)
+    expect(document.querySelectorAll('[data-testid="vibe-check-divider"]')).toHaveLength(3)
   })
 })

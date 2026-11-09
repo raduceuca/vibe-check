@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="420" viewBox="0 0 560 420" role="img" aria-label="Ember mug">
+  <rect width="560" height="420" fill="#f6f6f4"/>
+  <ellipse cx="260" cy="320" rx="110" ry="18" fill="#00000012"/>
+  <path d="M170 120 h160 a20 20 0 0 1 20 20 v140 c0 40-40 70-100 70 s-100-30-100-70 V140 a20 20 0 0 1 20-20 z" fill="rgb(70,90,110)"/>
+  <ellipse cx="250" cy="120" rx="80" ry="22" fill="rgb(100,120,140)"/>
+  <ellipse cx="250" cy="120" rx="58" ry="14" fill="rgb(30,50,70)"/>
+  <path d="M350 160 h36 a36 36 0 0 1 0 100 h-36" fill="none" stroke="rgb(70,90,110)" stroke-width="22" stroke-linecap="round"/>
+</svg>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
+import { useState, useEffect, useCallback, useId, useMemo, useRef, memo } from 'react'
 import type {
   BeaconStatus,
   DispatchIssueResponse,
@@ -24,7 +24,11 @@ interface AnnotationOverlayProps {
   readonly beaconStatus: BeaconStatus | null
   readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
+  /** Local dismiss, offered only when no hub is configured. */
   readonly onMarkResolved: (issueId: string) => void
+  /** Hub verification ("check this fix"), offered when a hub is configured. */
+  readonly onRequestVerification?: (issueId: string) => Promise<void>
+  readonly hubConfigured?: boolean
 }
 
 // Viewport-relative rect (from getBoundingClientRect)
@@ -38,8 +42,26 @@ interface ViewportRect {
 interface AnnotationGroup {
   readonly rect: ViewportRect
   readonly issues: readonly TrackedIssue[]
+  // Stable per DOM element across rebuilds, so an open popover stays on its
+  // element when another group drops out (it used to be tracked by index).
   readonly key: string
 }
+
+// One id per annotated element for the lifetime of the page.
+const elementKeys = new WeakMap<Element, string>()
+let nextElementKey = 0
+const keyForElement = (element: Element): string => {
+  const existing = elementKeys.get(element)
+  if (existing) return existing
+  nextElementKey += 1
+  const key = `wcgw-annotation-${nextElementKey}`
+  elementKeys.set(element, key)
+  return key
+}
+
+// The page's visible width without its vertical scrollbar.
+const viewportWidth = (): number =>
+  document.documentElement.clientWidth || window.innerWidth
 
 // ── Element finders ─────────────────────────────────────────────────────────
 
@@ -142,8 +164,7 @@ const buildGroups = (
 
     const rect = element.getBoundingClientRect()
     if (rect.width === 0 && rect.height === 0) continue
-    const src = (element as HTMLImageElement).src ?? ''
-    const key = `${i}:${element.tagName}:${src.slice(-40)}`
+    const key = keyForElement(element)
     // Store document-relative coords so we can use position:absolute (no scroll lag)
     groups.push({
       rect: {
@@ -164,7 +185,7 @@ const buildGroups = (
 
 const Marker = ({
   group, index, mode, copiedId, onCopy, beaconStatus, onDispatch,
-  onMarkSent, onMarkResolved, expanded, onToggle,
+  onMarkSent, onMarkResolved, onRequestVerification, hubConfigured, expanded, onToggle,
 }: {
   readonly group: AnnotationGroup
   readonly index: number
@@ -175,24 +196,43 @@ const Marker = ({
   readonly onDispatch: (issue: VibeIssue) => Promise<DispatchIssueResponse>
   readonly onMarkSent: (issueId: string) => void
   readonly onMarkResolved: (issueId: string) => void
+  readonly onRequestVerification?: (issueId: string) => Promise<void>
+  readonly hubConfigured?: boolean
   readonly expanded: boolean
   readonly onToggle: () => void
 }) => {
   const issueCount = group.issues.length
   const primary = group.issues[0]
   const { rect } = group
+  const popoverId = useId()
+  const badgeRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const noun = mode === 'vibe' ? (issueCount > 1 ? 'problems' : 'problem') : (issueCount > 1 ? 'issues' : 'issue')
 
-  // Badge sits inside the element at top-right, clamped to viewport
+  // Opening moves focus into the popover so keyboard and screen-reader users
+  // land on its actions.
+  useEffect(() => {
+    if (expanded) popoverRef.current?.focus({ preventScroll: true })
+  }, [expanded])
+
+  const closeAndReturnFocus = (): void => {
+    onToggle()
+    badgeRef.current?.focus({ preventScroll: true })
+  }
+
+  // Badge sits inside the element at top-right, clamped to the visible width
+  // (the scrollbar excluded) so its hit box never widens the page.
   const badgeW = 22
   const pad = 6
-  const badgeX = Math.min(rect.left + rect.width - badgeW - pad, window.innerWidth - badgeW - 4)
+  const vpWidth = viewportWidth()
+  const badgeX = Math.min(rect.left + rect.width - badgeW - pad, window.scrollX + vpWidth - badgeW - 4)
   const badgeY = Math.max(rect.top + pad, 4)
 
   // Popover below the badge, clamped to visible viewport (convert to doc-relative)
-  const vpRight = window.scrollX + window.innerWidth
+  const vpRight = window.scrollX + vpWidth
   const vpBottom = window.scrollY + window.innerHeight
   const popoverLeft = Math.max(window.scrollX + 8, Math.min(badgeX - 130, vpRight - 310))
-  const popoverTop = Math.min(badgeY + 30, vpBottom - 340)
+  const popoverTop = Math.max(window.scrollY + 8, Math.min(badgeY + 30, vpBottom - 340))
 
   return (
     <>
@@ -215,10 +255,14 @@ const Marker = ({
           clickable element is a 44px transparent square centered on it, so the
           hit target meets the touch-size minimum without enlarging the badge. */}
       <div
+        ref={badgeRef}
         onClick={(e) => { e.stopPropagation(); onToggle() }}
         role="button"
         tabIndex={0}
-        aria-label={`${issueCount} ${mode === 'vibe' ? (issueCount > 1 ? 'problems' : 'problem') : (issueCount > 1 ? 'issues' : 'issue')}: ${primary.issue.title}`}
+        aria-label={`${issueCount} ${noun}: ${primary.issue.title}`}
+        aria-haspopup="dialog"
+        aria-expanded={expanded}
+        aria-controls={expanded ? popoverId : undefined}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         style={{
           position: 'absolute',
@@ -252,7 +296,17 @@ const Marker = ({
       {/* Expanded popover */}
       {expanded && (
         <div
+          ref={popoverRef}
+          id={popoverId}
+          role="dialog"
+          aria-label={`${issueCount} ${noun} here`}
+          tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return
+            e.stopPropagation()
+            closeAndReturnFocus()
+          }}
           style={{
             ...surfaceStyle,
             position: 'absolute',
@@ -268,14 +322,15 @@ const Marker = ({
             maxHeight: 320,
             overflowY: 'auto',
             pointerEvents: 'auto',
+            outline: 'none',
           }}
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
-              {issueCount} {mode === 'vibe' ? (issueCount > 1 ? 'problems' : 'problem') : (issueCount > 1 ? 'issues' : 'issue')} here
+              {issueCount} {noun} here
             </span>
-            <CloseButton onClick={onToggle} />
+            <CloseButton onClick={closeAndReturnFocus} />
           </div>
 
           {/* Issue list */}
@@ -302,6 +357,8 @@ const Marker = ({
                   onDispatch={onDispatch}
                   onMarkSent={onMarkSent}
                   onMarkResolved={onMarkResolved}
+                  onRequestVerification={onRequestVerification}
+                  hubConfigured={hubConfigured}
                 />
               </div>
             )
@@ -316,10 +373,10 @@ const Marker = ({
 
 export const AnnotationOverlay = memo(({
   tracked, visible, mode, theme, copiedId, onCopy, beaconStatus,
-  onDispatch, onMarkSent, onMarkResolved,
+  onDispatch, onMarkSent, onMarkResolved, onRequestVerification, hubConfigured,
 }: AnnotationOverlayProps) => {
   const [groups, setGroups] = useState<readonly AnnotationGroup[]>([])
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
 
   const activeIssues = useMemo(
     () => tracked.filter((t) => t.status !== 'resolved'),
@@ -426,18 +483,19 @@ export const AnnotationOverlay = memo(({
     }
   }, [visible, updateGroups])
 
-  // Close popover on outside click or Escape
+  // Close popover on outside click or Escape (Escape inside the popover also
+  // returns focus to its badge; see Marker).
   useEffect(() => {
-    if (expandedIdx === null) return
-    const handleClick = () => setExpandedIdx(null)
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpandedIdx(null) }
+    if (expandedKey === null) return
+    const handleClick = () => setExpandedKey(null)
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpandedKey(null) }
     document.addEventListener('click', handleClick)
     document.addEventListener('keydown', handleKey)
     return () => {
       document.removeEventListener('click', handleClick)
       document.removeEventListener('keydown', handleKey)
     }
-  }, [expandedIdx])
+  }, [expandedKey])
 
   if (!visible || activeIssues.length === 0) return null
 
@@ -445,11 +503,15 @@ export const AnnotationOverlay = memo(({
     <div
       data-wcgw
       data-wcgw-theme={theme}
+      // No z-index on the layer (so no stacking context): an open popover can
+      // then rise above the expanded panel. overflow: hidden keeps outlines
+      // and badge hit boxes from widening the host page.
       style={{
         position: 'absolute', top: 0, left: 0,
         width: '100%',
-        height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
-        pointerEvents: 'none', zIndex: T.zOverlay,
+        height: Math.max(document.documentElement.scrollHeight, document.documentElement.clientHeight),
+        overflow: 'hidden',
+        pointerEvents: 'none',
       }}
       data-testid="vibe-check-annotations"
     >
@@ -465,8 +527,10 @@ export const AnnotationOverlay = memo(({
           onDispatch={onDispatch}
           onMarkSent={onMarkSent}
           onMarkResolved={onMarkResolved}
-          expanded={expandedIdx === i}
-          onToggle={() => setExpandedIdx(expandedIdx === i ? null : i)}
+          onRequestVerification={onRequestVerification}
+          hubConfigured={hubConfigured}
+          expanded={expandedKey === group.key}
+          onToggle={() => setExpandedKey((open) => (open === group.key ? null : group.key))}
         />
       ))}
     </div>

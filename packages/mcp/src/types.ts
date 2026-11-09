@@ -35,6 +35,22 @@ export type {
   LeaseResult,
   AgentClientId,
   AgentClientSetup,
+  // Since 0.4: verification evidence, lease holders, issue actions and the
+  // two-phase delivery receipts.
+  DetectorKind,
+  DetectorRunStatus,
+  SnapshotTruncation,
+  LeaseHolder,
+  LeaseRequest,
+  IssueActionCode,
+  IssueActionResult,
+  IssueVerificationStatus,
+  VerificationOutcome,
+  VerificationEvidence,
+  VerificationInconclusiveReason,
+  DeliveryReceiptCode,
+  DeliveryReceiptRequest,
+  DeliveryReceiptResult,
 } from '@wcgw/vibe-check-protocol'
 
 export {

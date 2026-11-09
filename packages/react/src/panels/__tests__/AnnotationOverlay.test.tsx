@@ -80,6 +80,8 @@ describe('AnnotationOverlay issue actions', () => {
       }))}
       onMarkSent={vi.fn()}
       onMarkResolved={vi.fn()}
+      onRequestVerification={vi.fn(async () => undefined)}
+      hubConfigured
     />)
 
     const marker = await waitFor(() => screen.getByRole('button', { name: /1 issue: Large image/i }))
@@ -87,6 +89,7 @@ describe('AnnotationOverlay issue actions', () => {
 
     expect(screen.getByRole('button', { name: /send to agent/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /copy prompt/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /resolve/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /verify fix/i })).toBeTruthy()
   })
 })
+

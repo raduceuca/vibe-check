@@ -1,5 +1,7 @@
-import type { Detector, VibeIssue, Severity } from '../types.js'
-import { createIssue } from './createIssue.js'
+import type { Detector } from '../types.js'
+import type { AuditDetectorOptions } from '../utils/probe.js'
+import { createAuditDetector } from './auditRunner.js'
+import type { AuditFinding, ProbeCheck } from './auditRunner.js'
 
 // ── Discoverability / SEO audit ─────────────────────────────────────────────
 // Implements the deterministic (DOM- and HTTP-detectable) checks from the
@@ -13,16 +15,11 @@ const DESC_MAX = 160
 // Framework / placeholder titles a real page should never ship with.
 const DEFAULT_TITLES: readonly string[] = [
   'untitled', 'document', 'my site', 'home', 'app', 'new project',
-  'react app', 'create react app', 'vite app', 'vite + react', 'next app',
+  'react app', 'create react app', 'vite app', 'vite + react', 'vite + react + ts',
+  'next app', 'create next app',
 ]
 
-interface SeoFinding {
-  readonly check: string
-  readonly severity: Severity
-  readonly title: string
-  readonly description: string
-  readonly detail?: string
-}
+type SeoFinding = AuditFinding
 
 const text = (el: Element | null): string => el?.getAttribute('content')?.trim() ?? ''
 
@@ -170,93 +167,44 @@ export const SEO_CRITERIA_COUNT = domChecks.length + 2
 // HTTP checks for sitemap/robots — same-origin GET, treated as missing unless
 // the response is OK and the content type looks right (a SPA dev server returns
 // index.html for unknown paths, which we correctly read as "not a real sitemap").
-const fetchResource = async (
+// A probe that gets no response at all is "unreachable", never a pass.
+const resourceCheck = (
   path: string,
   expectType: string,
-): Promise<boolean> => {
-  try {
-    if (typeof fetch === 'undefined') return true // can't probe — assume ok
-    const res = await fetch(path, { method: 'GET' })
-    if (!res.ok) return false
-    const ct = res.headers.get('content-type') ?? ''
-    return ct.includes(expectType)
-  } catch {
-    return true // network error — don't false-flag
+  finding: AuditFinding,
+): ProbeCheck => ({
+  check: finding.check,
+  run: async (probe) => {
+    const res = await probe(path, { method: 'GET' })
+    if (res.networkError) return 'unreachable'
+    return res.ok && res.contentType.includes(expectType) ? 'pass' : finding
+  },
+})
+
+const PROBE_CHECKS: readonly ProbeCheck[] = [
+  resourceCheck('/sitemap.xml', 'xml', { check: 'sitemap-missing', severity: 'warning', title: 'Missing or invalid sitemap.xml', description: 'No valid /sitemap.xml. Search engines have to discover every page on their own, which slows full indexing.' }),
+  resourceCheck('/robots.txt', 'text/plain', { check: 'robots-missing', severity: 'info', title: 'Missing robots.txt', description: 'No /robots.txt. It is optional but recommended — it tells crawlers what to index and where the sitemap is.' }),
+]
+
+const runDomChecks = (): readonly AuditFinding[] => {
+  const findings: AuditFinding[] = []
+  for (const check of domChecks) {
+    const finding = check()
+    if (finding) findings.push(finding)
   }
+  return findings
 }
 
-export const createSeoDetector = (): Detector => {
-  let issues: VibeIssue[] = []
-  let hasRun = false
-  let cancelled = false
-  let loadHandler: (() => void) | null = null
-  let timerId: ReturnType<typeof setTimeout> | null = null
-
-  const emit = (f: SeoFinding): void => {
-    issues = [
-      ...issues,
-      createIssue('seo', f.severity, f.title, f.description, f.detail !== undefined ? { check: f.check, detail: f.detail } : { check: f.check }),
-    ]
-  }
-
-  const runChecks = (): void => {
-    if (typeof document === 'undefined') return
-    if (hasRun) return
-    hasRun = true
-
-    for (const check of domChecks) {
-      const finding = check()
-      if (finding) emit(finding)
-    }
-
-    // Async resource probes — fire-and-forget, guarded against post-stop emits.
-    void (async () => {
-      const sitemapOk = await fetchResource('/sitemap.xml', 'xml')
-      if (!cancelled && !sitemapOk) {
-        emit({ check: 'sitemap-missing', severity: 'warning', title: 'Missing or invalid sitemap.xml', description: 'No valid /sitemap.xml. Search engines have to discover every page on their own, which slows full indexing.' })
-      }
-      const robotsOk = await fetchResource('/robots.txt', 'text/plain')
-      if (!cancelled && !robotsOk) {
-        emit({ check: 'robots-missing', severity: 'info', title: 'Missing robots.txt', description: 'No /robots.txt. It is optional but recommended — it tells crawlers what to index and where the sitemap is.' })
-      }
-    })()
-  }
-
-  return {
-    name: 'seo',
-
-    start(): void {
-      if (typeof document === 'undefined') return
-      cancelled = false
-      // Run after a short delay to let the app render (SPA <head> is often set
-      // by JS after first paint).
-      if (document.readyState === 'complete') {
-        timerId = setTimeout(runChecks, 500)
-      } else {
-        loadHandler = () => { timerId = setTimeout(runChecks, 500) }
-        window.addEventListener('load', loadHandler, { once: true })
-      }
-    },
-
-    stop(): void {
-      cancelled = true
-      if (timerId !== null) {
-        clearTimeout(timerId)
-        timerId = null
-      }
-      if (loadHandler !== null) {
-        window.removeEventListener('load', loadHandler)
-        loadHandler = null
-      }
-    },
-
-    getIssues(): readonly VibeIssue[] {
-      return issues
-    },
-
-    clear(): void {
-      issues = []
-      hasRun = false
-    },
-  }
-}
+/**
+ * Discoverability audit. Runs once per start() / clear() / engine recheck(),
+ * after window load. Pass `probeCache` to share robots.txt with the aeo audit
+ * in the same run batch.
+ */
+export const createSeoDetector = (options?: AuditDetectorOptions): Detector =>
+  createAuditDetector({
+    detector: 'seo',
+    delayMs: 500,
+    domChecks: runDomChecks,
+    probeChecks: PROBE_CHECKS,
+    options,
+  })

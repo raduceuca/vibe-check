@@ -7,45 +7,43 @@ html {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Landing — "Quiet Instrument"
-   Pure neutrals, hairline rules, mono for data/labels. The ONLY accent is a
-   caught fault (severity red / amber). Token values mirror packages/react's
-   --wcgw-* theme so the site and the widget read as one system.
+   Landing — light editorial tokens (site-spec §5.1)
+   White canvas, solid inks, type variables from next/font. Landing is light-only.
+   Docs keep a separate .dark scope for the Fumadocs toggle.
    ──────────────────────────────────────────────────────────────────────────── */
 
 .vc-landing,
 .vc-docs {
   --vc-bg: #ffffff;
-  --vc-panel: #fafafa;
-  --vc-panel-2: #f4f4f4;
   --vc-ink: #111112;
-  --vc-ink-2: rgba(17, 17, 18, 0.8);
-  --vc-ink-3: rgba(17, 17, 18, 0.62);
-  --vc-ink-4: rgba(17, 17, 18, 0.48);
-  --vc-line: rgba(17, 17, 18, 0.12);
-  --vc-line-2: rgba(17, 17, 18, 0.06);
-  --vc-line-strong: rgba(17, 17, 18, 0.2);
-  --vc-sig: #c0362c;
-  --vc-sig-bg: rgba(192, 54, 44, 0.1);
-  --vc-amber: #a16207;
-  --vc-amber-bg: rgba(161, 98, 7, 0.12);
+  --vc-ink-2: #3a3a3c;
+  --vc-ink-3: #5c5c60;
+  --vc-ink-4: #8a8a8e;
+  --vc-rule: #111112;
+  --vc-line: #e3e3e6;
+  --vc-line-2: #efeff1;
+  --vc-line-strong: #d4d4d8;
+  --vc-panel: #f5f5f6;
+  --vc-panel-2: #ededef;
   --vc-ok: #15803d;
-  --vc-ok-bg: rgba(21, 128, 61, 0.1);
-  --vc-proof-c: #00a4c7;
-  --vc-proof-m: #d31574;
-  --vc-proof-y: #c9b800;
-  --vc-proof-k: #111112;
-  --vc-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code', Menlo,
-    Consolas, monospace;
-  --vc-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', sans-serif;
+  --vc-amber: #a16207;
+  --vc-sig: #c0362c;
+  --vc-focus: #111112;
+  --vc-serif: var(--vc-font-serif), ui-serif, Georgia, 'Times New Roman', serif;
+  /* Geist package exposes --font-geist-sans / --font-geist-mono */
+  --vc-font-sans: var(--font-geist-sans);
+  --vc-font-mono: var(--font-geist-mono);
+  --vc-sans: var(--vc-font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vc-mono: var(--vc-font-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --vc-s1: 4px; --vc-s2: 8px; --vc-s3: 12px; --vc-s4: 16px; --vc-s5: 24px;
+  --vc-s6: 32px; --vc-s7: 48px; --vc-s8: 64px; --vc-s9: 96px; --vc-s10: 128px;
+  --vc-section-pad: clamp(72px, 51.2px + 5.33vw, 128px);
+  --vc-gutter-widget: 400px;
+  --vc-radius-sm: 8px; --vc-radius-lg: 12px;
 }
 
-/* The landing / scan / fix surfaces paint the page in the instrument palette. The
-   .vc-docs scope only *exposes* the --vc-* tokens (so the shared SiteSidebar CSS
-   and the docs-sidebar match block can consume them) without restyling Fumadocs'
-   own content. */
 .vc-landing {
+  color-scheme: light;
   background: var(--vc-bg);
   color: var(--vc-ink);
   font-family: var(--vc-sans);
@@ -56,81 +54,25 @@ html {
   min-height: 100vh;
 }
 
-/* Dark tokens: OS default + explicit next-themes class / data-theme overrides. */
-@media (prefers-color-scheme: dark) {
-  .vc-landing,
-  .vc-docs {
-    --vc-bg: #0b0b0c;
-    --vc-panel: #111113;
-    --vc-panel-2: #161618;
-    --vc-ink: #f4f4f5;
-    --vc-ink-2: rgba(244, 244, 245, 0.78);
-    --vc-ink-3: rgba(244, 244, 245, 0.6);
-    --vc-ink-4: rgba(244, 244, 245, 0.46);
-    --vc-line: rgba(244, 244, 245, 0.14);
-    --vc-line-2: rgba(244, 244, 245, 0.06);
-    --vc-line-strong: rgba(244, 244, 245, 0.22);
-    --vc-sig: #f2555a;
-    --vc-sig-bg: rgba(242, 85, 90, 0.13);
-    --vc-amber: #e0a53a;
-    --vc-amber-bg: rgba(224, 165, 58, 0.13);
-    --vc-ok: #4ade80;
-    --vc-ok-bg: rgba(74, 222, 128, 0.13);
-    --vc-proof-c: #36c1df;
-    --vc-proof-m: #ff5aa7;
-    --vc-proof-y: #f0dc3c;
-    --vc-proof-k: #f4f4f5;
-  }
-}
-:root.dark .vc-landing,
-:root[data-theme='dark'] .vc-landing,
+/* Docs-only dark theme for the Fumadocs toggle. Landing stays light. */
+.dark .vc-docs,
 :root.dark .vc-docs,
 :root[data-theme='dark'] .vc-docs {
-  --vc-bg: #0b0b0c;
-  --vc-panel: #111113;
-  --vc-panel-2: #161618;
-  --vc-ink: #f4f4f5;
-  --vc-ink-2: rgba(244, 244, 245, 0.78);
-  --vc-ink-3: rgba(244, 244, 245, 0.6);
-  --vc-ink-4: rgba(244, 244, 245, 0.46);
-  --vc-line: rgba(244, 244, 245, 0.14);
-  --vc-line-2: rgba(244, 244, 245, 0.06);
-  --vc-line-strong: rgba(244, 244, 245, 0.22);
-  --vc-sig: #f2555a;
-  --vc-sig-bg: rgba(242, 85, 90, 0.13);
-  --vc-amber: #e0a53a;
-  --vc-amber-bg: rgba(224, 165, 58, 0.13);
+  --vc-bg: #0c0c0d;
+  --vc-ink: #ededee;
+  --vc-ink-2: #c8c8cc;
+  --vc-ink-3: #a1a1a6;
+  --vc-ink-4: #6f6f74;
+  --vc-rule: #ededee;
+  --vc-line: rgba(255, 255, 255, 0.12);
+  --vc-line-2: rgba(255, 255, 255, 0.08);
+  --vc-line-strong: rgba(255, 255, 255, 0.2);
+  --vc-panel: #151517;
+  --vc-panel-2: #1c1c1f;
   --vc-ok: #4ade80;
-  --vc-ok-bg: rgba(74, 222, 128, 0.13);
-  --vc-proof-c: #36c1df;
-  --vc-proof-m: #ff5aa7;
-  --vc-proof-y: #f0dc3c;
-  --vc-proof-k: #f4f4f5;
-}
-:root.light .vc-landing,
-:root[data-theme='light'] .vc-landing,
-:root.light .vc-docs,
-:root[data-theme='light'] .vc-docs {
-  --vc-bg: #ffffff;
-  --vc-panel: #fafafa;
-  --vc-panel-2: #f4f4f4;
-  --vc-ink: #111112;
-  --vc-ink-2: rgba(17, 17, 18, 0.8);
-  --vc-ink-3: rgba(17, 17, 18, 0.62);
-  --vc-ink-4: rgba(17, 17, 18, 0.48);
-  --vc-line: rgba(17, 17, 18, 0.12);
-  --vc-line-2: rgba(17, 17, 18, 0.06);
-  --vc-line-strong: rgba(17, 17, 18, 0.2);
-  --vc-sig: #c0362c;
-  --vc-sig-bg: rgba(192, 54, 44, 0.1);
-  --vc-amber: #a16207;
-  --vc-amber-bg: rgba(161, 98, 7, 0.12);
-  --vc-ok: #15803d;
-  --vc-ok-bg: rgba(21, 128, 61, 0.1);
-  --vc-proof-c: #00a4c7;
-  --vc-proof-m: #d31574;
-  --vc-proof-y: #c9b800;
-  --vc-proof-k: #111112;
+  --vc-amber: #fbbf24;
+  --vc-sig: #f87171;
+  --vc-focus: #ededee;
 }
 
 .vc-landing *,
@@ -155,7 +97,7 @@ html {
 @media (min-width: 1100px) {
   .vc-app-landing .vc-wrap {
     margin-left: clamp(16px, 3vw, 48px);
-    margin-right: 400px;
+    margin-right: var(--vc-gutter-widget);
   }
   :root[data-vc-widget='collapsed'] .vc-app-landing .vc-wrap {
     margin-left: auto;
@@ -172,524 +114,61 @@ html {
   position: relative;
   isolation: isolate;
 }
-.vc-proof-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 22px;
-  margin-bottom: 19px;
-  color: var(--vc-ink-4);
-}
-.vc-proof-control-strip {
-  align-items: center;
-  gap: 1px;
-  height: 8px;
-  flex: none;
-}
-.vc-proof-control-strip i {
-  display: block;
-  height: 7px;
-  flex: none;
-}
-[data-vc-proof-rail] {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  color: var(--vc-ink-4);
-}
-[data-vc-proof-weight='hero'] {
-  height: 8px;
-}
-[data-vc-proof-weight='hero'] i {
-  height: 7px;
-}
-[data-vc-proof-weight='section'] {
-  height: 6px;
-}
-[data-vc-proof-weight='section'] i {
-  height: 5px;
-}
-[data-vc-proof-weight='compact'] {
-  height: 5px;
-}
-[data-vc-proof-weight='compact'] i {
-  height: 4px;
-}
-[data-vc-proof-rail='section'] [data-vc-crop-ticks] {
-  width: 10px;
-  height: 10px;
-}
-[data-vc-proof-rail='section'] [data-vc-crop-ticks] i:first-child {
-  width: 10px;
-}
-[data-vc-proof-rail='section'] [data-vc-crop-ticks] i:last-child {
-  height: 10px;
-}
-[data-vc-proof-rail='section'] [data-vc-registration-target] {
-  width: 16px;
-  height: 16px;
-}
-[data-vc-proof-rule] {
-  height: 1px;
-  flex: 1 1 auto;
-  min-width: 20px;
-  background: var(--vc-line);
-}
-[data-vc-structural-rule='horizontal'] {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-[data-vc-structural-rule='horizontal'] > i:first-child {
-  width: 8px;
-  height: 8px;
-  border-top: 1px solid var(--vc-line-strong);
-  border-left: 1px solid var(--vc-line-strong);
-}
-[data-vc-structural-rule='horizontal'] > i:nth-child(2) {
-  height: 1px;
-  flex: 1;
-  background: var(--vc-line-2);
-}
-[data-vc-structural-rule='vertical'] {
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-top: 1px solid var(--vc-line-strong);
-  border-right: 1px solid var(--vc-line-strong);
-}
-.vc-proof-header-label,
-[data-vc-proof-label] {
-  font-family: var(--vc-mono);
-  font-size: 8.5px;
-  line-height: 1;
-  letter-spacing: 0.13em;
-  color: var(--vc-ink-4);
-  white-space: nowrap;
-}
-.vc-proof-header-rule {
-  height: 1px;
-  flex: 1 1 auto;
-  min-width: 24px;
-  background: var(--vc-line);
-}
-.vc-proof-header-target,
-[data-vc-registration-target] {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  color: var(--vc-ink-4);
-  stroke: currentColor;
-  stroke-width: 0.7;
-  vector-effect: non-scaling-stroke;
-}
-[data-vc-crop-ticks] {
-  position: relative;
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  flex: none;
-  color: var(--vc-line-strong);
-}
-[data-vc-crop-ticks] i {
-  position: absolute;
-  display: block;
-  background: currentColor;
-}
-[data-vc-crop-ticks] i:first-child {
-  top: 0;
-  left: 0;
-  width: 13px;
-  height: 1px;
-}
-[data-vc-crop-ticks] i:last-child {
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 13px;
-}
-[data-vc-crop-ticks='top-right'] i:first-child,
-[data-vc-crop-ticks='bottom-right'] i:first-child {
-  right: 0;
-  left: auto;
-}
-[data-vc-crop-ticks='top-right'] i:last-child,
-[data-vc-crop-ticks='bottom-right'] i:last-child {
-  right: 0;
-  left: auto;
-}
-[data-vc-crop-ticks='bottom-left'] i:first-child,
-[data-vc-crop-ticks='bottom-right'] i:first-child,
-[data-vc-crop-ticks='bottom-left'] i:last-child,
-[data-vc-crop-ticks='bottom-right'] i:last-child {
-  top: auto;
-  bottom: 0;
-}
-[data-vc-calibration-ruler='horizontal'] {
-  display: block;
-  width: 48px;
-  height: 5px;
-  color: var(--vc-line-strong);
-  background: repeating-linear-gradient(
-    90deg,
-    currentColor 0 1px,
-    transparent 1px 5px
-  );
-  border-top: 1px solid currentColor;
-}
-[data-vc-calibration-ruler='vertical'] {
-  display: block;
-  width: 5px;
-  height: 48px;
-  color: var(--vc-line-strong);
-  background: repeating-linear-gradient(
-    180deg,
-    currentColor 0 1px,
-    transparent 1px 5px
-  );
-  border-left: 1px solid currentColor;
-}
-.vc-eyebrow {
-  font-family: var(--vc-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--vc-ink-3);
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.vc-registration-constellation {
-  display: none;
-  position: absolute;
-  top: 7px;
-  right: -92px;
-  width: 88px;
-  height: 88px;
-  overflow: visible;
-  pointer-events: none;
-  color: var(--vc-ink);
-}
-.vc-registration-plate {
-  stroke: currentColor;
-  stroke-width: 0.9;
-  vector-effect: non-scaling-stroke;
-}
-.vc-registration-plate-c {
-  color: var(--vc-proof-c);
-  opacity: 0.3;
-  transform: translate(-0.7px, 0.35px);
-}
-.vc-registration-plate-m {
-  color: var(--vc-proof-m);
-  opacity: 0.26;
-  transform: translate(0.7px, -0.35px);
-}
-.vc-registration-plate-k {
-  color: var(--vc-proof-k);
-  opacity: 0.27;
-}
-@media (min-width: 1320px) {
-  .vc-registration-constellation {
-    display: block;
-  }
-}
-.vc-eyebrow .vc-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--vc-ink-4);
-}
 
-/* Section head */
-.vc-sechead {
+/* Step head (site-spec §4) */
+.vc-step-head {
   border-bottom: 1px solid var(--vc-line);
   padding-bottom: 12px;
   margin-bottom: 24px;
 }
-.vc-sechead-proof { margin-bottom: 14px; }
-.vc-sechead-row {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-.vc-sechead-row h2 {
+.vc-step-head h2 {
   margin: 0;
-  font-size: 23px;
-  font-weight: 620;
-  letter-spacing: -0.015em;
+  font-family: var(--vc-serif);
+  font-weight: 500;
+  font-size: clamp(30px, 21.83px + 2.095vw, 52px);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
   text-wrap: balance;
+  max-width: 18em;
+  color: var(--vc-ink);
 }
-.vc-sechead-row .vc-sub {
-  margin-left: auto;
-  font-family: var(--vc-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--vc-ink-4);
+.vc-step-head .vc-p {
+  max-width: 36rem;
 }
-@media (max-width: 520px) {
-  .vc-sechead-row {
-    align-items: flex-start;
-  }
-  .vc-sechead-row h2 {
-    flex: 1 1 auto;
-  }
-  .vc-sechead-row .vc-sub {
-    padding-top: 4px;
-  }
+.vc-kicker {
+  font-family: var(--vc-sans);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--vc-ink-3);
 }
-
-/* Live gauges — the always-measuring layer, wired to the real core collectors
-   (see components/landing/LiveGauges.tsx). Six live readings off THIS page. */
-.vc-gauges {
-  border: 1px solid var(--vc-line);
-  border-radius: 12px;
-  background: var(--vc-panel);
-  padding: 15px 17px 17px;
+.vc-hero-head {
+  margin: 0;
+  font-family: var(--vc-serif);
+  font-weight: 500;
+  font-size: clamp(40px, 25.14px + 3.81vw, 80px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  max-width: 14em;
+  color: var(--vc-ink);
 }
-.vc-gauges-head {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 13px;
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-.vc-gauges-live {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--vc-ok);
-  flex: none;
-  animation: vc-gauge-pulse 2.4s ease-out infinite;
-}
-.vc-gauges-live-label {
+.vc-hero-head .vc-line { display: block; }
+.vc-lede {
+  margin: 18px 0 0;
+  font-family: var(--vc-serif);
+  font-weight: 400;
+  font-size: clamp(20px, 18.51px + 0.381vw, 24px);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  max-width: 34em;
   color: var(--vc-ink-2);
 }
-.vc-gauges-ruler {
-  width: 42px;
-  height: 4px;
-  opacity: 0.55;
-  flex: none;
-}
-.vc-gauges-note {
-  margin-left: auto;
-  color: var(--vc-ink-4);
-  text-transform: none;
-  letter-spacing: 0.01em;
-  font-size: 10.5px;
-}
-@keyframes vc-gauge-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--vc-ok-bg);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(21, 128, 61, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(21, 128, 61, 0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .vc-gauges-live {
-    animation: none;
-  }
-}
-.vc-gauges-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 1px;
-  background: var(--vc-line);
-  border: 1px solid var(--vc-line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.vc-gauge {
-  position: relative;
-  background: var(--vc-bg);
-  padding: 11px 24px 12px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-.vc-gauge-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-.vc-gauge-lab {
-  font-family: var(--vc-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--vc-ink-4);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.vc-gauge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: none;
-  background: var(--vc-line-strong);
-}
-.vc-gauge[data-tone='ok'] .vc-gauge-dot {
-  background: var(--vc-ok);
-}
-.vc-gauge[data-tone='warn'] .vc-gauge-dot {
-  background: var(--vc-amber);
-}
-.vc-gauge[data-tone='bad'] .vc-gauge-dot {
-  background: var(--vc-sig);
-}
-.vc-gauge-read {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-}
-.vc-gauge-val {
-  font-family: var(--vc-mono);
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--vc-ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.vc-gauge-unit {
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  color: var(--vc-ink-4);
-}
-.vc-gauge-sub {
-  font-size: 11px;
-  color: var(--vc-ink-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.vc-gauge-index {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  font-family: var(--vc-mono);
-  font-size: 7.5px;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  color: var(--vc-ink-4);
-  opacity: 0.72;
-}
-@media (max-width: 900px) {
-  .vc-gauges-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-@media (max-width: 520px) {
-  .vc-gauges-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .vc-gauges-note {
-    display: none;
-  }
-}
-.vc-section {
-  margin: 64px 0 0;
-  scroll-margin-top: 20px;
+.vc-bench {
+  margin-top: 22px;
 }
 
-/* Captured from the same packed-package MCP flow exercised in CI. */
-.vc-real-demo {
-  margin: 22px 0 0;
-}
-.vc-real-demo-frame {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--vc-line-strong);
-  border-radius: 14px;
-  background: #09090b;
-  box-shadow: 0 24px 64px color-mix(in srgb, var(--vc-ink) 10%, transparent);
-}
-.vc-real-demo-image {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.vc-real-demo-proof {
-  position: absolute;
-  z-index: 1;
-  top: 12px;
-  left: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 9px;
-  border: 1px solid rgba(244, 244, 245, 0.2);
-  border-radius: 999px;
-  color: rgba(244, 244, 245, 0.82);
-  background: rgba(9, 9, 11, 0.76);
-  backdrop-filter: blur(8px);
-  font-family: var(--vc-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-.vc-real-demo-control {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  right: 12px;
-  padding: 6px 10px;
-  border: 1px solid rgba(244, 244, 245, 0.24);
-  border-radius: 999px;
-  color: rgba(244, 244, 245, 0.9);
-  background: rgba(9, 9, 11, 0.8);
-  backdrop-filter: blur(8px);
-  font-family: var(--vc-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.vc-real-demo-control:hover,
-.vc-real-demo-control:focus-visible {
-  border-color: rgba(244, 244, 245, 0.5);
-  outline: none;
-}
-.vc-real-demo-caption {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-top: 11px;
-  color: var(--vc-ink-3);
-  font-size: 12.5px;
-  line-height: 1.55;
-}
-.vc-real-demo-caption > span {
-  max-width: 62ch;
-}
-.vc-real-demo-link {
-  flex: none;
-  white-space: nowrap;
-}
-@media (max-width: 620px) {
-  .vc-real-demo-caption {
-    display: block;
-  }
-  .vc-real-demo-link {
-    display: inline-block;
-    margin-top: 7px;
-  }
-}
 
 /* Hero */
 .vc-hero-head {
@@ -718,71 +197,10 @@ html {
   font-weight: 600;
 }
 
-/* Install command — the hero object */
-.vc-cmd {
-  position: relative;
-  font-family: var(--vc-mono);
-  font-size: 13.5px;
-  color: var(--vc-ink);
-  background: var(--vc-panel);
-  border: 1px solid var(--vc-line);
-  border-radius: 10px;
-  padding: 12px 12px 12px 14px;
-  display: inline-flex;
-  gap: 14px;
-  align-items: center;
-  min-width: min(360px, 100%);
-  justify-content: space-between;
-}
-.vc-cmd-crop {
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  pointer-events: none;
-}
-.vc-cmd-proof-label {
-  position: absolute;
-  top: -5px;
-  left: 14px;
-  padding: 0 4px;
-  background: var(--vc-panel);
-  pointer-events: none;
-}
-.vc-cmd .vc-cmd-text {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-}
-.vc-cmd .vc-prompt {
-  color: var(--vc-ink-4);
-}
-.vc-copy {
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--vc-ink-2);
-  background: var(--vc-bg);
-  border: 1px solid var(--vc-line-strong);
-  border-radius: 6px;
-  padding: 5px 10px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  flex: none;
-}
-.vc-copy:hover {
-  color: var(--vc-ink);
-  border-color: var(--vc-line-strong);
-}
-.vc-copy[data-copied='true'] {
-  color: var(--vc-ok);
-  border-color: color-mix(in srgb, var(--vc-ok) 40%, transparent);
-}
-
 /* Buttons */
 .vc-btn {
   font-family: var(--vc-sans);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 550;
   color: var(--vc-bg);
   background: var(--vc-ink);
@@ -818,141 +236,13 @@ html {
 }
 .vc-btn .vc-btn-k {
   font-family: var(--vc-mono);
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Muted tint of the button's own light text so it stays legible on the dark
      fill in both themes (light text in light, dark text in dark). */
   color: color-mix(in srgb, var(--vc-bg) 62%, transparent);
   margin-left: auto;
-}
-
-/* Break-this-page rack */
-.vc-rack {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-@media (max-width: 720px) {
-  .vc-rack {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 460px) {
-  .vc-rack {
-    grid-template-columns: 1fr;
-  }
-}
-.vc-rack-note {
-  margin-top: 14px;
-  font-size: 13.5px;
-  color: var(--vc-ink-3);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.vc-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--vc-ok);
-  flex: none;
-  animation: vc-pulse 2.4s ease-in-out infinite;
-}
-.vc-live-dot[data-armed='true'] {
-  background: var(--vc-sig);
-}
-@keyframes vc-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* Injection sink for DOM bloat — bounded so the page doesn't explode visually */
-.vc-sink {
-  margin-top: 12px;
-  height: 0;
-  overflow: hidden;
-  border-radius: 10px;
-  transition: height 0.2s ease;
-}
-.vc-sink[data-open='true'] {
-  height: 132px;
-  border: 1px solid var(--vc-line);
-  background: var(--vc-panel);
-  padding: 10px;
-  overflow: auto;
-}
-.vc-sink-node {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin: 1px;
-  border-radius: 1px;
-  background: var(--vc-line-strong);
-}
-
-/* Cards (pain / detectors / trust) */
-.vc-grid {
-  display: grid;
-  gap: 10px;
-}
-.vc-grid-2 {
-  grid-template-columns: 1fr 1fr;
-}
-.vc-grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-@media (max-width: 720px) {
-  .vc-grid-2,
-  .vc-grid-3 {
-    grid-template-columns: 1fr;
-  }
-}
-.vc-card {
-  border: 1px solid var(--vc-line);
-  border-radius: 11px;
-  background: var(--vc-panel);
-  padding: 15px 16px;
-}
-.vc-card .vc-k {
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--vc-ink);
-  margin-bottom: 6px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.vc-card .vc-k .vc-kd {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--vc-sig);
-  flex: none;
-}
-.vc-card .vc-v {
-  font-size: 13.5px;
-  color: var(--vc-ink-2);
-  line-height: 1.5;
-}
-.vc-card .vc-emit {
-  margin-top: 9px;
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  color: var(--vc-ink-3);
-  background: var(--vc-bg);
-  border: 1px solid var(--vc-line-2);
-  border-radius: 6px;
-  padding: 6px 8px;
-  line-height: 1.5;
-  overflow-x: auto;
-  white-space: nowrap;
 }
 
 /* Prose */
@@ -984,7 +274,7 @@ html {
 .vc-pre {
   position: relative;
   font-family: var(--vc-mono);
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.7;
   color: var(--vc-ink-2);
   background: var(--vc-panel);
@@ -995,21 +285,21 @@ html {
   margin: 0 0 14px;
   white-space: pre;
 }
-.vc-pre[data-vc-proof-surface='code'] {
+.vc-pre[data-vc-code-surface='code'] {
   padding-top: 18px;
 }
-.vc-pre[data-vc-proof-surface='code']::before {
+.vc-pre[data-vc-code-surface='code']::before {
   content: attr(data-proof-label);
   position: absolute;
   top: 6px;
   right: 9px;
   font-family: var(--vc-mono);
-  font-size: 7.5px;
+  font-size: 14px;
   line-height: 1;
   letter-spacing: 0.1em;
   color: var(--vc-ink-4);
 }
-.vc-pre[data-vc-proof-surface='code']::after {
+.vc-pre[data-vc-code-surface='code']::after {
   content: '';
   position: absolute;
   top: -1px;
@@ -1036,7 +326,7 @@ html {
   align-items: center;
   gap: 10px;
   font-family: var(--vc-mono);
-  font-size: 12.5px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: var(--vc-ink);
   background: var(--vc-panel);
@@ -1057,7 +347,7 @@ html {
   padding: 22px 0 40px;
   border-top: 1px solid var(--vc-line-2);
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.7;
   letter-spacing: 0.02em;
   color: var(--vc-ink-4);
@@ -1201,15 +491,15 @@ html {
   flex: none;
 }
 .vc-press-rosette-c {
-  stroke: var(--vc-proof-c);
+  stroke: var(--vc-ink);
   transform: translate(-0.5px, 0.25px);
 }
 .vc-press-rosette-m {
-  stroke: var(--vc-proof-m);
+  stroke: var(--vc-ink);
   transform: translate(0.5px, -0.25px);
 }
 .vc-press-rosette-k {
-  stroke: var(--vc-proof-k);
+  stroke: var(--vc-ink);
 }
 [data-vc-press-rosette] g {
   stroke-width: 0.8;
@@ -1219,25 +509,25 @@ html {
   color: var(--vc-ink-3);
   font-weight: 620;
 }
-.vc-proof-version {
+.vc-site-version {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-family: var(--vc-mono);
-  font-size: 9px;
+  font-size: 14px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
   color: var(--vc-ink-4);
   white-space: nowrap;
 }
-.vc-proof-version-rule {
+.vc-site-version-rule {
   width: 16px;
   height: 1px;
   background: var(--vc-line-strong);
   flex: none;
 }
-.vc-proof-version-label {
+.vc-site-version-label {
   letter-spacing: 0.13em;
 }
 
@@ -1277,11 +567,11 @@ html {
   white-space: nowrap;
 }
 .vc-side-row-l0 {
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .vc-side-row-l1,
 .vc-side-row-l2 {
-  font-size: 12.75px;
+  font-size: 14px;
 }
 /* Active: bold ink + a short fault-red tick, plus a whisper-quiet panel pill. */
 .vc-side-row[data-active='true'] {
@@ -1346,7 +636,7 @@ html {
 /* Small-caps group label (Resources) */
 .vc-side-grouplabel {
   font-family: var(--vc-mono);
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--vc-ink-4);
@@ -1397,7 +687,7 @@ html {
   padding: 12px 20px;
   border-top: 1px solid var(--vc-line-2);
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: var(--vc-ink-4);
 }
@@ -1644,7 +934,7 @@ html {
   padding: 0;
   margin: 0 0 18px;
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: var(--vc-ink-4);
 }
@@ -1666,7 +956,7 @@ html {
   gap: 10px;
   flex-wrap: wrap;
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   letter-spacing: 0.04em;
   color: var(--vc-ink-3);
   margin-bottom: 12px;
@@ -1786,7 +1076,7 @@ html {
 .vc-catch-label {
   margin: 0;
   font-family: var(--vc-mono);
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--vc-ink-4);
@@ -1826,16 +1116,16 @@ html {
 }
 .vc-catch-detector {
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: var(--vc-ink-3);
 }
 .vc-catch-emit {
   font-family: var(--vc-mono);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--vc-sig);
-  background: var(--vc-sig-bg);
+  background: #fce8e6;
   border: 1px solid color-mix(in srgb, var(--vc-sig) 24%, var(--vc-line-2));
   border-radius: 6px;
   padding: 5px 9px;
@@ -1856,14 +1146,14 @@ html {
 }
 .vc-catch-flow-caret {
   font-family: var(--vc-mono);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   color: var(--vc-ink-4);
 }
 /* Stage 2 — the agent's MCP readout */
 .vc-catch-mcp {
   font-family: var(--vc-mono);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
   border: 1px solid var(--vc-line-2);
   border-radius: 9px;
@@ -1893,7 +1183,7 @@ html {
 }
 .vc-catch-caption {
   margin: 12px 0 0;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--vc-ink-3);
 }
@@ -1925,7 +1215,7 @@ html {
   background: var(--vc-panel-2);
   border: 1px solid var(--vc-line);
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--vc-ink-3);
   display: flex;
   align-items: center;
@@ -2003,12 +1293,12 @@ html {
 }
 .vc-fix-related-t {
   color: var(--vc-ink);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 550;
 }
 .vc-fix-related-d {
   font-family: var(--vc-mono);
-  font-size: 10.5px;
+  font-size: 14px;
   letter-spacing: 0.04em;
   color: var(--vc-ink-4);
 }
@@ -2019,7 +1309,7 @@ html {
   align-items: center;
   gap: 6px;
   font-family: var(--vc-mono);
-  font-size: 10px;
+  font-size: 14px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--vc-ink-3);
@@ -2039,7 +1329,7 @@ html {
 .vc-sev[data-sev='critical'] {
   color: var(--vc-sig);
   border-color: color-mix(in srgb, var(--vc-sig) 34%, transparent);
-  background: var(--vc-sig-bg);
+  background: #fce8e6;
 }
 .vc-sev[data-sev='error'] .vc-sev-dot,
 .vc-sev[data-sev='critical'] .vc-sev-dot {
@@ -2048,7 +1338,7 @@ html {
 .vc-sev[data-sev='warning'] {
   color: var(--vc-amber);
   border-color: color-mix(in srgb, var(--vc-amber) 34%, transparent);
-  background: var(--vc-amber-bg);
+  background: #f5edd8;
 }
 .vc-sev[data-sev='warning'] .vc-sev-dot {
   background: var(--vc-amber);
@@ -2067,7 +1357,7 @@ html {
 }
 .vc-fw-picker-label {
   font-family: var(--vc-mono);
-  font-size: 10.5px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--vc-ink-4);
@@ -2079,7 +1369,7 @@ html {
 }
 .vc-fw-chip {
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   color: var(--vc-ink-3);
   text-decoration: none;
   border: 1px solid var(--vc-line);
@@ -2116,13 +1406,13 @@ html {
 }
 .vc-codeblock-cap {
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--vc-ink-3);
   letter-spacing: 0.01em;
 }
 .vc-codeblock-lang {
   font-family: var(--vc-mono);
-  font-size: 9.5px;
+  font-size: 14px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--vc-ink-4);
@@ -2157,12 +1447,12 @@ html {
 }
 .vc-fix-cat-count {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--vc-ink-4);
 }
 .vc-fix-detnote {
   font-family: var(--vc-mono);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--vc-ink-4);
 }
 .vc-fix-cards {
@@ -2226,7 +1516,7 @@ html {
 }
 .vc-fix-card-d {
   color: var(--vc-ink-3);
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -2264,372 +1554,6 @@ html {
   --vc-dg-sig: var(--vc-sig, #c0362c);
   --vc-dg-amber: var(--vc-amber, #a16207);
   --vc-dg-ok: var(--vc-ok, #15803d);
-}
-
-/* ════════════════════════════════════════════════════════════════════════════
-   Interactive landing upgrades — Quiet Instrument tokens only.
-   1. AgentRoundTrip  (.vc-term*)   — scripted MCP terminal
-   2. DetectorsGrid fire  (.vc-card[data-fire]) — hover/focus emit demo
-   3. AuditThisPage  (.vc-audit*, .vc-check*)   — real SEO/AEO audit of this page
-   The ONLY accents are a caught fault (--vc-sig / --vc-amber) or a resolved /
-   passing state (--vc-ok). Everything else is pure neutral ink.
-   ════════════════════════════════════════════════════════════════════════════ */
-
-/* ── 1 · Scripted agent round-trip terminal ─────────────────────────────────── */
-.vc-term {
-  border: 1px solid var(--vc-line);
-  border-radius: 12px;
-  background: var(--vc-panel);
-  overflow: hidden;
-  margin: 4px 0 6px;
-}
-.vc-term-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--vc-line-2);
-  background: var(--vc-panel-2);
-}
-.vc-term-dots {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.vc-term-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--vc-line-strong);
-}
-.vc-term-title {
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--vc-ink-3);
-}
-.vc-term-play {
-  margin-left: auto;
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--vc-bg);
-  background: var(--vc-ink);
-  border: 1px solid var(--vc-ink);
-  border-radius: 7px;
-  padding: 5px 11px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  flex: none;
-}
-.vc-term-play:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
-  border-color: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
-}
-.vc-term-play:disabled {
-  color: color-mix(in srgb, var(--vc-bg) 52%, transparent);
-  cursor: default;
-}
-.vc-term-body {
-  font-family: var(--vc-mono);
-  font-size: 12.5px;
-  line-height: 1.7;
-  color: var(--vc-ink-2);
-  padding: 14px 16px;
-  overflow-x: auto;
-  /* Every row is always in the DOM (revealed by opacity), so the box height is
-     fixed from first paint — the terminal never shifts layout as it types. */
-}
-.vc-term-row {
-  white-space: pre;
-  min-height: 1.7em;
-  opacity: 0;
-  transition: opacity 0.16s ease;
-}
-.vc-term-row[data-shown='true'] {
-  opacity: 1;
-}
-.vc-term-pre {
-  color: var(--vc-ink-4);
-}
-.vc-term-row[data-kind='sys'] {
-  color: var(--vc-ink-4);
-  font-style: italic;
-}
-.vc-term-row[data-kind='issue'] {
-  color: var(--vc-sig);
-}
-.vc-term-row[data-kind='cmd'] {
-  color: var(--vc-ink);
-}
-.vc-term-row[data-kind='out'] {
-  color: var(--vc-ink-3);
-}
-.vc-term-row[data-kind='diff-meta'],
-.vc-term-row[data-kind='diff-hunk'] {
-  color: var(--vc-ink-4);
-}
-.vc-term-row[data-kind='diff-ctx'] {
-  color: var(--vc-ink-3);
-}
-.vc-term-row[data-kind='diff-add'] {
-  color: var(--vc-ok);
-}
-.vc-term-row[data-kind='diff-del'] {
-  color: var(--vc-sig);
-}
-.vc-term-row[data-kind='ok'] {
-  color: var(--vc-ok);
-}
-.vc-term-cursor {
-  display: inline-block;
-  width: 0.55em;
-  height: 1.05em;
-  vertical-align: -0.15em;
-  background: currentColor;
-  margin-left: 1px;
-  animation: vc-term-blink 1s step-end infinite;
-}
-@keyframes vc-term-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-}
-
-/* ── 2 · Detector cards that "fire" on hover / focus ─────────────────────────
-   Non-destructive: hovering a card does NOT degrade the page (that is what the
-   §02 "Break this page" buttons are for). It only re-emits the card's own signal
-   — the issue string fades/slides in and the dot pulses its severity — so the
-   grid feels alive and each card demonstrates the shape of its own alert. */
-.vc-card[data-fire] {
-  --vc-fire: var(--vc-sig);
-  position: relative;
-  cursor: default;
-  transition: border-color 0.18s, background 0.18s;
-  outline: none;
-}
-.vc-card[data-fire][data-sev='warning'] {
-  --vc-fire: var(--vc-amber);
-}
-.vc-card[data-fire] .vc-kd {
-  background: var(--vc-fire);
-}
-.vc-card[data-fire] .vc-emit {
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.22s ease, transform 0.22s ease, color 0.22s ease,
-    border-color 0.22s ease, background 0.22s ease;
-}
-.vc-card[data-fire]:hover,
-.vc-card[data-fire]:focus-visible,
-.vc-card[data-fire]:focus-within {
-  border-color: color-mix(in srgb, var(--vc-fire) 42%, transparent);
-  background: var(--vc-panel-2);
-}
-.vc-card[data-fire]:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--vc-fire) 55%, transparent);
-  outline-offset: 2px;
-}
-.vc-card[data-fire]:hover .vc-emit,
-.vc-card[data-fire]:focus-visible .vc-emit,
-.vc-card[data-fire]:focus-within .vc-emit {
-  opacity: 1;
-  transform: translateY(0);
-  color: var(--vc-fire);
-  border-color: color-mix(in srgb, var(--vc-fire) 30%, var(--vc-line-2));
-  background: color-mix(in srgb, var(--vc-fire) 7%, var(--vc-bg));
-}
-.vc-card[data-fire]:hover .vc-kd,
-.vc-card[data-fire]:focus-visible .vc-kd,
-.vc-card[data-fire]:focus-within .vc-kd {
-  animation: vc-fire-pulse 0.55s ease-out;
-}
-@keyframes vc-fire-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--vc-fire) 55%, transparent);
-  }
-  55% {
-    transform: scale(1.4);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--vc-fire) 0%, transparent);
-  }
-}
-/* Reduced motion: no slide, no pulse — the issue string is simply always shown. */
-@media (prefers-reduced-motion: reduce) {
-  .vc-card[data-fire] .vc-emit {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
-
-/* ── 3 · Run-the-audit-on-this-page ─────────────────────────────────────────── */
-.vc-audit-run {
-  font-family: var(--vc-mono);
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  color: var(--vc-bg);
-  background: var(--vc-ink);
-  border: 1px solid var(--vc-ink);
-  border-radius: 9px;
-  padding: 11px 16px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-}
-.vc-audit-run:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
-  border-color: color-mix(in srgb, var(--vc-ink) 86%, var(--vc-bg));
-}
-.vc-audit-run:disabled {
-  color: color-mix(in srgb, var(--vc-bg) 55%, transparent);
-  cursor: default;
-}
-.vc-audit-run .vc-audit-run-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--vc-ok);
-  flex: none;
-}
-.vc-audit-run[data-running='true'] .vc-audit-run-dot {
-  border-radius: 50%;
-  background: var(--vc-amber);
-  animation: vc-pulse 1s ease-in-out infinite;
-}
-.vc-audit-status {
-  margin-top: 12px;
-  font-family: var(--vc-mono);
-  font-size: 12px;
-  color: var(--vc-ink-3);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.vc-audit-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 18px;
-}
-@media (max-width: 720px) {
-  .vc-audit-cols {
-    grid-template-columns: 1fr;
-  }
-}
-.vc-audit-col {
-  border: 1px solid var(--vc-line);
-  border-radius: 12px;
-  background: var(--vc-panel);
-  padding: 15px 16px;
-}
-.vc-audit-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.vc-audit-name {
-  font-family: var(--vc-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--vc-ink-3);
-}
-.vc-audit-sub {
-  margin-left: auto;
-  font-family: var(--vc-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
-  color: var(--vc-ink-4);
-}
-.vc-audit-score {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 2px 0 10px;
-}
-.vc-audit-score-num {
-  font-family: var(--vc-mono);
-  font-size: 26px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--vc-ink);
-  line-height: 1;
-}
-.vc-audit-score-tot {
-  font-family: var(--vc-mono);
-  font-size: 14px;
-  color: var(--vc-ink-4);
-}
-.vc-audit-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--vc-panel-2);
-  border: 1px solid var(--vc-line-2);
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-.vc-audit-bar-fill {
-  height: 100%;
-  background: var(--vc-ok);
-  transition: width 0.5s ease;
-}
-.vc-checks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.vc-check {
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  padding: 7px 0;
-  border-top: 1px solid var(--vc-line-2);
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-.vc-check:first-child {
-  border-top: none;
-}
-.vc-check-mark {
-  font-family: var(--vc-mono);
-  font-size: 12px;
-  width: 14px;
-  flex: none;
-  text-align: center;
-  line-height: 1.5;
-}
-.vc-check[data-pass='true'] .vc-check-mark {
-  color: var(--vc-ok);
-}
-.vc-check[data-pass='false'] .vc-check-mark {
-  color: var(--vc-sig);
-}
-.vc-check[data-pass='false'][data-sev='warning'] .vc-check-mark,
-.vc-check[data-pass='false'][data-sev='info'] .vc-check-mark {
-  color: var(--vc-amber);
-}
-.vc-check-label {
-  color: var(--vc-ink-3);
-}
-.vc-check[data-pass='false'] .vc-check-label {
-  color: var(--vc-ink);
-}
-.vc-audit-note {
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--vc-ink-3);
-  max-width: 68ch;
 }
 
 /* ── /scan page ──────────────────────────────────────────────────────────────
@@ -2671,7 +1595,7 @@ html {
 .vc-scan-meta {
   margin-top: 18px;
   font-family: var(--vc-mono);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--vc-ink-3);
   word-break: break-all;
 }
@@ -2680,11 +1604,11 @@ html {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--vc-ink);
   border: 1px solid color-mix(in srgb, var(--vc-sig) 30%, var(--vc-line));
-  background: var(--vc-sig-bg);
+  background: #fce8e6;
   border-radius: 10px;
   padding: 12px 14px;
   max-width: 68ch;
@@ -2697,7 +1621,7 @@ html {
 }
 .vc-check-detail {
   font-family: var(--vc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   color: var(--vc-ink-4);
 }
 .vc-check-fix {
@@ -2705,7 +1629,7 @@ html {
   padding-left: 12px;
   flex: none;
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   white-space: nowrap;
   color: var(--vc-ink-3);
@@ -2756,7 +1680,7 @@ html {
 }
 .vc-board-title {
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--vc-ink-3);
@@ -2764,7 +1688,7 @@ html {
 .vc-board-sub {
   margin-left: auto;
   font-family: var(--vc-mono);
-  font-size: 10.5px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: var(--vc-ink-4);
 }
@@ -2791,7 +1715,7 @@ html {
 }
 .vc-board-rank {
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--vc-ink-4);
   width: 1.4em;
@@ -2800,7 +1724,7 @@ html {
 }
 .vc-board-host {
   font-family: var(--vc-mono);
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--vc-ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2810,7 +1734,7 @@ html {
 }
 .vc-board-scores {
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--vc-ink-3);
   white-space: nowrap;
   flex: none;
@@ -2821,7 +1745,7 @@ html {
 }
 .vc-board-time {
   font-family: var(--vc-mono);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--vc-ink-4);
   white-space: nowrap;
   flex: none;
@@ -2830,7 +1754,7 @@ html {
 }
 .vc-board-pct {
   font-family: var(--vc-mono);
-  font-size: 12.5px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   flex: none;
@@ -2911,322 +1835,240 @@ html {
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   §03 · The Slop Bestiary — specimen plates (.vc-spec)
-   A collectible field-guide of the 13 detectors. Reuses .vc-card + the ISSUE_ART
-   glyph + the --vc-* token ladder; adds only the plate layout and the resting ↔
-   field-note reveal. The ONLY accent is fault-red (--vc-sig): menace is carried
-   by PIP COUNT, never a second hue (no amber here). The reveal reuses the
-   existing .vc-card[data-fire] hover / focus-within / focus-visible mechanism
-   (no JS) — the .vc-emit fault-red treatment above still drives the emit string.
-   ZERO LAYOUT SHIFT: each plate is a fixed-footprint spacer (.vc-spec) holding an
-   absolutely-positioned card (.vc-spec-inner); firing grows the inner DOWNWARD
-   into a popover over the plates below, so the grid never reflows. prefers-
-   reduced-motion keeps that overlay but drops the animation (note reveals
-   instantly on hover/focus — never shown always-on, which would permanently
-   overlap the plate below). Self-contained: does not touch the shared
-   .vc-grid* / .vc-card / button / layout blocks.
-   ════════════════════════════════════════════════════════════════════════════ */
-
-/* Drawer grid: 3-up desktop / 2-up tablet / 1-up phone. Its own class so the
-   shared .vc-grid-3 stays untouched; inherits display:grid + gap from .vc-grid.
-   align-items:start keeps each fixed-height spacer at its own footprint. */
-.vc-bestiary {
-  grid-template-columns: repeat(3, 1fr);
-  align-items: start;
-}
-@media (max-width: 900px) {
-  .vc-bestiary {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 560px) {
-  .vc-bestiary {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* The plate — a FIXED-FOOTPRINT spacer. It keeps a constant grid cell no matter
-   what the inner does, so firing a plate never reflows the drawer. The height is
-   the tallest RESTING card at this breakpoint (measured: ≤232px at 3-up/2-up,
-   ≤214px at 1-up) plus a small margin, so a resting inner never overhangs the
-   spacer, and short cards read as a uniform drawer floor. Its visual (bg /
-   border / radius / padding) is stripped here and moved onto .vc-spec-inner; the
-   outer keeps only .vc-card[data-fire] (for the fault-red .vc-emit reveal) and
-   hosts the absolutely-positioned inner. overflow:visible so the lifted popover
-   can extend below the footprint without being clipped. */
-.vc-spec {
-  position: relative;
-  display: block;
-  height: 234px;
-  padding: 0;
-  border: 0;
-  background: none;
-  overflow: visible;
-  color: inherit;
-  text-decoration: none;
-}
-
-/* The visible card. Absolute + top/left/right:0 ALWAYS (rest and fired), so
-   switching to fired only grows it DOWNWARD — the grid never sees a size change.
-   min-height:100% makes it fill the footprint exactly at every breakpoint (no
-   overhang, no gap); on fire the field note expands and it grows past that,
-   floating over the cards below. */
-.vc-spec-inner {
+/* ── Top bar / drawer / footer (site-spec §3) ─────────────────────────────── */
+.vc-skip {
   position: absolute;
+  left: -9999px;
   top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  padding: 14px 15px 12px;
-  border: 1px solid var(--vc-line);
-  border-radius: 11px;
-  background: var(--vc-panel);
-  overflow: hidden;
-  transition: box-shadow 0.24s ease, border-color 0.18s ease,
-    background 0.18s ease;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--vc-bg);
+  color: var(--vc-ink);
+  font-size: 15px;
+  font-weight: 500;
 }
-/* 1-up columns are wide, so resting cards are shorter (≤214px): tighten the
-   footprint so the drawer isn't needlessly airy on phones. Placed AFTER the
-   default .vc-spec so it wins on source order at this breakpoint (media queries
-   add no specificity). .vc-spec-inner tracks it via min-height:100%. */
-@media (max-width: 560px) {
-  .vc-spec {
-    height: 216px;
-  }
+.vc-skip:focus {
+  left: 12px;
+  top: 12px;
 }
-
-/* Top rail — catalogue symbol (left) + menace pips (right) */
-.vc-spec-rail {
+.vc-topbar {
+  border-bottom: 1px solid var(--vc-line, #e3e3e6);
+  background: var(--vc-bg, #fff);
+  color-scheme: light;
+}
+.vc-topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 48px);
+}
+.vc-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vc-ink);
+  text-decoration: none;
+  font-family: var(--vc-sans);
+  font-weight: 600;
+  font-size: 17px;
+}
+.vc-topbar-wordmark { letter-spacing: -0.01em; }
+.vc-topbar-nav {
+  display: none;
+  align-items: center;
+  gap: 18px;
+}
+.vc-topbar-link {
+  color: var(--vc-ink-2, #3a3a3c);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--vc-sans);
+}
+.vc-topbar-link:hover {
+  color: var(--vc-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.vc-topbar-mobile {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
-.vc-spec-sym {
-  font-family: var(--vc-mono);
-  font-size: 13px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  color: var(--vc-ink-2);
-  border: 1px solid var(--vc-line);
-  border-radius: 5px;
-  padding: 4px 6px;
-  min-width: 26px;
-  text-align: center;
-}
-.vc-spec-menace {
-  display: inline-flex;
-  gap: 3px;
-  align-items: center;
-  flex: none;
-}
-.vc-spec-pip {
-  width: 5px;
-  height: 11px;
-  border-radius: 1.5px;
-  border: 1px solid var(--vc-line);
-  background: transparent;
-  flex: none;
-}
-/* Severity = pip count. Filled pips are the section's one accent. */
-.vc-spec-pip[data-on] {
-  background: var(--vc-sig);
-  border-color: var(--vc-sig);
-}
-
-/* Center — the detector's single-tone glyph, ~44px, currentColor === --vc-ink */
-.vc-spec-art {
-  display: block;
-  width: 44px;
-  height: 44px;
+.vc-topbar-menu-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--vc-ink);
+  border-radius: 8px;
+  background: #fff;
   color: var(--vc-ink);
-  margin: 16px auto 14px;
-}
-.vc-spec-art [data-vc-process-plate] {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition-property: transform;
-  transition-duration: 0.18s;
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
-}
-.vc-spec:hover [data-vc-process-plate='cyan'],
-.vc-spec:focus-visible [data-vc-process-plate='cyan'],
-.vc-spec:focus-within [data-vc-process-plate='cyan'] {
-  transform: translate(-0.75px, 0.35px);
-}
-.vc-spec:hover [data-vc-process-plate='magenta'],
-.vc-spec:focus-visible [data-vc-process-plate='magenta'],
-.vc-spec:focus-within [data-vc-process-plate='magenta'] {
-  transform: translate(0.75px, -0.35px);
-}
-.vc-spec:hover [data-vc-process-plate='yellow'],
-.vc-spec:focus-visible [data-vc-process-plate='yellow'],
-.vc-spec:focus-within [data-vc-process-plate='yellow'] {
-  transform: translate(0.25px, 0.6px);
-}
-
-/* Base — persona name + the register that swaps tagline ↔ field note */
-.vc-spec-base {
-  min-width: 0;
-}
-.vc-spec-name {
-  font-family: var(--vc-sans);
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  line-height: 1.3;
+  font-weight: 500;
+  cursor: pointer;
+}
+.vc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--vc-sans);
+  text-decoration: none;
+  transition: background 120ms cubic-bezier(.2,.7,.2,1), border-color 120ms cubic-bezier(.2,.7,.2,1);
+}
+.vc-btn-outline {
+  border: 1.5px solid var(--vc-ink);
+  background: #fff;
   color: var(--vc-ink);
 }
-/* In-character caption at rest; collapses out on fire. */
-.vc-spec-tagline {
-  margin: 4px 0 0;
-  font-family: var(--vc-mono);
-  font-size: 12.5px;
+.vc-btn-outline:hover { background: var(--vc-panel-2, #ededef); }
+.vc-btn-outline:active { transform: translateY(1px); }
+.vc-btn:focus-visible,
+.vc-topbar-menu-btn:focus-visible,
+.vc-topbar-link:focus-visible {
+  outline: 2px solid var(--vc-focus, #111112);
+  outline-offset: 2px;
+}
+.vc-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 18, 0.28);
+  z-index: 80;
+}
+.vc-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(320px, 92vw);
+  height: 100vh;
+  background: var(--vc-bg, #fff);
+  border-left: 1px solid var(--vc-line, #e3e3e6);
+  z-index: 90;
+  padding: 72px 20px 96px;
+  transform: translateX(100%);
+  transition: transform 180ms cubic-bezier(.2,.7,.2,1);
+}
+.vc-drawer.is-open { transform: translateX(0); }
+.vc-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vc-drawer-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--vc-ink);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 8px;
+}
+.vc-drawer-link:hover { background: var(--vc-panel-2, #ededef); }
+.vc-footer {
+  border-top: 1px solid var(--vc-line, #e3e3e6);
+  padding: 48px clamp(20px, 4vw, 48px) 96px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.vc-footer-lead {
+  margin: 0 0 12px;
+  font-family: var(--vc-serif, ui-serif, Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(26px, 20.51px + 1.4vw, 40px);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--vc-ink);
+  max-width: 18em;
+}
+.vc-footer-line {
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vc-ink-2, #3a3a3c);
+  max-width: 36em;
+}
+.vc-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  font-size: 15px;
+  margin-bottom: 18px;
+}
+.vc-footer-links a {
+  color: var(--vc-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vc-footer-byline {
+  margin: 0;
+  font-size: 14px;
+  color: var(--vc-ink-3, #5c5c60);
+}
+.vc-footer-byline a { color: inherit; }
+.vc-site-version { font-variant-numeric: tabular-nums; }
+@media (min-width: 768px) {
+  .vc-topbar-nav { display: flex; }
+  .vc-topbar-mobile { display: none; }
+  .vc-btn { min-height: 44px; }
+}
+@media (max-width: 767px) {
+  .vc-topbar-inner { height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vc-drawer, .vc-btn { transition: none; }
+  .vc-live-ring { animation: none !important; }
+}
+
+/* Landing hero / ledger (site-spec §4.1–4.2) */
+.vc-btn.vc-btn-outline {
+  width: auto;
+  color: var(--vc-ink);
+  background: #fff;
+  border: 1.5px solid var(--vc-ink);
+}
+.vc-hero-note {
+  position: absolute;
+  left: calc(100% + 40px);
+  top: 0;
+  width: 320px;
+  margin: 0;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--vc-ink-3);
-  max-height: 4.5em;
-  overflow: hidden;
-  transition: opacity 0.2s ease, max-height 0.28s ease, margin 0.28s ease;
 }
-
-/* Field note — collapsed + hidden at rest, expands and fades in on fire via the
-   grid-template-rows 0fr → 1fr height-animation trick (no JS, no fixed height). */
-.vc-spec-note {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 0.32s ease, opacity 0.24s ease;
-}
-.vc-spec-note-inner {
-  overflow: hidden;
-  min-height: 0;
-}
-.vc-spec-story {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--vc-ink-2);
-}
-/* Mono footer: the real detector name paired with the issue string it emits. */
-.vc-spec-emitrow {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 10px;
-}
-.vc-spec-detname {
-  font-family: var(--vc-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--vc-ink-4);
-}
-/* The emit reuses .vc-emit (fault-red on fire); the row owns the vertical rhythm. */
-.vc-spec-emitrow .vc-emit {
-  margin-top: 0;
-}
-
-/* Collectible flourish — catalogue string + a hairline "pinned specimen" tick,
-   pinned to the plate's base so the 13 read as one drawer. Monochrome, decorative. */
-.vc-spec-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 12px;
-}
-.vc-spec-foot::before {
-  content: '';
-  width: 52px;
-  height: 4px;
-  margin-left: auto;
-  flex: none;
-  background: linear-gradient(
-    90deg,
-    var(--vc-proof-c) 0 9%,
-    var(--vc-proof-m) 9% 23%,
-    var(--vc-proof-y) 23% 30%,
-    var(--vc-proof-k) 30% 48%,
-    var(--vc-proof-c) 48% 58%,
-    var(--vc-proof-m) 58% 64%,
-    var(--vc-proof-y) 64% 74%,
-    var(--vc-proof-k) 74% 100%
-  );
-  opacity: 0.84;
-}
-.vc-spec-cat {
-  font-family: var(--vc-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: var(--vc-ink-4);
-  font-variant-numeric: tabular-nums;
-}
-/* The card is a link to its fix guide; this is the visible affordance (the plate
-   already carries an aria-label). Muted at rest, inks up as the card is engaged. */
-.vc-spec-fix {
-  font-family: var(--vc-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
-  color: var(--vc-ink-4);
-  transition: color 0.15s ease;
-}
-.vc-spec:hover .vc-spec-fix,
-.vc-spec:focus-visible .vc-spec-fix,
-.vc-spec:focus-within .vc-spec-fix {
-  color: var(--vc-ink);
-}
-
-/* Fire — hover / keyboard focus / tap (focus-within): tagline collapses out,
-   field note expands in, filled menace pips pulse once (reusing vc-fire-pulse). */
-.vc-spec:hover .vc-spec-tagline,
-.vc-spec:focus-visible .vc-spec-tagline,
-.vc-spec:focus-within .vc-spec-tagline {
-  opacity: 0;
-  max-height: 0;
-  margin-top: 0;
-}
-.vc-spec:hover .vc-spec-note,
-.vc-spec:focus-visible .vc-spec-note,
-.vc-spec:focus-within .vc-spec-note {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-.vc-spec:hover .vc-spec-pip[data-on],
-.vc-spec:focus-visible .vc-spec-pip[data-on],
-.vc-spec:focus-within .vc-spec-pip[data-on] {
-  animation: vc-fire-pulse 0.55s ease-out;
-}
-
-/* Lift the fired plate: raise it above its neighbours (z-index on the absolute
-   inner), deepen the border to the fault-red signal, add a drop shadow and a
-   slightly elevated fill so the popover reads as a solid card floating over the
-   ones below. Only the shadow/border/z-index change — no sibling ever moves. */
-.vc-spec:hover .vc-spec-inner,
-.vc-spec:focus-visible .vc-spec-inner,
-.vc-spec:focus-within .vc-spec-inner {
-  z-index: 5;
-  background: var(--vc-panel-2);
-  border-color: color-mix(in srgb, var(--vc-sig) 42%, var(--vc-line-strong));
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1),
-    0 16px 34px -8px rgba(0, 0, 0, 0.34);
-}
-
-/* Reduced motion: keep the zero-reflow overlay, just drop the animation. The
-   note still reveals on hover / focus (in the absolute overlay, so nothing
-   reflows) but appears instantly. It is NOT shown statically-always, because an
-   always-expanded absolute inner would permanently overlap the plate below —
-   the same layout problem this section exists to avoid. */
-@media (prefers-reduced-motion: reduce) {
-  .vc-spec-tagline,
-  .vc-spec-note,
-  .vc-spec-inner,
-  .vc-spec-art [data-vc-process-plate] {
-    transition: none !important;
+.vc-hero-note p { margin: 0; }
+.vc-hero-note-narrow { display: none; }
+.vc-hero-note-wide { display: block; }
+:root[data-vc-widget='collapsed'] .vc-hero-note { display: none; }
+@media (max-width: 1099px) {
+  .vc-hero-note {
+    position: static;
+    width: auto;
+    margin-top: 16px;
+    display: block;
   }
-  .vc-spec-art [data-vc-process-plate] {
-    transform: none !important;
-  }
+  .vc-hero-note-wide { display: none; }
+  .vc-hero-note-narrow { display: block; }
+  :root[data-vc-widget='collapsed'] .vc-hero-note { display: block; }
+}
+@keyframes vc-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.92); }
+}
+.vc-ledger-row:last-child {
+  border-bottom: none;
 }

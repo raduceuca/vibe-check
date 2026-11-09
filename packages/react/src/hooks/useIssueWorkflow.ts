@@ -8,15 +8,41 @@ import {
   visibleWorkflowIssues,
   writeWorkflowCache,
 } from '../store/workflowCache.js'
+import { usePolling } from './usePolling.js'
 
 interface UseIssueWorkflowOptions {
   readonly beaconUrl?: string
   readonly projectId?: string
+  /**
+   * Stop polling, for example while the beacon already knows the hub is down.
+   * The cached workflow stays readable and is marked stale.
+   */
+  readonly paused?: boolean
 }
 
-const POLL_INTERVAL_MS = 2_000
+const readErrorCode = async (response: Response): Promise<string | null> => {
+  try {
+    const body: unknown = await response.json()
+    if (typeof body === 'object' && body !== null && 'code' in body) {
+      const { code } = body as { readonly code: unknown }
+      return typeof code === 'string' ? code : null
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
-export const useIssueWorkflow = ({ beaconUrl, projectId }: UseIssueWorkflowOptions) => {
+// Plain-language reason a check request failed, from the hub's IssueActionResult code.
+const verificationFailureMessage = (status: number, code: string | null): string => {
+  if (code === 'issue-not-found') return "The hub hasn't seen this issue yet. Wait for the next snapshot, then check again."
+  if (code === 'project-not-found') return "The hub doesn't know this project yet. Wait for the next snapshot, then check again."
+  if (code === 'lease-conflict') return 'Another agent session owns this project.'
+  if (code === 'origin-not-allowed') return 'The hub refused this page. Restart it with --allow-origin for this address.'
+  return `The hub could not start the check (HTTP ${status}).`
+}
+
+export const useIssueWorkflow = ({ beaconUrl, projectId, paused = false }: UseIssueWorkflowOptions) => {
   const [workflow, setWorkflow] = useState<ProjectWorkflow | null>(
     () => projectId ? readWorkflowCache(projectId) : null,
   )
@@ -32,8 +58,13 @@ export const useIssueWorkflow = ({ beaconUrl, projectId }: UseIssueWorkflowOptio
     setStale(false)
   }, [projectId])
 
-  const refresh = useCallback(async (): Promise<void> => {
-    if (!baseUrl || !projectId) return
+  // While paused the shown workflow is only the last one we saw.
+  useEffect(() => {
+    if (paused && baseUrl && projectId) setStale(true)
+  }, [paused, baseUrl, projectId])
+
+  const load = useCallback(async (): Promise<boolean> => {
+    if (!baseUrl || !projectId) return false
     try {
       const response = await fetch(
         `${baseUrl}/api/projects/${encodeURIComponent(projectId)}/workflow`,
@@ -46,34 +77,40 @@ export const useIssueWorkflow = ({ beaconUrl, projectId }: UseIssueWorkflowOptio
       writeWorkflowCache(projectId, next)
       setWorkflow(next)
       setStale(false)
+      return true
     } catch {
       setStale(true)
+      return false
     }
   }, [baseUrl, projectId])
 
-  useEffect(() => {
-    if (!baseUrl || !projectId) return
-    let active = true
-    const refreshWhileActive = async (): Promise<void> => {
-      if (active) await refresh()
-    }
-    void refreshWhileActive()
-    const timer = setInterval(() => { void refreshWhileActive() }, POLL_INTERVAL_MS)
-    return () => {
-      active = false
-      clearInterval(timer)
-    }
-  }, [baseUrl, projectId, refresh])
+  const refresh = useCallback(async (): Promise<void> => {
+    await load()
+  }, [load])
 
+  // Polls every 2 s while the hub answers and backs off to 60 s while it does
+  // not; nothing runs while the tab is hidden or the caller pauses it.
+  usePolling(load, Boolean(baseUrl && projectId) && !paused)
+
+  // Resolves once the hub accepted the request; throws an Error with a
+  // plain-language message otherwise (never an unhandled network rejection
+  // for callers that await it).
   const requestVerification = useCallback(async (issueId: string): Promise<void> => {
     if (!baseUrl || !projectId) throw new Error('VibeCheck hub is not configured')
-    const response = await fetch(
-      `${baseUrl}/api/projects/${encodeURIComponent(projectId)}/issues/${encodeURIComponent(issueId)}/verify`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
-    )
-    if (!response.ok) throw new Error(`verification ${response.status}`)
-    await refresh()
-  }, [baseUrl, projectId, refresh])
+    let response: Response
+    try {
+      response = await fetch(
+        `${baseUrl}/api/projects/${encodeURIComponent(projectId)}/issues/${encodeURIComponent(issueId)}/verify`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+      )
+    } catch {
+      throw new Error("Couldn't reach the hub. Start it, then check again.")
+    }
+    if (!response.ok) {
+      throw new Error(verificationFailureMessage(response.status, await readErrorCode(response)))
+    }
+    await load()
+  }, [baseUrl, projectId, load])
 
   const hideFixed = useCallback((issueKeys: readonly string[]): void => {
     if (!projectId) return

@@ -1,55 +1,56 @@
 import { SITE_URL, GITHUB_URL } from '@/lib/site'
+import { LANDING_COPY } from '@/lib/landingCopy'
 
-// A full, self-contained markdown summary of the landing page — the same content
-// the old middleware inlined, now served through the markdown route so `/`,
-// `/index.md`, and `Accept: text/markdown` all return real prose. Kept as a
-// function so it stays deterministic and dependency-free.
-export const landingMarkdown = (): string => `# VibeCheck
+// Generated from LANDING_COPY so /index.md stays in sync with the landing.
+export const landingMarkdown = (): string => {
+  const [h1a, h1b] = LANDING_COPY.hero.headline
+  const loop = LANDING_COPY.loop.steps
+    .map((step) => `### ${step.name}\n\n${step.sentence}`)
+    .join('\n\n')
 
-> A quiet performance instrument for the AI-built frontend. It catches jank, leaks, DOM bloat and layout shift, then hands the evidence to your coding agent over MCP.
+  return `# ${h1a} ${h1b}
 
-**Your agent shipped it. This caught what it broke.**
+> ${LANDING_COPY.hero.lede}
 
-## The problem
+## ${LANDING_COPY.look.title}
 
-AI agents ship frontends that pass review and look fine in the happy path — then leak memory across route changes, bloat the DOM to 10k nodes, fire the same request eight times, jank on scroll, shift layout as things load, and quietly fail Core Web Vitals and SEO. Nobody is watching, because the "author" was an agent and the human never opened DevTools.
+${LANDING_COPY.look.body}
 
-VibeCheck is the observer that was missing: a performance conscience for your coding agent. When something is wrong it doesn't just nag you — it tells the agent, in the agent's own language (MCP), with the exact evidence.
+- Smooth: Nothing jumps, nothing freezes, every tap lands.
+- Light: It loads what it uses, and nothing twice.
+- Clean: A quiet console, and the basics in place.
+- Findable: Search engines know what this page is.
+- Quotable: When someone asks an AI, it can quote you.
 
-## What it catches
+## ${LANDING_COPY.loop.title}
 
-A restrained set of detectors and pass/fail audits, each emitting a machine-readable issue:
+${LANDING_COPY.loop.body}
 
-- Frame rate / jank and long frames
-- Memory leaks across route changes
-- DOM bloat (node-count growth)
-- Layout shift (CLS)
-- Duplicate / repeated network requests
-- Core Web Vitals regressions
-- Console errors
-- **SEO audit** — title, meta description, canonical, headings, Open Graph, alt text, sitemap/robots
-- **AEO / AI-readiness audit** — structured data, \`llms.txt\`, markdown negotiation, MCP discovery, AI-crawler access, \`<main>\` landmark, authorship
+${loop}
 
-## From symptom to fix (the round-trip)
+## ${LANDING_COPY.notice.title}
 
-The widget captures a snapshot, beacons it to a local MCP server, and your agent reads it — then proposes the diff. Ask your agent: *"What is VibeCheck detecting right now, and how do I fix it?"*
+${LANDING_COPY.notice.body[0]}
 
-## Install
+${LANDING_COPY.notice.body[1]}
 
-Drop in the widget:
+## ${LANDING_COPY.confirm.title}
 
-    import { VibeCheck } from '@wcgw/vibe-check'
+${LANDING_COPY.confirm.body}
 
-    {process.env.NODE_ENV !== 'production' && (
-      <VibeCheck beaconUrl="http://127.0.0.1:4200" projectId="my-project" />
-    )}
+## ${LANDING_COPY.yourCall.title}
 
-Connect your coding agent over MCP:
+${LANDING_COPY.yourCall.body}
 
-    npx -y @wcgw/vibe-check-mcp@0.3.0 hub
-    claude mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect
+## ${LANDING_COPY.install.title}
 
-Nine project-scoped MCP tools, an \`llms.txt\`, and a Claude skill ship in the box. Zero runtime deps in core · open source · MIT.
+${LANDING_COPY.install.body}
+
+    ${LANDING_COPY.install.setupCommand('claude-code')}
+
+## ${LANDING_COPY.faq.title}
+
+${LANDING_COPY.faq.items.map((item) => `### ${item.q}\n\n${item.a}`).join('\n\n')}
 
 ## Links
 
@@ -58,5 +59,8 @@ Nine project-scoped MCP tools, an \`llms.txt\`, and a Claude skill ship in the b
 - Fix guides: ${SITE_URL}/fix.md
 - Full markdown map for LLMs: ${SITE_URL}/llms.txt
 - Whole site as one markdown file: ${SITE_URL}/llms-full.txt
-- GitHub: ${GITHUB_URL}
+- Source: ${GITHUB_URL}
+
+${LANDING_COPY.footerLead}
 `
+}

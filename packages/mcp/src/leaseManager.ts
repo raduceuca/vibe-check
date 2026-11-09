@@ -10,15 +10,23 @@ export interface LeaseManager {
   stop(): Promise<void>
 }
 
-export const createLeaseManager = (client: HubClient, sessionId: string): LeaseManager => {
+/**
+ * @param getClientName Optional; the MCP bridge supplies the connected client's
+ *   name so lease-conflict messages can name the holder.
+ */
+export const createLeaseManager = (
+  client: HubClient,
+  sessionId: string,
+  getClientName: () => string | null = () => null,
+): LeaseManager => {
   let projectId: string | null = null
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
   const clearHeartbeat = (): void => {
     if (heartbeatTimer !== null) {
       clearInterval(heartbeatTimer)
-      heartbeatTimer = null
     }
+    heartbeatTimer = null
   }
 
   const loseOwnership = (): void => {
@@ -62,7 +70,12 @@ export const createLeaseManager = (client: HubClient, sessionId: string): LeaseM
           projectId,
         }
       }
-      const result = await client.acquireLease(requestedProjectId, sessionId)
+      const clientName = getClientName()
+      const result = await client.acquireLease(
+        requestedProjectId,
+        sessionId,
+        clientName ?? undefined,
+      )
       if (result.ok) {
         projectId = requestedProjectId
         startHeartbeat()

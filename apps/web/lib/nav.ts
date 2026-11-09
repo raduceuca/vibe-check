@@ -1,3 +1,4 @@
+import { MCP_PACKAGE_VERSION } from '@wcgw/vibe-check-core'
 import { CATEGORY_META, problemsInCategory } from './problems'
 import { GITHUB_URL } from './site'
 
@@ -8,7 +9,8 @@ import { GITHUB_URL } from './site'
 // client SiteSidebar as lightweight {slug,label,href} — no problem content is
 // bundled into client JS (SiteSidebar imports only the *types* from here).
 
-export const SITE_VERSION = '0.3.0'
+export const SITE_VERSION = MCP_PACKAGE_VERSION
+
 
 export interface NavItem {
   readonly label: string

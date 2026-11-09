@@ -80,8 +80,8 @@ export const useVibeCheck = (
 
   useEffect(() => {
     if (!enabled) {
-      // Stop any existing engine when disabled
-      if (engineRef.current) {
+      // Stop only an engine we own — never a caller-injected one.
+      if (engineRef.current && !injectedEngine) {
         engineRef.current.stop()
         engineRef.current = null
       }
@@ -89,6 +89,13 @@ export const useVibeCheck = (
       return
     }
 
+    // Wait for an injected engine rather than constructing a parallel one.
+    if (injectedEngine === null) {
+      setSnapshot(EMPTY_SNAPSHOT)
+      return
+    }
+
+    const ownsEngine = injectedEngine === undefined
     const engine: VibeEngine = injectedEngine ?? new VibeCheckEngine(stableConfig ?? {})
     engineRef.current = engine
 
@@ -100,7 +107,7 @@ export const useVibeCheck = (
 
     return () => {
       unsubscribe()
-      engine.stop()
+      if (ownsEngine) engine.stop()
       if (engineRef.current === engine) engineRef.current = null
     }
   }, [enabled, stableConfig, injectedEngine])

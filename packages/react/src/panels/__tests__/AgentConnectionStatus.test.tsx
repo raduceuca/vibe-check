@@ -54,28 +54,26 @@ describe('AgentConnectionStatus', () => {
     render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('watching', Date.now())} />)
     expect(screen.getByTestId('vibe-check-agent-status').textContent).toContain('Agent connected')
     expect(screen.getByText(/second agent was rejected/i)).toBeTruthy()
-    expect(screen.getByText(/owning session/i)).toBeTruthy()
+    expect(screen.getByText(/already watching project "project-a"/i)).toBeTruthy()
   })
 
-  it('shows exact Codex setup and project watch instruction while waiting', async () => {
+
+  it('shows the watch instruction as the next step while waiting', async () => {
     render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('no-agent')} />)
 
-    expect(screen.getByText(/codex mcp add vibe-check -- npx -y @wcgw\/vibe-check-mcp@0\.3\.0 connect/)).toBeTruthy()
+    expect(screen.getByText(/Paste this in the agent/i)).toBeTruthy()
     expect(screen.getByText(/project_id "project-a"/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /copy codex setup/i }))
+    expect(screen.queryByText(/codex mcp add vibe-check/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /copy watch instruction/i }))
 
-    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
-    expect(writeText).toHaveBeenNthCalledWith(
-      1,
-      'codex mcp add vibe-check -- npx -y @wcgw/vibe-check-mcp@0.3.0 connect',
-    )
-    expect(writeText.mock.calls[1]?.[0]).toContain('project_id "project-a"')
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(writeText.mock.calls[0]?.[0]).toContain('project_id "project-a"')
   })
 
-  it('switches to Claude Code and Cursor setup without losing the project', () => {
+  it('hides MCP client setup until asked, then keeps the project', () => {
     render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('no-agent')} />)
 
+    fireEvent.click(screen.getByRole('button', { name: /need to add the mcp server/i }))
     fireEvent.click(screen.getByRole('button', { name: 'Claude Code' }))
     expect(screen.getByText(/claude mcp add --scope local vibe-check/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cursor' }))
@@ -93,10 +91,11 @@ describe('AgentConnectionStatus', () => {
       />,
     )
 
-    expect(screen.getByText(/npx -y @wcgw\/vibe-check-mcp@0\.3\.0 hub/)).toBeTruthy()
-    expect(screen.getByText(/http:\/\/127\.0\.0\.1:4210/)).toBeTruthy()
+    expect(screen.getByText(/npx -y @wcgw\/vibe-check-mcp@0\.4\.0 hub/)).toBeTruthy()
+    expect(screen.getAllByText(/http:\/\/127\.0\.0\.1:4210/).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /copy hub command/i })).toBeTruthy()
   })
+
 
   it('shows beaconUrl and projectId integration when unconfigured', () => {
     render(<AgentConnectionStatus mode="technical" />)
@@ -115,4 +114,37 @@ describe('AgentConnectionStatus', () => {
     expect(screen.getByText(/codex mcp add vibe-check/)).toBeTruthy()
     expect(document.getElementById('vibe-check-agent-setup-details')).toBeTruthy()
   })
+
+  it('collapses to a one-line status when compact and connected', () => {
+    render(
+      <AgentConnectionStatus
+        mode="technical"
+        beaconUrl="http://127.0.0.1:4200"
+        status={status('watching')}
+        compactWhenReady
+      />,
+    )
+
+    expect(screen.getByText('Agent connected')).toBeTruthy()
+    expect(screen.queryByText(/owned by one agent session/i)).toBeNull()
+    expect(screen.getByRole('button', { name: /^setup$/i })).toBeTruthy()
+  })
+
+  it('copies a full setup pack for the selected agent', async () => {
+    render(<AgentConnectionStatus mode="technical" beaconUrl="http://127.0.0.1:4200" status={status('no-agent')} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /need to add the mcp server/i }))
+    fireEvent.click(screen.getByRole('button', { name: /copy full setup pack/i }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    const pack = writeText.mock.calls[0]?.[0] ?? ''
+    expect(pack).toContain('## VibeCheck setup — project-a')
+    // Hub is already reachable (lastOk), so the pack must not tell the user to
+    // start a second one with `up`.
+    expect(pack).toContain('The hub is already running at http://127.0.0.1:4200')
+    expect(pack).not.toContain('up --project project-a --agent codex')
+    expect(pack).toContain('codex mcp add vibe-check')
+    expect(pack).toContain('project_id "project-a"')
+  })
+
+
 })

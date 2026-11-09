@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { HUB_INTAKE_LIMITS } from '@wcgw/vibe-check-protocol'
 import {
   parseDispatchIssueRequest,
   parseProjectSnapshotEnvelope,
@@ -53,19 +54,23 @@ describe('parseSnapshot', () => {
     expect(parseSnapshot(bad)).toBeNull()
   })
 
-  it('rejects over-long agent-facing strings', () => {
-    const bad = makeSnapshot([makeIssue({ description: 'x'.repeat(5000) })])
-    expect(parseSnapshot(bad)).toBeNull()
+  it('clamps over-long agent-facing strings (MCP-08)', () => {
+    const parsed = parseSnapshot(makeSnapshot([makeIssue({ description: 'x'.repeat(5_000) })]))
+    expect(parsed).not.toBeNull()
+    expect(parsed!.issues[0]!.description.length).toBeLessThanOrEqual(HUB_INTAKE_LIMITS.maxDescriptionChars)
   })
 
-  it('rejects too many issues', () => {
+  it('keeps the highest-priority issues when the snapshot is too large (MCP-08)', () => {
     const many = Array.from({ length: 501 }, (_, i) => makeIssue({ id: `i-${i}` }))
-    expect(parseSnapshot(makeSnapshot(many))).toBeNull()
+    const parsed = parseSnapshot(makeSnapshot(many))
+    expect(parsed).not.toBeNull()
+    expect(parsed!.issues.length).toBeLessThanOrEqual(HUB_INTAKE_LIMITS.maxIssuesPerSnapshot)
+    expect(parsed!.truncation?.droppedIssues).toBeGreaterThan(0)
   })
 })
 
 describe('project browser messages', () => {
-  it('requires a bounded page URL on snapshots and dispatches', () => {
+  it('requires a page URL and truncates over-long ones', () => {
     const envelope = {
       projectId: 'project-a',
       instanceId: 'browser-a',
@@ -84,6 +89,8 @@ describe('project browser messages', () => {
     expect(parseProjectSnapshotEnvelope(envelope)).not.toBeNull()
     expect(parseDispatchIssueRequest(dispatch)).not.toBeNull()
     expect(parseProjectSnapshotEnvelope({ ...envelope, pageUrl: undefined })).toBeNull()
-    expect(parseDispatchIssueRequest({ ...dispatch, pageUrl: 'x'.repeat(2_001) })).toBeNull()
+    const long = parseDispatchIssueRequest({ ...dispatch, pageUrl: 'x'.repeat(2_001) })
+    expect(long).not.toBeNull()
+    expect(long!.pageUrl.length).toBeLessThanOrEqual(HUB_INTAKE_LIMITS.maxEnvelopeTextChars)
   })
 })

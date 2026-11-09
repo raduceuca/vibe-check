@@ -41,6 +41,31 @@ export type {
   LeaseResult,
   AgentClientId,
   AgentClientSetup,
+  SetupPackOptions,
+  // Since 0.4
+  DetectorKind,
+  DetectorRunStatus,
+  AuditRun,
+  AuditRunStatus,
+  AuditDetectorName,
+  SnapshotTruncation,
+  LeaseHolder,
+  LeaseRequest,
+  IssueActionResult,
+  IssueActionCode,
+  IssueVerificationStatus,
+  VerificationOutcome,
+  VerificationEvidence,
+  VerificationInconclusiveReason,
+  DeliveryReceiptRequest,
+  DeliveryReceiptResult,
+  DeliveryReceiptCode,
+  AgentClientSetupOptions,
+  HubStartCommandOptions,
+  McpToolDescriptor,
+  McpToolName,
+  McpToolParam,
+  PayloadLimits,
 } from './types.js'
 
 export {
@@ -55,8 +80,39 @@ export {
   DISPATCH_RESULT_CODES,
   MCP_PACKAGE_SPEC,
   HUB_START_COMMAND,
+  UP_START_COMMAND,
   getAgentClientSetup,
   getWatchInstruction,
+  formatSetupPack,
+  // Since 0.4
+  getHubStartCommand,
+  getDoctorCommand,
+  DEFAULT_HUB_URL,
+  DEFAULT_HUB_PORT,
+  HUB_URL_ENV,
+  normalizeHubUrl,
+  hubPortFromUrl,
+  isDispatchableAgentState,
+  DISPATCHABLE_AGENT_STATES,
+  formatLeaseConflictMessage,
+  agentClientLabel,
+  MCP_PACKAGE_NAME,
+  WIDGET_PACKAGE_NAME,
+  MCP_PACKAGE_VERSION,
+  MCP_TOOL_CATALOG,
+  MCP_TOOL_NAMES,
+  getMcpToolDescriptor,
+  classifyVerificationSnapshot,
+  issueLastSeenAt,
+  getIssueIdentity,
+  PAYLOAD_LIMITS,
+  boundIssue,
+  boundSnapshot,
+  fitEnvelopeToBytes,
+  AUDIT_DETECTORS,
+  DETECTOR_KINDS,
+  VERIFICATION_OUTCOMES,
+  ISSUE_ACTION_CODES,
 } from './types.js'
 
 // Engine
@@ -93,7 +149,7 @@ export type { LibrarySignature } from './detectors/heavyLibrary.js'
 
 // Beacon
 export { BeaconClient } from './beacon/beaconClient.js'
-export type { BeaconClientConfig, BeaconStatus } from './beacon/beaconClient.js'
+export type { BeaconClientConfig, BeaconStatus, BeaconFailure } from './beacon/beaconClient.js'
 
 // Suggestions
 export { getSuggestion, getAgentPrompt, PROACTIVE_PROMPTS } from './suggestions/index.js'
@@ -112,3 +168,10 @@ export {
   hasMutationObserver,
   hasResourceTiming,
 } from './utils/featureDetect.js'
+export {
+  probeFetch,
+  createProbeCache,
+  VC_PROBE,
+  isProbeInit,
+} from './utils/probe.js'
+export type { ProbeCache, ProbeResult, ProbeRequestInit, AuditDetectorOptions } from './utils/probe.js'

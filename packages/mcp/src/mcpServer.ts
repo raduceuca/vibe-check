@@ -1,12 +1,16 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { DETECTOR_NAMES, SEVERITIES } from '@wcgw/vibe-check-protocol'
+import {
+  MCP_TOOL_CATALOG,
+  MAX_WATCH_WAIT_SECONDS,
+  type McpToolDescriptor,
+  type McpToolParam,
+} from '@wcgw/vibe-check-protocol'
 import type { HubClient } from './hubClient.js'
 import { HubClientError } from './hubClient.js'
 import type { LeaseManager } from './leaseManager.js'
 import { getSuggestion } from './suggestions/index.js'
-
-const projectIdSchema = z.string().optional().describe('Project ID from list_projects; optional when exactly one project is active')
+import type { IssueActionResult, IssueVerificationStatus } from './types.js'
 
 const jsonResult = (payload: unknown, isError = false) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
@@ -40,12 +44,8 @@ const resolveProject = async (
   }
   if (owned) return { ok: true, projectId: owned }
   if (requested) {
-    return projects.some((project) => project.projectId === requested)
-      ? { ok: true, projectId: requested }
-      : {
-          ok: false,
-          payload: { error: 'Project not found', code: 'project-not-found', projects },
-        }
+    // Explicit project_id: allow inactive (registered) projects for impact reads.
+    return { ok: true, projectId: requested }
   }
   if (projects.length === 1) return { ok: true, projectId: projects[0]!.projectId }
   return {
@@ -60,9 +60,83 @@ const resolveProject = async (
   }
 }
 
-const hubErrorPayload = (error: unknown): unknown => error instanceof HubClientError
-  ? { error: error.message, code: error.code, details: error.body }
-  : { error: error instanceof Error ? error.message : String(error), code: 'hub-request-failed' }
+const hubErrorPayload = (error: unknown): unknown => {
+  if (error instanceof HubClientError) {
+    return { error: error.message, code: error.code, details: error.body }
+  }
+  return { error: error instanceof Error ? error.message : String(error), code: 'hub-request-failed' }
+}
+
+const leaseErrorPayload = (lease: { ok: false; code: string; projectId?: string; message?: string; holder?: unknown }) => ({
+  error: lease.message
+    ?? (lease.code === 'lease-conflict'
+      ? 'Another agent session already holds this project.'
+      : `Could not claim project (${lease.code}).`),
+  code: lease.code,
+  projectId: lease.projectId,
+  ...(lease.holder ? { holder: lease.holder } : {}),
+  retry: false,
+})
+
+const secondsLabel = (seconds: number): string =>
+  `${seconds} second${seconds === 1 ? '' : 's'}`
+
+const zodForParam = (param: McpToolParam): z.ZodTypeAny => {
+  switch (param.kind) {
+    case 'string':
+      return param.required ? z.string() : z.string().optional()
+    case 'number': {
+      const base = z.number().min(param.min).max(param.max)
+      return param.required ? base : base.default(param.default)
+    }
+    case 'enum': {
+      const values = param.values as [string, ...string[]]
+      const base = z.enum(values)
+      return param.required ? base : base.optional()
+    }
+  }
+}
+
+const schemaFor = (descriptor: McpToolDescriptor): Record<string, z.ZodTypeAny> => {
+  const schema: Record<string, z.ZodTypeAny> = {}
+  for (const param of descriptor.params) {
+    schema[param.name] = zodForParam(param).describe(param.description)
+  }
+  return schema
+}
+
+const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason instanceof Error ? signal.reason : new Error('aborted'))
+      return
+    }
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(signal.reason instanceof Error ? signal.reason : new Error('aborted'))
+    }, { once: true })
+  })
+
+const verificationMessage = (verification: IssueVerificationStatus | null): string => {
+  if (verification === null) return 'Verification status is not available yet.'
+  if (verification.outcome === 'fixed') {
+    return 'Browser evidence shows the issue is gone. Marked fixed.'
+  }
+  if (verification.outcome === 'still-present') {
+    return 'Browser evidence still shows the issue. Keep working on it.'
+  }
+  if (verification.outcome === 'not-requested') {
+    return 'Verification has not been requested for this issue.'
+  }
+  if (verification.waitingFor === 'no-snapshot-yet') {
+    return 'Waiting for a fresh browser snapshot to verify the fix.'
+  }
+  if (verification.waitingFor) {
+    return `Still verifying (waiting for: ${verification.waitingFor}).`
+  }
+  return `Verification pending (${verification.cleanSnapshots}/${verification.requiredCleanSnapshots} clean snapshots).`
+}
 
 export interface McpServerContext {
   readonly server: McpServer
@@ -88,133 +162,239 @@ export const createMcpServer = (
     }
   }
 
-  server.tool('list_projects', 'List active local VibeCheck projects and their agent state', {}, async () => {
-    try {
-      return jsonResult(await client.listProjects())
-    } catch (error) {
-      return jsonResult(hubErrorPayload(error), true)
-    }
-  })
+  const claim = async (projectId: string) => {
+    const lease = await leases.acquire(projectId)
+    if (!lease.ok) return { ok: false as const, result: jsonResult(leaseErrorPayload(lease), true) }
+    return { ok: true as const }
+  }
 
-  server.tool(
-    'get_project_impact',
-    'Get persisted, browser-verified VibeCheck outcome statistics for one project',
-    { project_id: projectIdSchema },
-    async ({ project_id }) => withProject(project_id, async (projectId) => {
-      const impact = await client.getProjectImpact(projectId)
-      return impact
-        ? jsonResult(impact)
-        : jsonResult({ error: 'Project impact not found', code: 'project-not-found', projectId }, true)
-    }),
-  )
+  type ToolExtra = { signal?: AbortSignal }
+  type ToolResult = ReturnType<typeof jsonResult> | ReturnType<typeof textResult>
 
-  server.tool(
-    'get_performance_snapshot',
-    'Get the latest browser performance snapshot for one project',
-    { project_id: projectIdSchema },
-    async ({ project_id }) => withProject(project_id, async (projectId) => {
-      const snapshot = await client.getSnapshot(projectId)
-      return snapshot
-        ? jsonResult(snapshot)
-        : jsonResult({ error: 'No snapshot available yet.', code: 'no-snapshot', projectId }, true)
-    }),
-  )
-
-  server.tool(
-    'get_detected_issues',
-    'Get active issues for one project, optionally filtered',
-    {
-      project_id: projectIdSchema,
-      severity: z.enum([...SEVERITIES]).optional(),
-      detector: z.enum([...DETECTOR_NAMES]).optional(),
-    },
-    async ({ project_id, severity, detector }) => withProject(project_id, async (projectId) => {
-      const issues = await client.getDetectedIssues(projectId, { severity, detector })
-      return jsonResult({ count: issues.length, issues })
-    }),
-  )
-
-  server.tool(
-    'get_fix_suggestions',
-    'Get a fix suggestion for one detected issue',
-    { project_id: projectIdSchema, issue_id: z.string() },
-    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
-      const issue = await client.getIssue(projectId, issue_id)
-      return issue
-        ? textResult(getSuggestion(issue))
-        : jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
-    }),
-  )
-
-  server.tool(
-    'watch_performance',
-    'Wait for the next snapshot for one project',
-    {
-      project_id: projectIdSchema,
-      timeout_seconds: z.number().min(1).max(300).default(30),
-    },
-    async ({ project_id, timeout_seconds }) => withProject(project_id, async (projectId) => {
-      const lease = await leases.acquire(projectId)
-      if (!lease.ok) return jsonResult(lease, true)
-      const snapshot = await client.waitForSnapshot(projectId, leases.sessionId, timeout_seconds)
-      return snapshot
-        ? jsonResult(snapshot)
-        : jsonResult({ error: `No snapshot received within ${timeout_seconds} seconds`, code: 'watch-timeout', projectId }, true)
-    }),
-  )
-
-  server.tool(
-    'watch_for_issue',
-    'Claim one project and wait for an issue explicitly sent from its widget',
-    {
-      project_id: projectIdSchema,
-      timeout_seconds: z.number().min(1).max(300).default(30),
-    },
-    async ({ project_id, timeout_seconds }) => withProject(project_id, async (projectId) => {
-      const lease = await leases.acquire(projectId)
-      if (!lease.ok) return jsonResult(lease, true)
-      const queued = await client.waitForIssue(projectId, leases.sessionId, timeout_seconds)
-      if (!queued) {
-        return jsonResult({ error: `No issue sent within ${timeout_seconds} seconds`, code: 'watch-timeout', projectId }, true)
+  const handlers: Record<string, (args: Record<string, unknown>, extra: ToolExtra) => Promise<ToolResult>> = {
+    list_projects: async () => {
+      try {
+        return jsonResult(await client.listProjects())
+      } catch (error) {
+        return jsonResult(hubErrorPayload(error), true)
       }
-      return jsonResult({
-        ...queued,
-        suggestion: getSuggestion(queued.issue),
-        receivedAt: Date.now(),
-      })
-    }),
-  )
+    },
 
-  server.tool(
-    'acknowledge_issue',
-    'Acknowledge an issue in one project',
-    { project_id: projectIdSchema, issue_id: z.string() },
-    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
-      const issue = await client.getIssue(projectId, issue_id)
-      if (!issue) return jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
-      await client.acknowledgeIssue(projectId, issue_id)
-      return jsonResult({ acknowledged: true, projectId, issue_id })
-    }),
-  )
+    get_project_impact: async ({ project_id }) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const impact = await client.getProjectImpact(projectId)
+        return impact
+          ? jsonResult(impact)
+          : jsonResult({ error: 'Project impact not found', code: 'project-not-found', projectId }, true)
+      },
+    ),
 
-  server.tool(
-    'resolve_issue',
-    'Request browser-evidence verification after fixing an issue in one project',
-    { project_id: projectIdSchema, issue_id: z.string() },
-    async ({ project_id, issue_id }) => withProject(project_id, async (projectId) => {
-      const issue = await client.getIssue(projectId, issue_id)
-      if (!issue) return jsonResult({ error: `Issue with id "${issue_id}" not found.`, code: 'issue-not-found', projectId }, true)
-      await client.resolveIssue(projectId, issue_id)
-      return jsonResult({ verifying: true, projectId, issue_id })
-    }),
-  )
+    get_performance_snapshot: async ({ project_id }) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const snapshot = await client.getSnapshot(projectId)
+        return snapshot
+          ? jsonResult(snapshot)
+          : jsonResult({ error: 'No snapshot available yet.', code: 'no-snapshot', projectId }, true)
+      },
+    ),
 
-  server.tool('release_project', 'Release this agent session\'s project lease', {}, async () => {
-    const projectId = leases.currentProjectId()
-    if (!projectId) return jsonResult({ released: false, code: 'no-project-lease' }, true)
-    await leases.release()
-    return jsonResult({ released: true, projectId })
-  })
+    get_detected_issues: async ({ project_id, severity, detector }) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const issues = await client.getDetectedIssues(projectId, {
+          severity: typeof severity === 'string' ? severity as never : undefined,
+          detector: typeof detector === 'string' ? detector as never : undefined,
+        })
+        return jsonResult({ count: issues.length, issues })
+      },
+    ),
+
+    get_fix_suggestions: async ({ project_id, issue_id }) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const issueId = String(issue_id ?? '')
+        const issue = await client.getIssue(projectId, issueId)
+        return issue
+          ? textResult(getSuggestion(issue))
+          : jsonResult({ error: `Issue with id "${issueId}" not found.`, code: 'issue-not-found', projectId }, true)
+      },
+    ),
+
+    watch_performance: async ({ project_id, timeout_seconds }, extra) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const claimed = await claim(projectId)
+        if (!claimed.ok) return claimed.result
+        const timeout = typeof timeout_seconds === 'number' ? timeout_seconds : 30
+        const capped = Math.min(timeout, MAX_WATCH_WAIT_SECONDS)
+        try {
+          const snapshot = await client.waitForSnapshot(
+            projectId,
+            leases.sessionId,
+            capped,
+            extra.signal,
+          )
+          return snapshot
+            ? jsonResult(snapshot)
+            : jsonResult({
+              error: `No snapshot received within ${secondsLabel(capped)}. Call watch_performance again to keep waiting.`,
+              code: 'watch-timeout',
+              projectId,
+              retry: true,
+            }, true)
+        } catch (error) {
+          if (extra.signal?.aborted) {
+            return jsonResult({
+              error: 'watch_performance was cancelled.',
+              code: 'watch-cancelled',
+              projectId,
+              retry: true,
+            }, true)
+          }
+          throw error
+        }
+      },
+    ),
+
+    watch_for_issue: async ({ project_id, timeout_seconds }, extra) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const claimed = await claim(projectId)
+        if (!claimed.ok) return claimed.result
+        const timeout = typeof timeout_seconds === 'number' ? timeout_seconds : 30
+        const capped = Math.min(timeout, MAX_WATCH_WAIT_SECONDS)
+        let queued
+        try {
+          queued = await client.waitForIssue(projectId, leases.sessionId, capped, extra.signal)
+        } catch (error) {
+          if (extra.signal?.aborted) {
+            return jsonResult({
+              error: 'watch_for_issue was cancelled. Any in-flight dispatch stays queued.',
+              code: 'watch-cancelled',
+              projectId,
+              retry: true,
+            }, true)
+          }
+          throw error
+        }
+        if (!queued) {
+          return jsonResult({
+            error: `No issue was sent in the last ${secondsLabel(capped)}. Call watch_for_issue again to keep waiting.`,
+            code: 'watch-timeout',
+            projectId,
+            retry: true,
+          }, true)
+        }
+        if (extra.signal?.aborted) {
+          if (queued.deliveryId) {
+            await client.returnDelivery(projectId, leases.sessionId, queued.deliveryId)
+          }
+          return jsonResult({
+            error: 'watch_for_issue was cancelled before the delivery was acknowledged.',
+            code: 'watch-cancelled',
+            projectId,
+            retry: true,
+          }, true)
+        }
+        if (queued.deliveryId) {
+          const receipt = await client.confirmDelivery(
+            projectId,
+            leases.sessionId,
+            queued.deliveryId,
+          )
+          if (!receipt.ok) {
+            return jsonResult({
+              error: 'This delivery expired before it reached you. Call watch_for_issue again; the issue is still queued.',
+              code: receipt.code,
+              projectId,
+              deliveryId: queued.deliveryId,
+              retry: true,
+            }, true)
+          }
+        }
+        return jsonResult({
+          ...queued,
+          suggestion: getSuggestion(queued.issue),
+          receivedAt: Date.now(),
+        })
+      },
+    ),
+
+    acknowledge_issue: async ({ project_id, issue_id }) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const claimed = await claim(projectId)
+        if (!claimed.ok) return claimed.result
+        const issueId = String(issue_id ?? '')
+        const result = await client.acknowledgeIssue(projectId, leases.sessionId, issueId)
+        return jsonResult({
+          ...result,
+          issue_id: issueId,
+        }, !result.ok)
+      },
+    ),
+
+    resolve_issue: async ({ project_id, issue_id, wait_seconds }, extra) => withProject(
+      typeof project_id === 'string' ? project_id : undefined,
+      async (projectId) => {
+        const claimed = await claim(projectId)
+        if (!claimed.ok) return claimed.result
+        const issueId = String(issue_id ?? '')
+        const waitSeconds = typeof wait_seconds === 'number'
+          ? Math.min(Math.max(0, Math.floor(wait_seconds)), MAX_WATCH_WAIT_SECONDS)
+          : 0
+        const action = await client.resolveIssue(projectId, leases.sessionId, issueId)
+        if (!action.ok) {
+          return jsonResult({ ...action, issue_id: issueId }, true)
+        }
+
+        let verification = await client.getVerificationStatus(projectId, issueId)
+        const deadline = Date.now() + waitSeconds * 1_000
+        while (
+          waitSeconds > 0
+          && verification?.outcome === 'pending'
+          && Date.now() < deadline
+          && !extra.signal?.aborted
+        ) {
+          await sleep(1_000, extra.signal).catch(() => undefined)
+          verification = await client.getVerificationStatus(projectId, issueId)
+        }
+
+        const payload: IssueActionResult & {
+          readonly issue_id: string
+          readonly verification: IssueVerificationStatus | null
+          readonly message: string
+        } = {
+          ...action,
+          issue_id: issueId,
+          verification,
+          message: verificationMessage(verification),
+        }
+        return jsonResult(payload)
+      },
+    ),
+
+    release_project: async () => {
+      const projectId = leases.currentProjectId()
+      if (!projectId) return jsonResult({ released: false, code: 'no-project-lease' }, true)
+      await leases.release()
+      return jsonResult({ released: true, projectId })
+    },
+  }
+
+  for (const descriptor of MCP_TOOL_CATALOG) {
+    const handler = handlers[descriptor.name]
+    if (!handler) throw new Error(`Missing handler for MCP tool ${descriptor.name}`)
+    const run = handler
+    server.tool(
+      descriptor.name,
+      descriptor.description,
+      schemaFor(descriptor),
+      async (args, extra): Promise<ToolResult> => run(args as Record<string, unknown>, extra ?? {}),
+    )
+  }
 
   return { server }
 }

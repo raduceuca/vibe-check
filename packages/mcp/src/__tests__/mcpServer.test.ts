@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MCP_TOOL_CATALOG, MCP_TOOL_NAMES } from '@wcgw/vibe-check-protocol'
 import { createMcpServer } from '../mcpServer.js'
 import type { HubClient } from '../hubClient.js'
 import type { LeaseManager } from '../leaseManager.js'
@@ -12,6 +13,8 @@ const issue: VibeIssue = {
   description: 'Too many nodes',
   evidence: { nodeCount: 5000 },
   timestamp: 1,
+  lastSeenAt: 1,
+  occurrences: 1,
   acknowledged: false,
   resolved: false,
 }
@@ -53,10 +56,13 @@ const makeClient = (): HubClient => ({
   health: vi.fn(),
   listProjects: vi.fn(async () => [project('project-a')]),
   getSnapshot: vi.fn(async () => snapshot),
+  getProjectStatus: vi.fn(async () => null),
   getWorkflow: vi.fn(async () => null),
   getProjectImpact: vi.fn(async () => impact),
   resetProjectImpact: vi.fn(),
-  requestVerification: vi.fn(),
+  requestVerification: vi.fn(async () => ({
+    ok: true, code: 'verifying', projectId: 'project-a', issueId: 'dom-1', issueKey: 'k', phase: 'verifying',
+  })),
   getDetectedIssues: vi.fn(async () => [issue]),
   getIssue: vi.fn(async (_projectId, issueId) => issueId === issue.id ? issue : null),
   waitForSnapshot: vi.fn(async () => snapshot),
@@ -69,9 +75,33 @@ const makeClient = (): HubClient => ({
     issue,
     snapshot,
     dispatchedAt: 10,
+    deliveryId: 'delivery-1',
+    attempts: 1,
   })),
-  acknowledgeIssue: vi.fn(),
-  resolveIssue: vi.fn(),
+  confirmDelivery: vi.fn(async () => ({
+    ok: true, code: 'delivered', projectId: 'project-a', deliveryId: 'delivery-1',
+  })),
+  returnDelivery: vi.fn(async () => ({
+    ok: true, code: 'requeued', projectId: 'project-a', deliveryId: 'delivery-1',
+  })),
+  acknowledgeIssue: vi.fn(async () => ({
+    ok: true, code: 'acknowledged', projectId: 'project-a', issueId: 'dom-1', issueKey: 'k', phase: 'working',
+  })),
+  resolveIssue: vi.fn(async () => ({
+    ok: true, code: 'verifying', projectId: 'project-a', issueId: 'dom-1', issueKey: 'k', phase: 'verifying',
+  })),
+  getVerificationStatus: vi.fn(async () => ({
+    projectId: 'project-a',
+    issueId: 'dom-1',
+    issueKey: 'k',
+    phase: 'verifying',
+    outcome: 'pending',
+    requestedAt: 1,
+    decidedAt: null,
+    cleanSnapshots: 0,
+    requiredCleanSnapshots: 2,
+    waitingFor: 'no-snapshot-yet',
+  })),
 })
 
 const makeLeases = (): LeaseManager => {
@@ -90,7 +120,7 @@ const makeLeases = (): LeaseManager => {
 
 const getToolHandler = (server: ReturnType<typeof createMcpServer>['server'], toolName: string) => {
   const tools = (server as unknown as Record<string, Record<string, {
-    handler: (args: Record<string, unknown>) => Promise<unknown>
+    handler: (args: Record<string, unknown>, extra?: { signal?: AbortSignal }) => Promise<unknown>
   }>>)['_registeredTools']
   const tool = tools?.[toolName]
   if (!tool) throw new Error(`Tool ${toolName} not found`)
@@ -101,8 +131,9 @@ const call = async (
   context: ReturnType<typeof createMcpServer>,
   name: string,
   args: Record<string, unknown> = {},
+  extra: { signal?: AbortSignal } = {},
 ) => {
-  const result = await getToolHandler(context.server, name)(args) as {
+  const result = await getToolHandler(context.server, name)(args, extra) as {
     content: Array<{ text: string }>
     isError?: boolean
   }
@@ -117,7 +148,13 @@ describe('project-scoped MCP server', () => {
   beforeEach(() => {
     client = makeClient()
     leases = makeLeases()
-    context = createMcpServer(client, leases, '0.2.0')
+    context = createMcpServer(client, leases, '0.4.0')
+  })
+
+  it('registers every catalog tool once (SITE-04)', () => {
+    const tools = (context.server as unknown as Record<string, Record<string, unknown>>)['_registeredTools']
+    expect(Object.keys(tools ?? {}).sort()).toEqual([...MCP_TOOL_NAMES].sort())
+    expect(MCP_TOOL_CATALOG).toHaveLength(10)
   })
 
   it('lists active projects', async () => {
@@ -144,7 +181,7 @@ describe('project-scoped MCP server', () => {
     expect(JSON.parse(result.text)).toMatchObject({ code: 'project-ambiguous' })
   })
 
-  it('waits for a dispatched issue and includes its real suggestion', async () => {
+  it('waits for a dispatched issue, acks delivery, and includes its suggestion', async () => {
     const result = await call(context, 'watch_for_issue', {
       project_id: 'project-a',
       timeout_seconds: 30,
@@ -154,10 +191,26 @@ describe('project-scoped MCP server', () => {
       issue: { id: 'dom-1', detector: 'dom-bloat' },
       snapshot: { domNodeCount: 5000 },
       dispatchedAt: 10,
+      deliveryId: 'delivery-1',
       receivedAt: expect.any(Number),
       suggestion: expect.stringContaining('DOM Bloat'),
     })
     expect(leases.acquire).toHaveBeenCalledWith('project-a')
+    expect(client.confirmDelivery).toHaveBeenCalledWith('project-a', 'agent-a', 'delivery-1')
+  })
+
+  it('uses singular "1 second" in watch-timeout copy (E2E-16)', async () => {
+    vi.mocked(client.waitForIssue).mockResolvedValue(null)
+    const result = await call(context, 'watch_for_issue', {
+      project_id: 'project-a',
+      timeout_seconds: 1,
+    })
+    expect(result.isError).toBe(true)
+    expect(JSON.parse(result.text)).toMatchObject({
+      code: 'watch-timeout',
+      error: expect.stringContaining('1 second.'),
+    })
+    expect(JSON.parse(result.text).error).not.toContain('1 seconds')
   })
 
   it('does not let an owned bridge read another project', async () => {
@@ -173,14 +226,16 @@ describe('project-scoped MCP server', () => {
     const issues = await call(context, 'get_detected_issues', { severity: 'warning' })
     expect(JSON.parse(issues.text)).toMatchObject({ count: 1, issues: [{ id: 'dom-1' }] })
     await call(context, 'acknowledge_issue', { issue_id: 'dom-1' })
-    const resolving = await call(context, 'resolve_issue', { issue_id: 'dom-1' })
-    expect(JSON.parse(resolving.text)).toEqual({
-      verifying: true,
+    const resolving = await call(context, 'resolve_issue', { issue_id: 'dom-1', wait_seconds: 0 })
+    expect(JSON.parse(resolving.text)).toMatchObject({
+      ok: true,
+      code: 'verifying',
       projectId: 'project-a',
       issue_id: 'dom-1',
+      message: expect.stringContaining('Waiting'),
     })
-    expect(client.acknowledgeIssue).toHaveBeenCalledWith('project-a', 'dom-1')
-    expect(client.resolveIssue).toHaveBeenCalledWith('project-a', 'dom-1')
+    expect(client.acknowledgeIssue).toHaveBeenCalledWith('project-a', 'agent-a', 'dom-1')
+    expect(client.resolveIssue).toHaveBeenCalledWith('project-a', 'agent-a', 'dom-1')
   })
 
   it('releases the owned project', async () => {

@@ -1,0 +1,9 @@
+[
+  { "id": "dom-bloat", "label": "DOM bloat appears", "t": 0 },
+  { "id": "claim", "label": "An agent claims the project", "t": 0 },
+  { "id": "send", "label": "Send to agent", "t": 0 },
+  { "id": "receive", "label": "The agent receives it", "t": 0 },
+  { "id": "fix", "label": "The fix lands", "t": 0 },
+  { "id": "verifying", "label": "Verifying", "t": 0 },
+  { "id": "fixed", "label": "Fixed", "t": 0 }
+]

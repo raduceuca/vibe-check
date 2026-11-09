@@ -11,6 +11,8 @@ const issue: VibeIssue = {
   description: 'Too many nodes',
   evidence: { nodeCount: 1_600 },
   timestamp: 1,
+  lastSeenAt: 1,
+  occurrences: 1,
   acknowledged: false,
   resolved: false,
 }
@@ -25,12 +27,20 @@ const snapshot: VibeSnapshot = {
   console: { logCount: 0, warnCount: 0, errorCount: 0, totalCount: 0 },
   issues: [issue],
   domNodeCount: 10,
+  engineStartedAt: 1,
+  detectors: [{
+    detector: 'dom-bloat',
+    kind: 'continuous',
+    observingSince: 1,
+    settledAt: 1,
+    evaluatedAt: 1,
+  }],
 }
 
 let context: HubServerContext | null = null
 
 const start = async () => {
-  context = createHubServer({ version: '0.2.0' })
+  context = createHubServer({ version: '0.4.0' })
   await new Promise<void>((resolve) => context!.server.listen(0, '127.0.0.1', resolve))
   const address = context.server.address()
   const port = typeof address === 'object' && address ? address.port : 0
@@ -60,7 +70,7 @@ describe('HubClient', () => {
     })
 
     const client = createHubClient(baseUrl)
-    await expect(client.health()).resolves.toEqual({ status: 'ok', service: 'vibe-check-hub', version: '0.2.0' })
+    await expect(client.health()).resolves.toEqual({ status: 'ok', service: 'vibe-check-hub', version: '0.4.0' })
     await expect(client.listProjects()).resolves.toMatchObject([{ projectId: 'project-a' }])
     await expect(client.getSnapshot('project-a')).resolves.toMatchObject({ domNodeCount: 10 })
     await expect(client.getProjectStatus('project-a')).resolves.toMatchObject({
@@ -78,22 +88,24 @@ describe('HubClient', () => {
     })
     await expect(client.resetProjectImpact('project-a')).resolves.toBeUndefined()
     await expect(client.getProjectImpact('project-a')).resolves.toMatchObject({ detected: 0 })
-    await expect(client.requestVerification('project-a', 'dom-1')).resolves.toBeUndefined()
+    await expect(client.requestVerification('project-a', 'dom-1')).resolves.toMatchObject({
+      ok: true,
+      code: 'verifying',
+    })
     await expect(client.getWorkflow('project-a')).resolves.toMatchObject({
       issues: [{ phase: 'verifying' }],
     })
-    await expect(client.acquireLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })
+    await expect(client.acquireLease('project-a', 'agent-a', 'codex')).resolves.toMatchObject({ ok: true })
     await expect(client.heartbeatLease('project-a', 'agent-a')).resolves.toMatchObject({ ok: true })
     await expect(client.releaseLease('project-a', 'agent-a')).resolves.toBeUndefined()
   })
 
-  it('preserves structured hub errors', async () => {
+  it('returns a LeaseResult for acquire conflicts instead of throwing', async () => {
     const client = createHubClient(await start())
-    await expect(client.acquireLease('missing', 'agent-a')).rejects.toMatchObject({
-      name: 'HubClientError',
-      status: 409,
+    await expect(client.acquireLease('missing', 'agent-a')).resolves.toMatchObject({
+      ok: false,
       code: 'project-not-found',
-    } satisfies Partial<HubClientError>)
+    })
   })
 
   it('rejects a non-VibeCheck process on the configured port', async () => {

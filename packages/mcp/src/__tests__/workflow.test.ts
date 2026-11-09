@@ -8,22 +8,33 @@ import {
   requestWorkflowVerification,
 } from '../workflow.js'
 import type {
+  DetectorRunStatus,
   ProjectSnapshotEnvelope,
   TrackedProjectIssue,
   VibeIssue,
   VibeSnapshot,
 } from '../types.js'
 
-const issue = (id: string): VibeIssue => ({
+const issue = (id: string, at = 1): VibeIssue => ({
   id,
   detector: 'dom-bloat',
   severity: 'warning',
   title: `DOM issue ${id}`,
   description: 'Too many nodes',
   evidence: { nodeCount: 1_600 },
-  timestamp: 1,
+  timestamp: at,
+  lastSeenAt: at,
+  occurrences: 1,
   acknowledged: false,
   resolved: false,
+})
+
+const detectorStatus = (evaluatedAt: number): DetectorRunStatus => ({
+  detector: 'dom-bloat',
+  kind: 'continuous',
+  observingSince: evaluatedAt - 1,
+  settledAt: evaluatedAt - 1,
+  evaluatedAt,
 })
 
 const snapshot = (issues: readonly VibeIssue[], timestamp: number): VibeSnapshot => ({
@@ -44,6 +55,8 @@ const snapshot = (issues: readonly VibeIssue[], timestamp: number): VibeSnapshot
   console: { logCount: 0, warnCount: 0, errorCount: 0, totalCount: 0 },
   issues,
   domNodeCount: 1_600,
+  engineStartedAt: timestamp - 10,
+  detectors: [detectorStatus(timestamp)],
 })
 
 const envelope = (
@@ -83,7 +96,8 @@ describe('issue workflow', () => {
     workflow = markWorkflowWorking(workflow, 'first', 3)
     expect(markWorkflowWorking(workflow, 'first', 4)).toBe(workflow)
     workflow = requestWorkflowVerification(workflow, 'first', 5)
-    workflow = recordWorkflowSnapshot(workflow, envelope([issue('still-there')], '/pricing', 6), 6)
+    // Recurrence with lastSeenAt after the request → verification-failed.
+    workflow = recordWorkflowSnapshot(workflow, envelope([issue('still-there', 6)], '/pricing', 6), 6)
     expect(workflow.issues[0]?.phase).toBe('working')
     expect(workflow.issues[0]?.events.filter((event) => event.type === 'verification-failed'))
       .toHaveLength(1)
@@ -96,7 +110,7 @@ describe('issue workflow', () => {
     workflow = recordWorkflowSnapshot(workflow, envelope([], '/pricing', 10), 10)
     expect(workflow.issues[0]?.phase).toBe('fixed')
 
-    workflow = recordWorkflowSnapshot(workflow, envelope([issue('returned')], '/pricing', 11), 11)
+    workflow = recordWorkflowSnapshot(workflow, envelope([issue('returned', 11)], '/pricing', 11), 11)
     expect(workflow.issues[0]).toMatchObject({
       phase: 'regressed',
       occurrenceCount: 2,
@@ -136,7 +150,9 @@ describe('issue workflow', () => {
       1,
     )
     workflow = requestWorkflowVerification(workflow, 'first', 5)
-    const stale = recordWorkflowSnapshot(workflow, envelope([], '/pricing', 5), 6)
+    // Same hub clock as the request: producer timestamp 5 maps to requestedAt 5,
+    // so snapshot.timestamp <= requestedAt → inconclusive.
+    const stale = recordWorkflowSnapshot(workflow, envelope([], '/pricing', 5), 5)
 
     expect(stale.issues[0]).toMatchObject({ phase: 'verifying', verificationMisses: 0 })
     expect(stale).toBe(workflow)
@@ -148,7 +164,7 @@ describe('issue workflow', () => {
       envelope([issue('first')], '/pricing', 1),
       1,
     )
-    workflow = recordWorkflowSnapshot(workflow, envelope([issue('new-id')], '/pricing', 2), 2)
+    workflow = recordWorkflowSnapshot(workflow, envelope([issue('new-id', 2)], '/pricing', 2), 2)
     workflow = requestWorkflowVerification(workflow, 'first', 3)
 
     expect(workflow.issues[0]).toMatchObject({
@@ -156,5 +172,4 @@ describe('issue workflow', () => {
       occurrenceIds: ['first', 'new-id'],
     })
   })
-
 })

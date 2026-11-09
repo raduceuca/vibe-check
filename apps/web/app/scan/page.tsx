@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 }
 
 const ScanPage = () => (
-  <SiteShell>
+  <SiteShell variant="topbar" install="scan" footer>
     <main className="vc-wrap">
       <header className="vc-scan-hero">
         <div className="vc-eyebrow">

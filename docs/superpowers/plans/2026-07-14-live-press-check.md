@@ -1,5 +1,9 @@
 # Live Press Check Implementation Plan
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn VibeCheck’s proof marks and landing copy into one unmistakable live printing-press check system while preserving the modern interface.

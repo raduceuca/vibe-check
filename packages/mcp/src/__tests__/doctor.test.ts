@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  HUB_START_COMMAND,
+  MCP_PACKAGE_SPEC,
+  formatLeaseConflictMessage,
+  type LeaseHolder,
+} from '@wcgw/vibe-check-protocol'
+import {
   formatDoctorHuman,
   formatDoctorJson,
   runDoctor,
@@ -34,12 +40,14 @@ const project = (projectId = 'project-a', lastSeenAt = 19_000): ProjectSummary =
 const status = (
   state: ProjectStatus['state'] = 'no-agent',
   conflictAt: number | null = null,
+  holder: LeaseHolder | null = null,
 ): ProjectStatus => ({
   projectId: 'project-a',
   state,
   queueDepth: 0,
   leaseExpiresAt: state === 'no-agent' ? null : 25_000,
   conflictAt,
+  holder,
 })
 
 const makeClient = (overrides: Partial<HubClient> = {}): HubClient => ({
@@ -59,8 +67,8 @@ const makeClient = (overrides: Partial<HubClient> = {}): HubClient => ({
   ...overrides,
 })
 
-const diagnose = (client: HubClient, projectId?: string) => runDoctor({
-  hubUrl: HUB_URL,
+const diagnose = (client: HubClient, projectId?: string, hubUrl = HUB_URL) => runDoctor({
+  hubUrl,
   projectId,
   client,
   nodeVersion: '20.19.0',
@@ -79,7 +87,28 @@ describe('runDoctor', () => {
       level: 'fail',
       message: `Cannot reach the VibeCheck hub at ${HUB_URL}.`,
     })
-    expect(report.nextSteps).toContain('Start the hub: npx -y @wcgw/vibe-check-mcp@0.3.0 hub')
+    expect(report.nextSteps).toContain(`Start the hub: ${HUB_START_COMMAND}`)
+  })
+
+  it('names the non-default port in the start-hub step (E2E-06)', async () => {
+    const report = await diagnose(makeClient({
+      health: async () => { throw new HubClientError(0, 'hub-offline', null) },
+    }), 'project-a', 'http://127.0.0.1:4317')
+
+    expect(report.checks).toContainEqual({
+      id: 'hub',
+      level: 'fail',
+      message: 'Cannot reach the VibeCheck hub at http://127.0.0.1:4317.',
+    })
+    expect(report.nextSteps).toContain(`Start the hub: ${HUB_START_COMMAND} --port 4317`)
+  })
+
+  it('points at the widget beaconUrl and the origin allowlist when no project publishes', async () => {
+    const report = await diagnose(makeClient({ listProjects: async () => [] }))
+
+    expect(report.ok).toBe(false)
+    expect(report.nextSteps.join('\n')).toContain(`beaconUrl ${HUB_URL}`)
+    expect(report.nextSteps.join('\n')).toContain('--allow-origin')
   })
 
   it('fails closed when several projects exist and none was selected', async () => {
@@ -136,8 +165,34 @@ describe('runDoctor', () => {
     expect(report.nextSteps.join('\n')).toContain('claude mcp add --scope local')
     expect(report.nextSteps.join('\n')).toContain('.cursor/mcp.json')
     expect(report.nextSteps.join('\n')).toContain('"vibe-check"')
-    expect(report.nextSteps.join('\n')).toContain('@wcgw/vibe-check-mcp@0.3.0')
+    expect(report.nextSteps.join('\n')).toContain(MCP_PACKAGE_SPEC)
     expect(report.nextSteps.join('\n')).toContain('project_id "project-a"')
+    expect(report.nextSteps.join('\n')).not.toContain('VIBE_CHECK_HUB_URL')
+  })
+
+  it('carries a non-default hub into every agent setup step (E2E-06)', async () => {
+    const hubUrl = 'http://127.0.0.1:4317'
+    const report = await diagnose(makeClient(), 'project-a', hubUrl)
+    const steps = report.nextSteps.join('\n')
+
+    expect(steps).toContain(`codex mcp add vibe-check --env VIBE_CHECK_HUB_URL=${hubUrl} --`)
+    expect(steps).toContain(`claude mcp add --scope local vibe-check -e VIBE_CHECK_HUB_URL=${hubUrl} --`)
+    expect(steps).toContain(`"VIBE_CHECK_HUB_URL": "${hubUrl}"`)
+  })
+
+  it('warns when an agent session claimed the project but is not waiting (leased)', async () => {
+    const report = await diagnose(makeClient({
+      getProjectStatus: async () => status('leased'),
+    }), 'project-a')
+
+    expect(report.ok).toBe(false)
+    expect(report.checks).toContainEqual({
+      id: 'watcher',
+      level: 'warn',
+      message: 'An agent session claimed project-a but is not waiting. Ask it to call watch_for_issue again.',
+    })
+    expect(report.checks.some((check) => check.message.includes('No agent is watching'))).toBe(false)
+    expect(report.nextSteps.join('\n')).toContain('watch_for_issue with project_id "project-a"')
   })
 
   it.each([
@@ -187,8 +242,15 @@ describe('runDoctor', () => {
   })
 
   it('reports a recent rejected second watcher without replacing the owner', async () => {
+    const holder: LeaseHolder = {
+      clientName: 'claude-code',
+      acquiredAt: 10_000,
+      heartbeatAt: 17_000,
+      expiresAt: 32_000,
+      state: 'watching',
+    }
     const report = await diagnose(makeClient({
-      getProjectStatus: async () => status('watching', 19_500),
+      getProjectStatus: async () => status('watching', 19_500, holder),
     }), 'project-a')
 
     expect(report.ok).toBe(true)
@@ -197,7 +259,8 @@ describe('runDoctor', () => {
       level: 'warn',
       message: 'Agent watcher is connected; a second agent was rejected recently.',
     })
-    expect(report.nextSteps.join(' ')).toContain('owning session')
+    expect(report.nextSteps).toEqual([formatLeaseConflictMessage('project-a', holder, NOW)])
+    expect(report.nextSteps[0]).toContain('(Claude Code, last heartbeat 3s ago)')
   })
 
   it('formats deterministic human and JSON output', async () => {

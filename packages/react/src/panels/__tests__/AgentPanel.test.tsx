@@ -52,8 +52,9 @@ describe('AgentPanel delivery', () => {
     const { onMarkSent } = renderPanel(onDispatch)
     fireEvent.click(screen.getByRole('button', { name: /send to agent/i }))
     await waitFor(() => expect(onMarkSent).toHaveBeenCalledWith('dom-1'))
-    expect(screen.getByText('sent')).toBeTruthy()
+    expect(screen.getByText('sent to agent')).toBeTruthy()
   })
+
 
   it('shows a failed delivery without marking sent', async () => {
     const onDispatch = vi.fn(async (): Promise<DispatchIssueResponse> => ({

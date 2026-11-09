@@ -1,5 +1,9 @@
 # Proof-Control System Implementation Plan
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the ambiguous CMYK dash with deliberate top-edge press controls and distribute restrained calibration details across the widget and public landing page.

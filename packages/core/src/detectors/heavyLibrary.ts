@@ -1,5 +1,7 @@
+import type { DetectorRunStatus } from '@wcgw/vibe-check-protocol'
 import type { Detector, VibeIssue } from '../types.js'
 import { createIssue } from './createIssue.js'
+import { createRunTracker } from './runStatus.js'
 
 // ── Library Signatures ──────────────────────────────────────────────────────
 
@@ -366,11 +368,15 @@ export const createHeavyLibraryDetector = (): Detector => {
   let initialTimeoutId: ReturnType<typeof setTimeout> | null = null
   let rescanIntervalId: ReturnType<typeof setInterval> | null = null
   const reportedLibraries = new Set<string>()
+  const tracker = createRunTracker('heavy-library')
 
   const scan = (): void => {
     // Skip the entire scan (and its DOM + resource queries) when every known
     // signature has already been reported, or when the page is hidden.
-    if (reportedLibraries.size === LIBRARY_SIGNATURES.length) return
+    if (reportedLibraries.size === LIBRARY_SIGNATURES.length) {
+      tracker.evaluated(Date.now())
+      return
+    }
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
     for (const sig of LIBRARY_SIGNATURES) {
@@ -410,11 +416,17 @@ export const createHeavyLibraryDetector = (): Detector => {
     name: 'heavy-library',
 
     start(): void {
+      if (initialTimeoutId !== null || rescanIntervalId !== null) return
+      tracker.start(Date.now())
       // Delay initial scan to let page load fully
       initialTimeoutId = setTimeout(() => {
         scan()
+        tracker.evaluated(Date.now())
         // Periodic rescan for lazily loaded libraries
-        rescanIntervalId = setInterval(scan, RESCAN_INTERVAL_MS)
+        rescanIntervalId = setInterval(() => {
+          scan()
+          tracker.evaluated(Date.now())
+        }, RESCAN_INTERVAL_MS)
       }, SCAN_DELAY_MS)
     },
 
@@ -428,6 +440,7 @@ export const createHeavyLibraryDetector = (): Detector => {
         rescanIntervalId = null
       }
       reportedLibraries.clear()
+      tracker.stop()
     },
 
     getIssues(): readonly VibeIssue[] {
@@ -437,6 +450,11 @@ export const createHeavyLibraryDetector = (): Detector => {
     clear(): void {
       issues = []
       reportedLibraries.clear()
+      tracker.reset()
+    },
+
+    getStatus(): DetectorRunStatus {
+      return tracker.status()
     },
   }
 }

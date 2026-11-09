@@ -1,5 +1,9 @@
 # Print-Proof Brand Design
 
+> **Superseded.** The print-proof branding this document describes was retired in
+> commit 6e281bb6 and is banned by PRODUCT.md. It is kept as a historical record
+> only; do not implement it.
+
 ## Objective
 
 Give the public website and React widget a recognizable prepress identity inspired by registration targets, crop geometry, tint scales, and CMYK process calibration while preserving the product's existing modern refinement.

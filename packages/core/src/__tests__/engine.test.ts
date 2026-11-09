@@ -1,5 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { VibeCheckEngine } from '../engine.js'
+import type { VibeCheckConfig } from '../types.js'
+
+// Number of elements the mocked document reports for querySelectorAll('*').
+let domNodes = 100
+
+const allDetectorsOff: VibeCheckConfig['detectors'] = {
+  domBloat: false,
+  duplicateRequests: false,
+  consoleSpam: false,
+  memoryLeak: false,
+  layoutThrashing: false,
+  unoptimizedImages: false,
+  longTaskAttribution: false,
+  resourceBloat: false,
+  largeImages: false,
+  webEssentials: false,
+  heavyLibrary: false,
+  seo: false,
+  aeo: false,
+}
 
 // Mock all browser APIs that collectors/detectors need
 beforeEach(() => {
@@ -27,11 +47,14 @@ beforeEach(() => {
     }
   } as unknown as typeof PerformanceObserver
 
-  // Mock document.querySelectorAll
-  const mockNodeList = { length: 100 }
-  vi.spyOn(document, 'querySelectorAll').mockReturnValue(
-    mockNodeList as unknown as NodeListOf<Element>
-  )
+  // Mock document.querySelectorAll('*') (the DOM node count); every other
+  // selector, such as the widget-root lookup, runs against the real document.
+  domNodes = 100
+  const realQuerySelectorAll = document.querySelectorAll.bind(document)
+  vi.spyOn(document, 'querySelectorAll').mockImplementation(((selector: string) =>
+    selector === '*'
+      ? { length: domNodes } as unknown as NodeListOf<Element>
+      : realQuerySelectorAll(selector)) as typeof document.querySelectorAll)
 })
 
 afterEach(() => {
@@ -297,6 +320,35 @@ describe('VibeCheckEngine', () => {
     // No more calls after unsubscribe
     expect(callback.mock.calls.length).toBe(callCount)
 
+    engine.stop()
+  })
+
+  // SPEC-P2: clearIssues(detector) restarts that detector's observation, so a
+  // fault that is still there comes back on its next check.
+  it('re-raises a cleared detector issue while the fault persists', async () => {
+    domNodes = 900
+    const engine = new VibeCheckEngine({ detectors: { ...allDetectorsOff, domBloat: true } })
+
+    engine.start()
+    expect(engine.getIssues().map((issue) => issue.detector)).toEqual(['dom-bloat'])
+
+    engine.clearIssues('dom-bloat')
+    expect(engine.getIssues()).toEqual([])
+
+    await vi.advanceTimersByTimeAsync(6_000)
+    expect(engine.getIssues().map((issue) => issue.detector)).toEqual(['dom-bloat'])
+    engine.stop()
+  })
+
+  it('clearIssues(detector) leaves other detectors alone', () => {
+    domNodes = 900
+    const engine = new VibeCheckEngine({ detectors: { ...allDetectorsOff, domBloat: true } })
+
+    engine.start()
+    engine.clearIssues('seo')
+    expect(engine.getIssues().map((issue) => issue.detector)).toEqual(['dom-bloat'])
+    engine.clearIssues()
+    expect(engine.getIssues()).toEqual([])
     engine.stop()
   })
 

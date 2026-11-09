@@ -56,7 +56,7 @@ describe('VibeCheck', () => {
     const overlay = screen.getByTestId('vibe-check-overlay')
     expect(overlay).toBeTruthy()
     expect(overlay.style.width).toBe('320px')
-    expect(screen.getByText('vibe check')).toBeTruthy()
+    expect(screen.getByText('VibeCheck')).toBeTruthy()
   })
 
   it('shows agent connection state in navigation from every view', () => {
@@ -66,51 +66,22 @@ describe('VibeCheck', () => {
     expect(screen.getByRole('tab', { name: /Fix.*AI connection not configured/i })).toBeTruthy()
   })
 
-  it('misregisters the top proof register only when an issue is active', () => {
-    const { unmount } = render(<VibeCheck enabled />)
+  it('collapses from the dedicated close control', () => {
+    render(<VibeCheck enabled />)
 
-    expect(screen.getByTestId('wcgw-top-proof-register').hasAttribute('data-faulted')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse VibeCheck' }))
+    expect(screen.queryByTestId('vibe-check-body')).toBeNull()
+    expect(screen.getByTestId('vibe-check-header')).toBeTruthy()
+  })
+
+  it('does not paint print-mark chrome on the expanded or collapsed overlay', () => {
+    const { unmount } = render(<VibeCheck enabled />)
+    expect(screen.queryByTestId('wcgw-top-proof-register')).toBeNull()
+    expect(screen.queryByText('LIVE PROOF')).toBeNull()
     unmount()
 
-    mockUseVibeCheck.mockReturnValue({
-      engine: null,
-      snapshot: {
-        ...EMPTY_SNAPSHOT,
-        issues: [{
-          id: 'dom-1',
-          detector: 'dom-bloat',
-          severity: 'warning',
-          title: 'DOM issue',
-          description: 'The page has too many DOM nodes.',
-          evidence: {},
-          timestamp: 1,
-          acknowledged: false,
-          resolved: false,
-        }],
-      },
-    })
-
-    render(<VibeCheck enabled />)
-
-    expect(screen.getByTestId('wcgw-top-proof-register').getAttribute('data-faulted')).toBe('true')
-  })
-
-  it('places the proof register before the interactive header', () => {
-    render(<VibeCheck enabled />)
-
-    const overlay = screen.getByTestId('vibe-check-overlay')
-    const register = screen.getByTestId('wcgw-top-proof-register')
-    const header = screen.getByTestId('vibe-check-header')
-
-    expect(overlay.style.width).toBe('320px')
-    expect(register.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
-  it('uses an edge register in the collapsed pill without covering metrics', () => {
     render(<VibeCheck enabled startCollapsed />)
-
-    expect(screen.getByTestId('wcgw-pill-proof-register')).toBeTruthy()
-    expect(screen.queryByTestId('wcgw-top-proof-register')).toBeNull()
+    expect(screen.queryByTestId('wcgw-pill-proof-register')).toBeNull()
   })
 
   it('shows FPS panel by default', () => {

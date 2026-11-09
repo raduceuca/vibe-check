@@ -1,6 +1,8 @@
+import type { DetectorRunStatus } from '@wcgw/vibe-check-protocol'
 import type { Detector, VibeIssue } from '../types.js'
 import { hasResourceTiming } from '../utils/featureDetect.js'
 import { createIssue } from './createIssue.js'
+import { createRunTracker } from './runStatus.js'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ export const createResourceBloatDetector = (): Detector => {
   let issues: VibeIssue[] = []
   let timerId: ReturnType<typeof setInterval> | null = null
   const reportedUrls = new Set<string>()
+  const tracker = createRunTracker('resource-bloat')
   const thresholdKB = isDevMode() ? LARGE_RESOURCE_THRESHOLD_KB_DEV : LARGE_RESOURCE_THRESHOLD_KB_PROD
 
   const scan = (): void => {
@@ -94,13 +97,17 @@ export const createResourceBloatDetector = (): Detector => {
         ),
       ]
     }
+    tracker.evaluated(Date.now())
   }
 
   return {
     name: 'resource-bloat',
 
     start(): void {
-      if (!hasResourceTiming()) return
+      const supported = hasResourceTiming()
+      tracker.start(Date.now(), supported)
+      if (!supported) return
+      if (timerId !== null) return
 
       // Scan once immediately for already-loaded resources
       scan()
@@ -115,6 +122,7 @@ export const createResourceBloatDetector = (): Detector => {
         timerId = null
       }
       reportedUrls.clear()
+      tracker.stop()
     },
 
     getIssues(): readonly VibeIssue[] {
@@ -124,6 +132,11 @@ export const createResourceBloatDetector = (): Detector => {
     clear(): void {
       issues = []
       reportedUrls.clear()
+      tracker.reset()
+    },
+
+    getStatus(): DetectorRunStatus {
+      return tracker.status()
     },
   }
 }

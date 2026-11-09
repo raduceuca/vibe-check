@@ -19,7 +19,7 @@ export const GET = (): Response => {
 
   sections.push('# VibeCheck')
   sections.push(
-    '> A quiet performance instrument for the AI-built frontend. VibeCheck runs in the corner of your app, catches jank, memory leaks, DOM bloat, layout shift and failing SEO / AI-readiness audits, and hands the evidence to your coding agent over MCP.',
+    '> VibeCheck is a performance and SEO overlay for AI-built frontends. It runs in the corner of your dev server, names jank, bloat, leaks and SEO/AEO gaps on the live page, sends the one issue you pick to the coding agent watching your project over MCP, and counts a fix only when fresh browser readings confirm it.',
   )
   sections.push(
     'Every link below points at a clean markdown version of the page. Read them directly, or fetch the whole site at once via /llms-full.txt.',
@@ -55,7 +55,7 @@ export const GET = (): Response => {
     [
       `- [Full markdown corpus](${absoluteUrl('/llms-full.txt')}): every doc and fix guide concatenated into one file.`,
       `- [Sitemap](${absoluteUrl('/sitemap.xml')}): every canonical URL on the site.`,
-      `- [MCP server card](${absoluteUrl('/.well-known/mcp.json')}): the project-scoped agent interface (nine tools) VibeCheck exposes.`,
+      `- [MCP server card](${absoluteUrl('/.well-known/mcp.json')}): the project-scoped agent interface (ten tools) VibeCheck exposes.`,
     ].join('\n'),
   )
 
